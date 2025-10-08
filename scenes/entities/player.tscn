@@ -1,8 +1,9 @@
-[gd_scene load_steps=16 format=3 uid="uid://l4e1k3jkgu8s"]
+[gd_scene load_steps=17 format=3 uid="uid://l4e1k3jkgu8s"]
 
 [ext_resource type="Script" uid="uid://wgpmntr5gt2u" path="res://scenes/entities/player.gd" id="1_08t41"]
 [ext_resource type="PackedScene" uid="uid://cvgcaefwbrg4n" path="res://art/characters/animations1.glb" id="1_ucweq"]
 [ext_resource type="AnimationLibrary" uid="uid://d2yeay5avcx06" path="res://data/animations/animations.res" id="3_1ie0h"]
+[ext_resource type="Script" uid="uid://b1aka3xixa22f" path="res://scripts/player/CameraOrbit.gd" id="4_42nxq"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_ucweq"]
 
@@ -130,18 +131,18 @@ anim_player = NodePath("../AnimationPlayer")
 parameters/AirBlend/blend_amount = 0.0
 parameters/Jump/active = false
 parameters/Jump/internal_active = 0.9
-parameters/Jump/request = 0.006899
+parameters/Jump/request = 0.006901
 parameters/Locomotion/blend_position = 0.006899
-parameters/SprintScale/scale = 0.006899
+parameters/SprintScale/scale = 0.006901
 
 [node name="CameraRig" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+script = ExtResource("4_42nxq")
 
 [node name="Yaw" type="Node3D" parent="CameraRig"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.68661)
 
 [node name="Pitch" type="Node3D" parent="CameraRig/Yaw"]
-transform = Transform3D(1, 0, 0, 0, 0.984808, 0.173648, 0, -0.173648, 0.984808, 0, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 
 [node name="SpringArm3D" type="SpringArm3D" parent="CameraRig/Yaw/Pitch"]
 shape = SubResource("SphereShape3D_ucweq")
