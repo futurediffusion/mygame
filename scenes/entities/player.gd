@@ -12,9 +12,13 @@ class_name Player
 @export var model_forward_correction_deg: float = 0.0
 
 # === ANIMACIONES ===
-@export var fall_clip_name := "fall air loop"  # clip exacto de caída
-@export var fall_threshold: float = -0.2       # empieza “fall” si vel.y < esto
-@export var fall_blend_lerp: float = 12.0      # rapidez de mezcla 0↔1
+@export var fall_clip_name := "fall air loop"   # clip exacto de caída
+
+# Cuándo empieza a considerarse “caída” y cómo sube el blend
+@export var fall_threshold: float = -0.05       # empieza fall cuando vel.y < esto
+@export var fall_ramp_delay: float = 0.10       # segundos tras el despegue antes de empezar a mezclar fall
+@export var fall_ramp_time: float = 0.20        # cuánto tarda en subir de 0→1 el peso objetivo de fall
+@export var fall_blend_lerp: float = 12.0       # rapidez de seguimiento al objetivo (suavizado)
 
 # === NODOS ===
 @onready var yaw: Node3D = $CameraRig/Yaw
@@ -33,15 +37,15 @@ const PARAM_FALLANIM  := "parameters/FallAnim/animation"
 var yaw_angle := 0.0
 var pitch_angle := 0.0
 var was_on_floor := true
+var air_time := 0.0   # << tiempo continuo en el aire
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	anim_tree.anim_player = anim_player.get_path()
 	anim_tree.active = true
 
-	# Linkea el clip de caída al nodo Animation "FallAnim"
+	# Vincula el clip de caída al nodo Animation "FallAnim"
 	anim_tree.set(PARAM_FALLANIM, fall_clip_name)
-	print("✅ FallAnim clip asignado:", anim_tree.get(PARAM_FALLANIM))
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
@@ -78,6 +82,12 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
+	# === AIR TIME (para el ramp de fall) ===
+	if is_on_floor():
+		air_time = 0.0
+	else:
+		air_time += delta
+
 	# === ORIENTACIÓN DEL MESH SEGÚN DIRECCIÓN ===
 	if dir.length() > 0.05:
 		var target_yaw := atan2(dir.x, dir.z) + deg_to_rad(model_forward_correction_deg)
@@ -92,8 +102,16 @@ func _physics_process(delta: float) -> void:
 		t = remap(speed_h, walk_speed, max(walk_speed, run_speed), 0.4, 1.0)
 	anim_tree.set(PARAM_LOC, clampf(t, 0.0, 1.0))
 
-	# === FALL / AIRBLEND ===
-	var target_air: float = 1.0 if (not is_on_floor() and velocity.y < fall_threshold) else 0.0
+	# === FALL / AIRBLEND con ramp suave ===
+	var target_air: float = 0.0
+	if not is_on_floor() and velocity.y < fall_threshold:
+		# Arranca a mezclar FALL tras fall_ramp_delay y sube a 1 en fall_ramp_time con suavizado
+		var ramp := inverse_lerp(fall_ramp_delay, fall_ramp_delay + fall_ramp_time, air_time)
+		ramp = clampf(ramp, 0.0, 1.0)
+		# suavizado tipo smoothstep (curva S)
+		ramp = ramp * ramp * (3.0 - 2.0 * ramp)
+		target_air = ramp
+	# Suavizado hacia el objetivo
 	var current_air := float(anim_tree.get(PARAM_AIRBLEND))
 	var step := clampf(delta * fall_blend_lerp, 0.0, 1.0)
 	var new_air := lerpf(current_air, target_air, step)
@@ -102,8 +120,8 @@ func _physics_process(delta: float) -> void:
 	# === ATERRIZAJE ===
 	if is_on_floor() and not was_on_floor:
 		anim_tree.set(PARAM_AIRBLEND, 0.0)
-		anim_tree.set(PARAM_JUMP, AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
-
+		# Deja que el Jump termine por su fade out; si querés ultra limpio:
+		# anim_tree.set(PARAM_JUMP, AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
 	was_on_floor = is_on_floor()
 
 func _play_jump() -> void:

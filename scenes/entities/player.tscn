@@ -16,7 +16,7 @@ animation = &"fall air loop"
 
 [sub_resource type="AnimationNodeOneShot" id="AnimationNodeOneShot_42nxq"]
 fadein_time = 0.05
-fadeout_time = 0.1
+fadeout_time = 0.35
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_5u6hq"]
 animation = &"idle"
@@ -37,7 +37,7 @@ blend_point_2/pos = 1.0
 min_space = 0.0
 
 [sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_c5rqy"]
-graph_offset = Vector2(-604.645, 69.1797)
+graph_offset = Vector2(-572.068, 118.565)
 nodes/AirBlend/node = SubResource("AnimationNodeBlend2_1ie0h")
 nodes/AirBlend/position = Vector2(-80, 360)
 nodes/Animation/node = SubResource("AnimationNodeAnimation_1ie0h")
@@ -78,7 +78,7 @@ bones/8/rotation = Quaternion(0.41333, 0.329532, -0.114639, 0.841086)
 bones/9/position = Vector3(3.22008e-07, 35.3395, 4.58517e-06)
 bones/9/rotation = Quaternion(0.0430685, -0.00948684, 0.503539, 0.862846)
 bones/10/position = Vector3(-1.08184e-07, 31.0194, 1.68016e-06)
-bones/10/rotation = Quaternion(0.0113375, -0.111342, -0.00238359, 0.993715)
+bones/10/rotation = Quaternion(0.0113374, -0.111342, -0.0023836, 0.993715)
 bones/11/position = Vector3(-2.8989, 7.99152, -8.49766e-06)
 bones/11/rotation = Quaternion(0.0897382, 0.1089, 0.12809, 0.981672)
 bones/12/rotation = Quaternion(0.0337145, -0.0621521, -0.134491, 0.988389)
@@ -92,8 +92,8 @@ bones/17/rotation = Quaternion(-0.034884, -0.00490386, -0.0186277, 0.999206)
 bones/18/position = Vector3(-0.283802, 5.4837, 2.96172e-06)
 bones/19/rotation = Quaternion(0.580261, -0.406183, 0.593722, 0.381846)
 bones/20/rotation = Quaternion(0.384041, -0.0416541, -0.226055, 0.894246)
-bones/21/rotation = Quaternion(0.0626423, 0.0077873, -0.690821, 0.720265)
-bones/22/rotation = Quaternion(-0.147014, -0.184475, -0.162567, 0.958085)
+bones/21/rotation = Quaternion(0.0626423, 0.00778731, -0.690821, 0.720265)
+bones/22/rotation = Quaternion(-0.147014, -0.184475, -0.162567, 0.958086)
 bones/23/rotation = Quaternion(0.135113, -0.0504241, -0.0593246, 0.987766)
 bones/24/position = Vector3(2.22421, 6.62341, 9.50937e-06)
 bones/24/rotation = Quaternion(-0.036889, 0.0230729, 0.0105896, 0.998997)
@@ -111,7 +111,7 @@ bones/33/rotation = Quaternion(0.395767, -0.106698, 0.191564, 0.891789)
 bones/34/rotation = Quaternion(0.403829, -0.279448, -0.0704261, 0.868258)
 bones/36/rotation = Quaternion(0.0092805, 0.311383, 0.947189, -0.0760808)
 bones/37/rotation = Quaternion(-0.515842, 0.0210158, 0.0355657, 0.855687)
-bones/38/rotation = Quaternion(0.722631, 0.0638553, -0.0692474, 0.684786)
+bones/38/rotation = Quaternion(0.722631, 0.0638553, -0.0692473, 0.684786)
 bones/39/rotation = Quaternion(0.359031, 0.0211254, -0.00342995, 0.93308)
 
 [node name="AnimationPlayer" parent="Pivot/Model" index="1"]
@@ -123,10 +123,10 @@ autoplay = "idle"
 [node name="AnimationTree" type="AnimationTree" parent="Pivot/Model"]
 tree_root = SubResource("AnimationNodeBlendTree_c5rqy")
 anim_player = NodePath("../AnimationPlayer")
-parameters/AirBlend/blend_amount = 0.006899
+parameters/AirBlend/blend_amount = 0.0069
 parameters/Jump/active = false
 parameters/Jump/internal_active = 0.9
-parameters/Jump/request = 0.006899
+parameters/Jump/request = 0.0069
 parameters/Locomotion/blend_position = 0.006899
 
 [node name="CameraRig" type="Node3D" parent="."]
