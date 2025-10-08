@@ -114,10 +114,12 @@ func _physics_process(delta: float) -> void:
 	anim_tree.set(PARAM_SPRINTSCL, anim_scale)
 
 	# === FALL / AIRBLEND ===
+	# Subimos 'air' cuando estamos cayendo; en piso lo dejamos caer suavemente hacia 0 (no lo reseteamos a lo bruto).
 	var target_air: float = 0.0
 	if not is_on_floor() and velocity.y < fall_threshold:
 		var ramp := inverse_lerp(fall_ramp_delay, fall_ramp_delay + fall_ramp_time, air_time)
 		ramp = clampf(ramp, 0.0, 1.0)
+		# S-curve para suavidad (ease-in/out)
 		ramp = ramp * ramp * (3.0 - 2.0 * ramp)
 		target_air = ramp
 
@@ -128,7 +130,8 @@ func _physics_process(delta: float) -> void:
 
 	# === ATERRIZAJE + SFX ===
 	if is_on_floor() and not was_on_floor:
-		anim_tree.set(PARAM_AIRBLEND, 0.0)
+		# ⚠️ Antes reseteabas a 0 aquí y producía el 'snap' de animación.
+		# Ahora dejamos que el lerp baje solo.
 		if is_instance_valid(land_sfx):
 			land_sfx.play()
 
