@@ -1,6 +1,10 @@
 extends CharacterBody3D
 class_name Player
 
+# === AUDIO SFX ===
+@onready var jump_sfx: AudioStreamPlayer3D = $JumpSFX
+@onready var land_sfx: AudioStreamPlayer3D = $LandSFX
+
 # === MOVIMIENTO Y CONTROL ===
 @export var move_speed: float = 6.0              # (compatibilidad, no se usa directo)
 @export var jump_velocity: float = 7.0
@@ -38,8 +42,8 @@ const PARAM_FALLANIM  := "parameters/FallAnim/animation"
 const PARAM_SPRINTSCL := "parameters/SprintScale/scale"
 
 # === VARIABLES INTERNAS ===
-var was_on_floor := true
-var air_time := 0.0
+var was_on_floor: bool = true
+var air_time: float = 0.0
 
 func _ready() -> void:
 	# (Se elimina el control del mouse aquí. Lo maneja CameraOrbit.gd)
@@ -48,8 +52,7 @@ func _ready() -> void:
 	anim_tree.set(PARAM_FALLANIM, fall_clip_name)
 	anim_tree.set(PARAM_SPRINTSCL, 1.0)
 	anim_tree.set(PARAM_AIRBLEND, 0.0)
-
-# (Se elimina _unhandled_input completo: la cámara ya no se controla desde Player)
+	was_on_floor = is_on_floor()
 
 func _physics_process(delta: float) -> void:
 	var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
@@ -73,10 +76,12 @@ func _physics_process(delta: float) -> void:
 	velocity.x = dir.x * max_ground_speed
 	velocity.z = dir.z * max_ground_speed
 
-	# === SALTO ===
+	# === SALTO + SFX ===
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = jump_velocity
 		_play_jump()
+		if is_instance_valid(jump_sfx):
+			jump_sfx.play()
 
 	move_and_slide()
 
@@ -121,9 +126,13 @@ func _physics_process(delta: float) -> void:
 	var new_air := lerpf(current_air, target_air, step)
 	anim_tree.set(PARAM_AIRBLEND, new_air)
 
-	# === ATERRIZAJE ===
+	# === ATERRIZAJE + SFX ===
 	if is_on_floor() and not was_on_floor:
 		anim_tree.set(PARAM_AIRBLEND, 0.0)
+		if is_instance_valid(land_sfx):
+			land_sfx.play()
+
+	# actualizar estado de suelo al final del frame
 	was_on_floor = is_on_floor()
 
 func _play_jump() -> void:
