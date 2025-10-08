@@ -1,0 +1,36 @@
+[gd_scene load_steps=5 format=3 uid="uid://l4e1k3jkgu8s"]
+
+[ext_resource type="Script" uid="uid://wgpmntr5gt2u" path="res://scenes/entities/player.gd" id="1_08t41"]
+[ext_resource type="PackedScene" uid="uid://cvgcaefwbrg4n" path="res://art/characters/animations1.glb" id="1_ucweq"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_ucweq"]
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_ucweq"]
+
+[node name="Player" type="CharacterBody3D" groups=["player"]]
+script = ExtResource("1_08t41")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.00319, 0)
+shape = SubResource("CapsuleShape3D_ucweq")
+
+[node name="Pivot" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.0827308, 0)
+
+[node name="Model" parent="Pivot" instance=ExtResource("1_ucweq")]
+
+[node name="CameraRig" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+
+[node name="Yaw" type="Node3D" parent="CameraRig"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.68661)
+
+[node name="Pitch" type="Node3D" parent="CameraRig/Yaw"]
+transform = Transform3D(1, 0, 0, 0, 0.984808, 0.173648, 0, -0.173648, 0.984808, 0, 0, 0)
+
+[node name="SpringArm3D" type="SpringArm3D" parent="CameraRig/Yaw/Pitch"]
+shape = SubResource("SphereShape3D_ucweq")
+spring_length = 5.0
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig/Yaw/Pitch/SpringArm3D"]
+current = true

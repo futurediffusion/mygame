@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bkdfiw57qvqgm"]
+
+[ext_resource type="Script" uid="uid://ip2gdjvhxy1a" path="res://core/one_shots/SetupInput.gd" id="1_a202f"]
+
+[node name="setup" type="Node3D"]
+script = ExtResource("1_a202f")
