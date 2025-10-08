@@ -20,5 +20,5 @@ shape = SubResource("BoxShape3D_b5usy")
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
 
-[node name="Player" parent="DirectionalLight3D" instance=ExtResource("1_tjl6x")]
+[node name="Player" parent="." instance=ExtResource("1_tjl6x")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8.17853, 0)
