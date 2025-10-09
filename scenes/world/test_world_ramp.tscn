@@ -1,0 +1,41 @@
+[gd_scene load_steps=6 format=3 uid="uid://z5w1r7ramp000"]
+
+[ext_resource type="PackedScene" uid="uid://l4e1k3jkgu8s" path="res://scenes/entities/player.tscn" id="1_tjl6x"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_flat"]
+size = Vector2(40, 40)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_flat"]
+size = Vector3(40, 0.2, 40)
+
+[sub_resource type="BoxMesh" id="BoxMesh_ramp"]
+size = Vector3(16, 1, 8)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_ramp"]
+size = Vector3(16, 1, 8)
+
+[node name="TestWorldRamp" type="Node3D"]
+
+[node name="Floor" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_flat")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/StaticBody3D"]
+shape = SubResource("BoxShape3D_flat")
+
+[node name="Ramp" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_ramp")
+translation = Vector3(0, 1, -6)
+rotation = Vector3(-0.523599, 0, 0)
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Ramp"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ramp/StaticBody3D"]
+shape = SubResource("BoxShape3D_ramp")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.872665, 0.523599, 0)
+
+[node name="Player" parent="." instance=ExtResource("1_tjl6x")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 8)
