@@ -78,11 +78,25 @@ var _model_correction_rad: float
 var _max_slope_rad: float
 var _sprint_threshold: float
 
+# --- Helpers de velocidad horizontal (no cambian lógica) ---
+func _h_vec() -> Vector2:
+        return Vector2(velocity.x, velocity.z)
+
+func _set_h_vec(v: Vector2) -> void:
+        velocity.x = v.x
+        velocity.z = v.y
+
+func _h_speed() -> float:
+        return _h_vec().length()
+
+func _is_moving_h() -> bool:
+        return _h_speed() > 0.001
+
 # ============================================================================
 # INITIALIZATION
 # ============================================================================
 func _ready() -> void:
-	_initialize_animation_system()
+        _initialize_animation_system()
 	_cache_constants()
 	_configure_physics()
 	_was_on_floor = is_on_floor()
@@ -155,11 +169,10 @@ func _update_horizontal_velocity(delta: float, input_dir: Vector3, is_sprinting:
 	if input_dir != Vector3.ZERO:
 		var target_horiz: Vector2 = Vector2(input_dir.x, input_dir.z) * target_speed
 		current_horiz = _accelerate_towards(current_horiz, target_horiz, delta)
-	else:
-		current_horiz = _apply_deceleration(current_horiz, delta)
-	
-	velocity.x = current_horiz.x
-	velocity.z = current_horiz.y
+        else:
+                current_horiz = _apply_deceleration(current_horiz, delta)
+
+        _set_h_vec(current_horiz)
 
 func _accelerate_towards(current: Vector2, target: Vector2, delta: float) -> Vector2:
 	var accel_rate: float = accel_ground if is_on_floor() else accel_air
