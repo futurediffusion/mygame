@@ -71,8 +71,8 @@ func _physics_tick(dt: float) -> void:
 	set_hvel(next)
 
 	# Rotación del modelo hacia la dirección de movimiento
-        if model and next.length_squared() > 0.0025:
-                # 'next' es un Vector2 (x,z). En nuestro sistema "forward" es -Z,
-                # por lo que necesitamos invertir ambos ejes para obtener el yaw correcto.
-                var target_yaw: float = atan2(-next.x, -next.y)
-                model.rotation.y = lerp_angle(model.rotation.y, target_yaw, face_lerp)
+	if model and next.length_squared() > 0.0025:
+		# 'next' es un Vector2 (x,z). En nuestro sistema "forward" es -Z,
+		# por lo que necesitamos invertir ambos ejes para obtener el yaw correcto.
+		var target_yaw: float = atan2(-next.x, -next.y)
+		model.rotation.y = lerp_angle(model.rotation.y, target_yaw, face_lerp)
