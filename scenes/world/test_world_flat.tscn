@@ -1,0 +1,24 @@
+[gd_scene load_steps=4 format=3 uid="uid://flatworld0001"]
+
+[ext_resource type="PackedScene" uid="uid://l4e1k3jkgu8s" path="res://scenes/entities/player.tscn" id="1_tjl6x"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
+size = Vector2(50, 50)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
+size = Vector3(50, 0.2, 50)
+
+[node name="TestWorldFlat" type="Node3D"]
+
+[node name="Floor" type="MeshInstance3D" parent="."]
+mesh = SubResource("PlaneMesh_floor")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Floor"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor/StaticBody3D"]
+shape = SubResource("BoxShape3D_floor")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+
+[node name="Player" parent="." instance=ExtResource("1_tjl6x")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8.17853, 0)
