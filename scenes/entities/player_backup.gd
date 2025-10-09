@@ -1,5 +1,11 @@
 extends CharacterBody3D
-class_name Player
+
+# NOTE: This backup script intentionally avoids registering a `class_name`
+# so it doesn't conflict with the active player script. Godot requires
+# `class_name` identifiers to be unique within a project, and both this
+# backup and the refactored script previously used `Player`, causing a
+# load-time error. Keeping this as a plain script ensures the backup can
+# coexist without interfering with the main implementation.
 
 # ============================================================================
 # AUDIO SYSTEM
