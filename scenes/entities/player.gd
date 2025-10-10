@@ -175,35 +175,13 @@ func _get_camera_relative_input() -> Vector3:
 	return direction.normalized() if direction.length_squared() > 1.0 else direction
 
 func _update_horizontal_velocity(delta: float, input_dir: Vector3, is_sprinting: bool) -> void:
-	var target_speed: float = sprint_speed if is_sprinting else run_speed
-	var current_horiz: Vector2 = Vector2(velocity.x, velocity.z)
-	
-	if input_dir != Vector3.ZERO:
-		var target_horiz: Vector2 = Vector2(input_dir.x, input_dir.z) * target_speed
-		current_horiz = _accelerate_towards(current_horiz, target_horiz, delta)
-	else:
-		current_horiz = _apply_deceleration(current_horiz, delta)
-	
-	_set_h_vec(current_horiz)
+	m_movement.update_horizontal_velocity(delta, input_dir, is_sprinting)
 
 func _accelerate_towards(current: Vector2, target: Vector2, delta: float) -> Vector2:
-	var accel_rate: float = accel_ground if is_on_floor() else accel_air
-	var difference: Vector2 = target - current
-	var distance: float = difference.length()
-	
-	if distance < 0.001:
-		return target
-	
-	var change_amount: float = min(accel_rate * delta, distance)
-	return current + difference.normalized() * change_amount
+	return m_movement.accelerate_towards(current, target, delta)
 
 func _apply_deceleration(current: Vector2, delta: float) -> Vector2:
-	var speed: float = current.length()
-	if speed < 0.001:
-		return Vector2.ZERO
-	
-	var drop: float = min(speed, decel * delta)
-	return current.normalized() * (speed - drop)
+	return m_movement.apply_deceleration(current, delta)
 
 # ============================================================================
 # JUMP SYSTEM
