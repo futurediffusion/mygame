@@ -15,7 +15,7 @@ class_name Player
 @export_range(0.1, 10.0, 0.1) var walk_speed: float = 2.5
 @export_range(0.1, 15.0, 0.1) var run_speed: float = 6.0
 @export_range(0.1, 20.0, 0.1) var sprint_speed: float = 9.5
-@export_range(1.0, 15.0, 0.1) var jump_velocity: float = 7.0
+@export_range(1.0, 15.0, 0.1) var jump_velocity: float = 8.5
 
 @export_group("Physics")
 @export_range(1.0, 50.0, 0.5) var accel_ground: float = 22.0
@@ -157,7 +157,9 @@ func _physics_process(delta: float) -> void:
 # PHYSICS CALCULATIONS
 # ============================================================================
 func _apply_gravity(delta: float) -> void:
-	m_state.apply_gravity(delta)
+        var base_gravity: float = m_state.gravity if "gravity" in m_state else float(ProjectSettings.get_setting("physics/3d/default_gravity"))
+        m_jump.apply_gravity(delta, base_gravity)
+        m_jump.apply_variable_jump_height()
 
 
 func _get_camera_relative_input() -> Vector3:
