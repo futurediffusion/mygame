@@ -1,5 +1,4 @@
 extends Node
-class_name Save
 
 const SAVE_PATH := "user://saves/"
 const CURRENT := "slot_01.json"
