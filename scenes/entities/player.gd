@@ -145,9 +145,6 @@ func _physics_process(delta: float) -> void:
 	m_anim.physics_tick(delta)
 	m_audio.physics_tick(delta)
 
-	_update_jump_mechanics(delta)
-	_handle_jump_input()
-
 	move_and_slide()
 
 	_consume_sprint_stamina(delta, is_sprinting)
@@ -160,8 +157,10 @@ func _physics_process(delta: float) -> void:
 # ============================================================================
 func _apply_gravity(delta: float) -> void:
 	var base_gravity: float = m_state.gravity if "gravity" in m_state else _gravity
-	m_jump.apply_gravity(delta, base_gravity)
-	m_jump.apply_variable_jump_height()
+	if "apply_gravity" in m_state:
+		m_state.apply_gravity(delta)
+	else:
+		velocity.y -= base_gravity * delta
 
 
 func _get_camera_relative_input() -> Vector3:
