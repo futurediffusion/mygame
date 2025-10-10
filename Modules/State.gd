@@ -1,16 +1,14 @@
-extends Node
+extends ModuleBase
 class_name StateModule
 
-@export_enum("global", "regional", "local") var tick_group: String = "local"
 @export var gravity_scale := 1.0
 @export var fall_gravity_multiplier := 1.5
 @export var use_fall_multiplier := true
+@export var configure_physics := true
 
 var player: CharacterBody3D
 var gravity: float
 var _was_on_floor := true
-
-@export var configure_physics := true
 
 signal landed(is_hard: bool)
 
@@ -32,6 +30,10 @@ func setup(p: CharacterBody3D) -> void:
 			player.floor_snap_length = player.snap_len
 
 func physics_tick(delta: float) -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	if player.has_method("should_skip_module_updates") and player.should_skip_module_updates():
+		return
 	# Gravedad base + fast-fall, sin depender del botón
 	if not player.is_on_floor():
 		var g := gravity * gravity_scale

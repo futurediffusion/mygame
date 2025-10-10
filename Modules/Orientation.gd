@@ -1,7 +1,5 @@
-extends Node
+extends ModuleBase
 class_name OrientationModule
-
-@export_enum("global", "regional", "local") var tick_group: String = "local"
 
 var player: CharacterBody3D
 var model: Node3D
@@ -21,6 +19,10 @@ func set_frame_input(input_dir: Vector3) -> void:
 	_input_dir = input_dir
 
 func physics_tick(delta: float) -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	if player.has_method("should_skip_module_updates") and player.should_skip_module_updates():
+		return
 	update_model_rotation(delta, _input_dir)
 
 func update_model_rotation(_delta: float, input_dir: Vector3) -> void:

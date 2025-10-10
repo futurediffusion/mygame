@@ -1,7 +1,5 @@
-extends Node
+extends ModuleBase
 class_name MovementModule
-
-@export_enum("global", "regional", "local") var tick_group: String = "local"
 
 var player: CharacterBody3D
 
@@ -40,6 +38,10 @@ func h_speed() -> float:
 	return h_vec().length()
 
 func physics_tick(delta: float) -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	if player.has_method("should_skip_module_updates") and player.should_skip_module_updates():
+		return
 	update_horizontal_velocity(delta, _input_dir, _is_sprinting)
 
 # ---- Funciones 1:1 con el Player original ----
