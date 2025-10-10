@@ -145,9 +145,6 @@ func _physics_process(delta: float) -> void:
 	m_anim.physics_tick(delta)
 	m_audio.physics_tick(delta)
 
-	_update_jump_mechanics(delta)
-	_handle_jump_input()
-
 	move_and_slide()
 
 	_consume_sprint_stamina(delta, is_sprinting)
@@ -190,19 +187,11 @@ func _apply_deceleration(current: Vector2, delta: float) -> Vector2:
 # ============================================================================
 # JUMP SYSTEM
 # ============================================================================
-func _update_jump_mechanics(delta: float) -> void:
-	m_jump.update_jump_mechanics(delta)
-
-	if "get_air_time" in m_jump:
-		_air_time = m_jump.get_air_time()
-	else:
-		if is_on_floor():
-			_air_time = 0.0
-		else:
-			_air_time += delta
+func _update_jump_mechanics(_delta: float) -> void:
+	pass
 
 func _handle_jump_input() -> void:
-	m_jump.handle_jump_input()
+	pass
 
 func _execute_jump() -> void:
 	m_jump.execute_jump()
