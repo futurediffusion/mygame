@@ -62,15 +62,6 @@ class_name Player
 @onready var m_audio: AudioCtrlModule = $Modules/AudioCtrl
 
 # ============================================================================
-# ANIMATION TREE PATHS (Constants for performance)
-# ============================================================================
-const PARAM_LOC: StringName = &"parameters/Locomotion/blend_position"
-const PARAM_JUMP: StringName = &"parameters/Jump/request"
-const PARAM_AIRBLEND: StringName = &"parameters/AirBlend/blend_amount"
-const PARAM_FALLANIM: StringName = &"parameters/FallAnim/animation"
-const PARAM_SPRINTSCL: StringName = &"parameters/SprintScale/scale"
-
-# ============================================================================
 # INTERNAL STATE
 # ============================================================================
 var _was_on_floor: bool = true
@@ -87,7 +78,6 @@ var _sprint_threshold: float
 # INITIALIZATION
 # ============================================================================
 func _ready() -> void:
-	_initialize_animation_system()
 	_cache_constants()
 	_configure_physics()
 	_was_on_floor = is_on_floor()
@@ -95,13 +85,6 @@ func _ready() -> void:
 	# Setup de módulos (simple referencia al player)
 	for m in [m_movement, m_jump, m_state, m_orientation, m_anim, m_audio]:
 		m.setup(self)
-
-func _initialize_animation_system() -> void:
-	anim_tree.anim_player = anim_player.get_path()
-	anim_tree.active = true
-	anim_tree.set(PARAM_FALLANIM, fall_clip_name)
-	anim_tree.set(PARAM_SPRINTSCL, 1.0)
-	anim_tree.set(PARAM_AIRBLEND, 0.0)
 
 func _cache_constants() -> void:
 	_gravity = float(ProjectSettings.get_setting("physics/3d/default_gravity"))
@@ -152,7 +135,6 @@ func _physics_process(delta: float) -> void:
 
 	# Puentes legacy (inofensivos si quedaron vacíos)
 	_update_model_rotation(delta, input_dir)
-	_update_animation_state(delta, input_dir, is_sprinting)
 	_update_footstep_audio(delta)
 
 	_was_on_floor = is_on_floor()
