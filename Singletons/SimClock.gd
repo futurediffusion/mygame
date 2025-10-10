@@ -14,7 +14,7 @@ var _acc: Dictionary[String, float] = {
 var _paused: bool = false
 
 # Registro por grupo: cada entrada debe tener método physics_tick(dt)
-var _registry: Dictionary[String, Array[Object]] = {
+var _registry: Dictionary[String, Array] = {
 	"local": [],
 	"regional": [],
 	"global": []
@@ -116,10 +116,11 @@ func _physics_process(delta: float) -> void:
 		_tick_group("global", global_interval)
 		_acc["global"] -= global_interval
 
+
 func _tick_group(group_name: String, dt: float) -> void:
 	if _group_paused.get(group_name, false):
 		return
-	var list: Array[Object] = _registry[group_name]
+	var list: Array = _registry[group_name]
 	# Copia para evitar invalidación si alguien se desregistra en tick
 	for n in list.duplicate():
 		if not is_instance_valid(n):

@@ -21,6 +21,9 @@
 - **GameState Singleton** – Tracks pause/cinematic state and exposes signals to listeners.【F:Singletons/GameState.gd†L1-L19】
 - **SimClock Service** – Authoritative scheduler with configurable per-group intervals, pause controls, and registry-driven tick dispatch for modules and orchestrators.【F:Singletons/SimClock.gd†L1-L139】
 
+## Recent Fixes
+- Relaxed the typed registry declaration in `SimClock` to avoid nested generic collection errors while keeping group iteration logic intact.【F:Singletons/SimClock.gd†L16-L118】
+
 ## Player Orchestration
 - `Player.gd` exports tuning parameters, caches node references, and `setup()`-injects itself into each module on `_ready()` to keep module state synchronized.【F:scenes/entities/player.gd†L14-L96】
 - `physics_tick()` caches camera-relative input, updates sprint eligibility, pushes per-frame context into modules, and prepares post-move work before the authoritative scheduler advances the local group.【F:scenes/entities/player.gd†L108-L161】
