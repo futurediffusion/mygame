@@ -10,7 +10,7 @@ func setup(p: CharacterBody3D) -> void:
 	gravity = float(ProjectSettings.get_setting("physics/3d/default_gravity"))
 	_was_on_floor = player.is_on_floor()
 
-func physics_tick(delta: float) -> void:
+func physics_tick(_delta: float) -> void:
 	# este se usará más adelante si queremos centralizar el loop
 	pass
 
