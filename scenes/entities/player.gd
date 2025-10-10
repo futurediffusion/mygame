@@ -131,30 +131,45 @@ func _configure_physics() -> void:
 # MAIN PHYSICS LOOP
 # ============================================================================
 func _physics_process(delta: float) -> void:
-	_apply_gravity(delta)
-
+	# INPUT
 	var input_dir: Vector3 = _get_camera_relative_input()
 	var is_sprinting: bool = _update_sprint_state(delta, input_dir)
-	m_movement.set_frame_input(input_dir, is_sprinting)
 
+	# INYECCIONES POR FRAME
+	m_movement.set_frame_input(input_dir, is_sprinting)
 	var air_time := _air_time
 	if "get_air_time" in m_jump:
 		air_time = m_jump.get_air_time()
 	m_anim.set_frame_anim_inputs(is_sprinting, air_time)
 
-	# Llamadas de "tick" (no cambian comportamiento si ya delegaste arriba)
-	m_state.physics_tick(delta)
-	m_movement.physics_tick(delta)
-	m_jump.physics_tick(delta)
-	m_orientation.physics_tick(delta)
-	m_anim.physics_tick(delta)
+	# FLAGS GLOBALES (en el futuro: GameState.is_paused(), is_in_cinematic())
+	var paused := false
+	var block_anim := false  # ejemplo: en cinemática, mover pero no animar
+
+	# ORDEN CANÓNICO
+	if not paused:
+		m_state.physics_tick(delta)
+		m_jump.physics_tick(delta)
+		m_movement.physics_tick(delta)
+		m_orientation.physics_tick(delta)
+		if not block_anim:
+			m_anim.physics_tick(delta)
+
+	# Audio puede correr incluso si paused (tu decisión)
 	m_audio.physics_tick(delta)
 
+	# FÍSICAS
 	move_and_slide()
 
+	# POST-MOVE
 	_consume_sprint_stamina(delta, is_sprinting)
+
+	# Puentes legacy (inofensivos si quedaron vacíos)
 	_update_model_rotation(delta, input_dir)
+	_update_animation_state(delta, input_dir, is_sprinting)
 	_update_footstep_audio(delta)
+
+	_was_on_floor = is_on_floor()
 
 # ============================================================================
 # PHYSICS CALCULATIONS

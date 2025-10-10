@@ -10,12 +10,14 @@ func setup(p: CharacterBody3D) -> void:
 	gravity = float(ProjectSettings.get_setting("physics/3d/default_gravity"))
 	_was_on_floor = player.is_on_floor()
 
-func physics_tick(_delta: float) -> void:
-	# Solo aterrizaje por ahora (gravedad queda en JumpModule según tu Player actual)
+func physics_tick(delta: float) -> void:
+	apply_gravity(delta)
 	_handle_landing_internal()
 
 # --- Copia fiel de tu lógica original, pero aquí ---
 func apply_gravity(delta: float) -> void:
+	if "m_jump" in player and is_instance_valid(player.m_jump) and "uses_state_gravity" in player.m_jump and not player.m_jump.uses_state_gravity:
+		return
 	if not player.is_on_floor():
 		player.velocity.y -= gravity * delta
 
