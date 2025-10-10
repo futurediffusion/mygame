@@ -75,10 +75,7 @@ const PARAM_SPRINTSCL: StringName = &"parameters/SprintScale/scale"
 # ============================================================================
 var _was_on_floor: bool = true
 var _air_time: float = 0.0
-var _coyote_timer: float = 0.0
-var _jump_buffer_timer: float = 0.0
 var _footstep_timer: float = 0.0
-var _current_air_blend: float = 0.0
 
 # Cached values
 var _gravity: float
@@ -157,7 +154,7 @@ func _physics_process(delta: float) -> void:
 # PHYSICS CALCULATIONS
 # ============================================================================
 func _apply_gravity(delta: float) -> void:
-	var base_gravity: float = m_state.gravity if "gravity" in m_state else float(ProjectSettings.get_setting("physics/3d/default_gravity"))
+	var base_gravity: float = m_state.gravity if "gravity" in m_state else _gravity
 	m_jump.apply_gravity(delta, base_gravity)
 	m_jump.apply_variable_jump_height()
 
@@ -236,7 +233,10 @@ func _update_model_rotation(delta: float, input_dir: Vector3) -> void:
 # ============================================================================
 func _update_animation_state(delta: float, input_dir: Vector3, is_sprinting: bool) -> void:
 	# usamos el air_time del módulo de salto
-	m_anim.update_animation_state(delta, input_dir, is_sprinting, m_jump.get_air_time())
+	var air_time := _air_time
+	if "get_air_time" in m_jump:
+		air_time = m_jump.get_air_time()
+	m_anim.update_animation_state(delta, input_dir, is_sprinting, air_time)
 
 func _update_locomotion_blend(_is_sprinting: bool) -> void:
 	# ya no se usa (quedará como puente vacío o puedes dejarlo como está si nadie lo llama directo)
