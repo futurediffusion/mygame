@@ -14,6 +14,9 @@ config/name="Mygame"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
 
+[autoload]
+GameState="*res://Singletons/GameState.gd"
+
 [input]
 
 move_forward={
