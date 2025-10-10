@@ -35,5 +35,5 @@ func load_dict() -> Dictionary:
 			text = bytes.get_string_from_utf8()
 		else:
 			text = decompressed.get_string_from_utf8()
-	var res := JSON.parse_string(text)
+	var res: Variant = JSON.parse_string(text)
 	return res if typeof(res) == TYPE_DICTIONARY else {}
