@@ -16,7 +16,7 @@ func setup(p: CharacterBody3D) -> void:
 	footstep_sfx = p.footstep_sfx if "footstep_sfx" in p else null
 
 func physics_tick(delta: float) -> void:
-	if not use_timer_footsteps:
+	if not use_timer_footsteps or player == null:
 		return
 	var hspeed := Vector2(player.velocity.x, player.velocity.z).length()
 	if not player.is_on_floor() or hspeed < 0.5:
