@@ -58,3 +58,8 @@
 - Update `GameState` when introducing new global modes so pause/cinematic gating remains authoritative.【F:Singletons/GameState.gd†L1-L19】
 - Maintain asset imports (`.glb` + `.import`) and register new singletons through `project.godot` autoloads for consistency.【F:project.godot†L12-L19】【F:art/characters/animations1.glb.import†L1-L33】
 - `SimClock` autoload now instantiates the `SimClockScheduler` class to keep the singleton name collision-free while preserving typed module casts via `ModuleBase` helpers.【F:Singletons/SimClock.gd†L1-L139】【F:Modules/ModuleBase.gd†L1-L39】【F:scenes/entities/player.gd†L57-L167】
+
+## Ally Progression Data
+- Added data-driven ally defaults and archetypes in `data/ally_archetypes.json`, including base stat templates, skill trees, and growth tuning for ranged and melee examples.
+- Introduced the `Data` singleton to load archetype JSON, merge defaults, and instantiate `AllyStats` resources on demand.
+- Authored `Resources/AllyStats.gd` to encapsulate stat growth rules, diminishing returns tracking, stamina cycle logic, and derived combat formulas for allies.
