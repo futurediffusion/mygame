@@ -6,6 +6,7 @@ var model: Node3D
 var face_lerp := 0.18
 var model_forward_correction_deg := 0.0
 var _model_correction_rad := 0.0
+var _input_dir := Vector3.ZERO
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
@@ -14,8 +15,11 @@ func setup(p: CharacterBody3D) -> void:
 	model_forward_correction_deg = p.model_forward_correction_deg
 	_model_correction_rad = deg_to_rad(model_forward_correction_deg)
 
-func physics_tick(_delta: float) -> void:
-	pass
+func set_frame_input(input_dir: Vector3) -> void:
+	_input_dir = input_dir
+
+func physics_tick(delta: float) -> void:
+	update_model_rotation(delta, _input_dir)
 
 func update_model_rotation(_delta: float, input_dir: Vector3) -> void:
 	if input_dir.length_squared() < 0.0025:
