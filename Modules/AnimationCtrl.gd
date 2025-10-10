@@ -87,7 +87,7 @@ func _update_sprint_timescale(is_sprinting: bool) -> void:
 		anim_tree.set(PARAM_SPRINTSCL, 1.0)
 		return
 	var blend_pos: float = float(anim_tree.get(PARAM_LOC))
-	var scale_factor := lerp(1.0, sprint_anim_speed_scale, blend_pos)
+	var scale_factor: float = lerp(1.0, sprint_anim_speed_scale, blend_pos)
 	anim_tree.set(PARAM_SPRINTSCL, scale_factor)
 
 func _update_air_blend(delta: float, air_time: float) -> void:
