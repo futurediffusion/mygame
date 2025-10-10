@@ -2,6 +2,9 @@ extends Node
 class_name StateModule
 
 @export_enum("global", "regional", "local") var tick_group: String = "local"
+@export var gravity_scale := 1.0
+@export var fall_gravity_multiplier := 1.5
+@export var use_fall_multiplier := true
 
 var player: CharacterBody3D
 var gravity: float
@@ -16,6 +19,11 @@ func setup(p: CharacterBody3D) -> void:
 	gravity = float(ProjectSettings.get_setting("physics/3d/default_gravity"))
 	_was_on_floor = player.is_on_floor()
 
+	if "gravity_scale" in p:
+		gravity_scale = p.gravity_scale
+	if "fall_gravity_multiplier" in p:
+		fall_gravity_multiplier = p.fall_gravity_multiplier
+
 	# (Opcional) mover config de físicas desde Player
 	if configure_physics:
 		if "max_slope_deg" in player:
@@ -24,10 +32,12 @@ func setup(p: CharacterBody3D) -> void:
 			player.floor_snap_length = player.snap_len
 
 func physics_tick(delta: float) -> void:
-	# Gravedad base (única fuente de verdad)
+	# Gravedad base + fast-fall, sin depender del botón
 	if not player.is_on_floor():
-		player.velocity.y -= gravity * delta
-		# print("state tick gravity", player.velocity.y)
+		var g := gravity * gravity_scale
+		if use_fall_multiplier and player.velocity.y < 0.0:
+			g *= fall_gravity_multiplier
+		player.velocity.y -= g * delta
 
 	# Aterrizaje (edge aire→suelo)
 	var now_on_floor := player.is_on_floor()
