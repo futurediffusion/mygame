@@ -3,7 +3,7 @@ class_name ModuleBase
 
 @export_enum("local", "regional", "global") var tick_group: String = "local"
 var _is_registered := false
-var _sim_clock_ref: SimClock
+var _sim_clock_ref: SimClockScheduler
 
 func _ready() -> void:
 	call_deferred("_register_self")
@@ -30,10 +30,10 @@ func _exit_tree() -> void:
 func physics_tick(_dt: float) -> void:
 	pass
 
-func _fetch_sim_clock() -> SimClock:
+func _fetch_sim_clock() -> SimClockScheduler:
 	if typeof(SimClock) != TYPE_NIL:
-		return SimClock
+		return SimClock as SimClockScheduler
 	var tree := get_tree()
 	if tree == null:
 		return null
-	return tree.get_root().get_node_or_null(^"/root/SimClock")
+	return tree.get_root().get_node_or_null(^"/root/SimClock") as SimClockScheduler

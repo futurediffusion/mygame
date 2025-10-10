@@ -1,28 +1,32 @@
 extends Node
-class_name SimClock
+class_name SimClockScheduler
 
 # Intervalos configurables (segundos simulados por tick de cada grupo)
 @export_range(0.01, 5.0, 0.01) var local_interval: float = 0.0167 # ~60 FPS sim local
 @export_range(0.05, 2.0, 0.01) var regional_interval: float = 0.25
 @export_range(0.5, 300.0, 0.5) var global_interval: float = 5.0
 
-var _acc := { "local": 0.0, "regional": 0.0, "global": 0.0 }
+var _acc: Dictionary[String, float] = {
+	"local": 0.0,
+	"regional": 0.0,
+	"global": 0.0
+}
 var _paused: bool = false
 
 # Registro por grupo: cada entrada debe tener método physics_tick(dt)
-var _registry := {
+var _registry: Dictionary[String, Array[Object]] = {
 	"local": [],
 	"regional": [],
 	"global": []
 }
 
-var _group_paused := {
+var _group_paused: Dictionary[String, bool] = {
 	"local": false,
 	"regional": false,
 	"global": false
 }
 
-var _module_paused: Dictionary = {}
+var _module_paused: Dictionary[Object, bool] = {}
 
 signal ticked(group_name: String, dt: float)
 
@@ -115,7 +119,7 @@ func _physics_process(delta: float) -> void:
 func _tick_group(group_name: String, dt: float) -> void:
 	if _group_paused.get(group_name, false):
 		return
-	var list := _registry[group_name]
+	var list: Array[Object] = _registry[group_name]
 	# Copia para evitar invalidación si alguien se desregistra en tick
 	for n in list.duplicate():
 		if not is_instance_valid(n):

@@ -49,3 +49,4 @@
 - Keep `Player.gd` focused on orchestration: prefer per-frame input caching plus module APIs rather than duplicating logic in the orchestrator.【F:scenes/entities/player.gd†L108-L161】
 - Update `GameState` when introducing new global modes so pause/cinematic gating remains authoritative.【F:Singletons/GameState.gd†L1-L19】
 - Maintain asset imports (`.glb` + `.import`) and register new singletons through `project.godot` autoloads for consistency.【F:project.godot†L12-L19】【F:art/characters/animations1.glb.import†L1-L33】
+- `SimClock` autoload now instantiates the `SimClockScheduler` class to keep the singleton name collision-free while preserving typed module casts via `ModuleBase` helpers.【F:Singletons/SimClock.gd†L1-L139】【F:Modules/ModuleBase.gd†L1-L39】【F:scenes/entities/player.gd†L57-L167】

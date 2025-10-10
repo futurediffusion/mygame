@@ -54,7 +54,7 @@ class_name Player
 @onready var camera_rig: Node = get_node_or_null(^"CameraRig")
 @onready var game_state: GameState = get_node_or_null(^"/root/GameState")
 
-@onready var sim_clock: SimClock = get_node_or_null(^"/root/SimClock")
+@onready var sim_clock: SimClockScheduler = get_node_or_null(^"/root/SimClock")
 
 # --- MÓDULOS (nuevos onready) ---
 @onready var m_movement: MovementModule = $Modules/Movement
