@@ -20,6 +20,7 @@
 - **Stamina** – Manages sprint resource drain/regeneration and gating for sprint activation.【F:scripts/player/Stamina.gd†L1-L26】
 - **GameState Singleton** – Tracks pause/cinematic state and exposes signals to listeners.【F:Singletons/GameState.gd†L1-L19】
 - **EventBus Singleton** – Broadcasts HUD, ally, save/load, and stamina signals to keep UI, audio, and gameplay notifications decoupled.【F:Singletons/EventBus.gd†L1-L14】
+- **Save Singleton** – Persists arbitrary dictionaries via JSON plus optional ZSTD compression while gracefully handling missing or legacy save files.【F:Singletons/Save.gd†L1-L43】
 - **SimClock Service** – Authoritative scheduler with configurable per-group intervals, pause controls, and registry-driven tick dispatch for modules and orchestrators.【F:Singletons/SimClock.gd†L1-L139】
 
 ## Recent Fixes
