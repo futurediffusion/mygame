@@ -1,5 +1,4 @@
 extends Node
-class_name GameState
 
 signal paused_changed(paused: bool)
 signal cinematic_changed(in_cinematic: bool)
