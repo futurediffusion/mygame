@@ -1,0 +1,166 @@
+{
+	"$schema_version": 1,
+	"defaults": {
+		"base": {
+			"hp": 80,
+			"stamina": 100,
+			"vitality": 10,
+			"strength": 10,
+			"athletics": 10,
+			"swimming": 0,
+			"move_speed": 5.0,
+			"defense_hint": 0
+		},
+		"skills": {
+			"war": {
+				"swords": 0,
+				"unarmed": 0,
+				"ranged": 0
+			},
+			"stealth": {
+				"stealth": 0,
+				"lockpicking": 0,
+				"theft": 0,
+				"assassination": 0
+			},
+			"science": {
+				"medicine": 0,
+				"engineering": 0,
+				"research": 0
+			},
+			"craft": {
+				"forging": 0,
+				"farming": 0,
+				"cooking": 0,
+				"lumberjack": 0,
+				"mining": 0,
+				"masonry": 0,
+				"tanning": 0,
+				"herbalism": 0
+			},
+			"social": {
+				"charisma": 0
+			}
+		},
+		"growth": {
+			"skill_gain_multiplier": 1.0,
+			"soft_cap": 80
+		}
+	},
+	"archetypes": [
+		{
+			"id": "archer",
+			"label": "Frontier Archer",
+			"tags": [
+				"ranged",
+				"skirmisher"
+			],
+			"capabilities": [
+				"CombatRanged",
+				"Scout"
+			],
+			"base": {
+				"hp": 72,
+				"stamina": 95,
+				"vitality": 12,
+				"strength": 14,
+				"athletics": 22,
+				"swimming": 10,
+				"move_speed": 5.6,
+				"defense_hint": 6
+			},
+			"skills": {
+				"war": {
+					"swords": 18,
+					"unarmed": 12,
+					"ranged": 48
+				},
+				"stealth": {
+					"stealth": 35,
+					"lockpicking": 8,
+					"theft": 12,
+					"assassination": 5
+				},
+				"science": {
+					"medicine": 16,
+					"engineering": 6,
+					"research": 10
+				},
+				"craft": {
+					"forging": 6,
+					"farming": 12,
+					"cooking": 24,
+					"lumberjack": 20,
+					"mining": 8,
+					"masonry": 4,
+					"tanning": 15,
+					"herbalism": 22
+				},
+				"social": {
+					"charisma": 18
+				}
+			},
+			"growth": {
+				"skill_gain_multiplier": 1.1,
+				"soft_cap": 85
+			}
+		},
+		{
+			"id": "lancer",
+			"label": "Border Lancer",
+			"tags": [
+				"melee",
+				"vanguard"
+			],
+			"capabilities": [
+				"CombatMelee",
+				"Builder"
+			],
+			"base": {
+				"hp": 88,
+				"stamina": 82,
+				"vitality": 14,
+				"strength": 26,
+				"athletics": 24,
+				"swimming": 6,
+				"move_speed": 5.2,
+				"defense_hint": 12
+			},
+			"skills": {
+				"war": {
+					"swords": 42,
+					"unarmed": 28,
+					"ranged": 10
+				},
+				"stealth": {
+					"stealth": 8,
+					"lockpicking": 4,
+					"theft": 4,
+					"assassination": 2
+				},
+				"science": {
+					"medicine": 10,
+					"engineering": 12,
+					"research": 6
+				},
+				"craft": {
+					"forging": 24,
+					"farming": 10,
+					"cooking": 12,
+					"lumberjack": 18,
+					"mining": 22,
+					"masonry": 20,
+					"tanning": 14,
+					"herbalism": 8
+				},
+				"social": {
+					"charisma": 12
+				}
+			},
+			"growth": {
+				"skill_gain_multiplier": 0.95,
+				"soft_cap": 78
+			}
+		}
+	]
+}
