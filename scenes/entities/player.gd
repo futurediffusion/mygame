@@ -154,9 +154,6 @@ func _physics_process(delta: float) -> void:
 	_update_model_rotation(delta, input_dir)
 	_update_animation_state(delta, input_dir, is_sprinting)
 	_update_footstep_audio(delta)
-	_handle_landing()
-	
-	_was_on_floor = is_on_floor()
 
 # ============================================================================
 # PHYSICS CALCULATIONS
