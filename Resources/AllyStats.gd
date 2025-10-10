@@ -75,9 +75,12 @@ var _swimming_store := 0.0
 	set(value):
 		_swimming_store = clampf(float(value), 0.0, 100.0)
 
+var _move_speed_store := 5.0
 @export_range(0.0, 100.0, 0.1) var move_speed := 5.0:
-	set(value):
-		field = clampf(value, 0.0, 100.0)
+        get:
+                return _move_speed_store
+        set(value):
+                _move_speed_store = clampf(float(value), 0.0, 100.0)
 
 var _defense_hint_store := 0.0
 @export_range(0, 100, 1) var defense_hint := 0:
@@ -86,39 +89,47 @@ var _defense_hint_store := 0.0
 	set(value):
 		_defense_hint_store = clampf(float(value), 0.0, 100.0)
 
+var _war_store: Dictionary = {}
 @export var war: Dictionary = {}:
-	set(value):
-		field = _sanitize_skill_tree("war", value)
-	get:
-		return field
+        get:
+                return _war_store
+        set(value):
+                _war_store = _sanitize_skill_tree("war", value)
 
+var _stealth_store: Dictionary = {}
 @export var stealth: Dictionary = {}:
-	set(value):
-		field = _sanitize_skill_tree("stealth", value)
-	get:
-		return field
+        get:
+                return _stealth_store
+        set(value):
+                _stealth_store = _sanitize_skill_tree("stealth", value)
 
+var _science_store: Dictionary = {}
 @export var science: Dictionary = {}:
-	set(value):
-		field = _sanitize_skill_tree("science", value)
-	get:
-		return field
+        get:
+                return _science_store
+        set(value):
+                _science_store = _sanitize_skill_tree("science", value)
 
+var _craft_store: Dictionary = {}
 @export var craft: Dictionary = {}:
-	set(value):
-		field = _sanitize_skill_tree("craft", value)
-	get:
-		return field
+        get:
+                return _craft_store
+        set(value):
+                _craft_store = _sanitize_skill_tree("craft", value)
 
+var _social_store: Dictionary = {}
 @export var social: Dictionary = {}:
-	set(value):
-		field = _sanitize_skill_tree("social", value)
-	get:
-		return field
+        get:
+                return _social_store
+        set(value):
+                _social_store = _sanitize_skill_tree("social", value)
 
+var _skill_gain_multiplier_store := 1.0
 @export_range(0.0, 5.0, 0.01) var skill_gain_multiplier := 1.0:
-	set(value):
-		field = clampf(value, 0.0, 5.0)
+        get:
+                return _skill_gain_multiplier_store
+        set(value):
+                _skill_gain_multiplier_store = clampf(float(value), 0.0, 5.0)
 
 var _soft_cap_store := 80.0
 @export_range(0, 100, 1) var soft_cap := 80:
