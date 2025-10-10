@@ -113,8 +113,8 @@ func _physics_process(delta: float) -> void:
 	m_anim.set_frame_anim_inputs(is_sprinting, air_time)
 
 	# FLAGS GLOBALES
-	var paused := game_state.is_paused
-	var block_anim := game_state.is_in_cinematic  # ejemplo: en cinemática, mover pero no animar
+	var paused: bool = game_state.is_paused
+	var block_anim: bool = game_state.is_in_cinematic  # ejemplo: en cinemática, mover pero no animar
 
 	# ORDEN CANÓNICO
 	if not paused:
