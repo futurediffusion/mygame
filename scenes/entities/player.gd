@@ -137,6 +137,11 @@ func _physics_process(delta: float) -> void:
 	var is_sprinting: bool = _update_sprint_state(delta, input_dir)
 	m_movement.set_frame_input(input_dir, is_sprinting)
 
+	var air_time := _air_time
+	if "get_air_time" in m_jump:
+		air_time = m_jump.get_air_time()
+	m_anim.set_frame_anim_inputs(is_sprinting, air_time)
+
 	# Llamadas de "tick" (no cambian comportamiento si ya delegaste arriba)
 	m_state.physics_tick(delta)
 	m_movement.physics_tick(delta)
@@ -149,7 +154,6 @@ func _physics_process(delta: float) -> void:
 
 	_consume_sprint_stamina(delta, is_sprinting)
 	_update_model_rotation(delta, input_dir)
-	_update_animation_state(delta, input_dir, is_sprinting)
 	_update_footstep_audio(delta)
 
 # ============================================================================
@@ -235,12 +239,8 @@ func _update_model_rotation(delta: float, input_dir: Vector3) -> void:
 # ============================================================================
 # ANIMATION SYSTEM
 # ============================================================================
-func _update_animation_state(delta: float, input_dir: Vector3, is_sprinting: bool) -> void:
-	# usamos el air_time del módulo de salto
-	var air_time := _air_time
-	if "get_air_time" in m_jump:
-		air_time = m_jump.get_air_time()
-	m_anim.update_animation_state(delta, input_dir, is_sprinting, air_time)
+func _update_animation_state(delta: float, _input_dir: Vector3, _is_sprinting: bool) -> void:
+	pass
 
 func _update_locomotion_blend(_is_sprinting: bool) -> void:
 	# ya no se usa (quedará como puente vacío o puedes dejarlo como está si nadie lo llama directo)
