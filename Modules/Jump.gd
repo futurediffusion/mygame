@@ -11,9 +11,9 @@ var gravity_scale := 1.0
 var fall_gravity_multiplier := 1.5  # 50% más gravedad al caer
 
 # Estado interno
-var _air_time := 0.0
-var _coyote_timer := 0.0
-var _jump_buffer_timer := 0.0
+var _air_time: float = 0.0
+var _coyote_timer: float = 0.0
+var _jump_buffer_timer: float = 0.0
 
 # Referencias opcionales del Player
 var anim_tree: AnimationTree

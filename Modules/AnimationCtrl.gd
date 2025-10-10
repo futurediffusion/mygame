@@ -23,7 +23,7 @@ var fall_ramp_delay := 0.10
 var fall_ramp_time := 0.20
 var fall_blend_lerp := 12.0
 
-var _current_air_blend := 0.0
+var _current_air_blend: float = 0.0
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
@@ -54,7 +54,7 @@ func physics_tick(_delta: float) -> void:
 	pass
 
 # --- Funciones 1:1 con Player ---
-func update_animation_state(delta: float, input_dir: Vector3, is_sprinting: bool, air_time: float) -> void:
+func update_animation_state(delta: float, _input_dir: Vector3, is_sprinting: bool, air_time: float) -> void:
 	_update_locomotion_blend(is_sprinting)
 	_update_sprint_timescale(is_sprinting)
 	_update_air_blend(delta, air_time)
