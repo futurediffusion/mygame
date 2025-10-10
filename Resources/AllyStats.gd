@@ -77,10 +77,10 @@ var _swimming_store := 0.0
 
 var _move_speed_store := 5.0
 @export_range(0.0, 100.0, 0.1) var move_speed := 5.0:
-        get:
-                return _move_speed_store
-        set(value):
-                _move_speed_store = clampf(float(value), 0.0, 100.0)
+	get:
+		return _move_speed_store
+	set(value):
+		_move_speed_store = clampf(float(value), 0.0, 100.0)
 
 var _defense_hint_store := 0.0
 @export_range(0, 100, 1) var defense_hint := 0:
@@ -91,45 +91,45 @@ var _defense_hint_store := 0.0
 
 var _war_store: Dictionary = {}
 @export var war: Dictionary = {}:
-        get:
-                return _war_store
-        set(value):
-                _war_store = _sanitize_skill_tree("war", value)
+	get:
+		return _war_store
+	set(value):
+		_war_store = _sanitize_skill_tree("war", value)
 
 var _stealth_store: Dictionary = {}
 @export var stealth: Dictionary = {}:
-        get:
-                return _stealth_store
-        set(value):
-                _stealth_store = _sanitize_skill_tree("stealth", value)
+	get:
+		return _stealth_store
+	set(value):
+		_stealth_store = _sanitize_skill_tree("stealth", value)
 
 var _science_store: Dictionary = {}
 @export var science: Dictionary = {}:
-        get:
-                return _science_store
-        set(value):
-                _science_store = _sanitize_skill_tree("science", value)
+	get:
+		return _science_store
+	set(value):
+		_science_store = _sanitize_skill_tree("science", value)
 
 var _craft_store: Dictionary = {}
 @export var craft: Dictionary = {}:
-        get:
-                return _craft_store
-        set(value):
-                _craft_store = _sanitize_skill_tree("craft", value)
+	get:
+		return _craft_store
+	set(value):
+		_craft_store = _sanitize_skill_tree("craft", value)
 
 var _social_store: Dictionary = {}
 @export var social: Dictionary = {}:
-        get:
-                return _social_store
-        set(value):
-                _social_store = _sanitize_skill_tree("social", value)
+	get:
+		return _social_store
+	set(value):
+		_social_store = _sanitize_skill_tree("social", value)
 
 var _skill_gain_multiplier_store := 1.0
 @export_range(0.0, 5.0, 0.01) var skill_gain_multiplier := 1.0:
-        get:
-                return _skill_gain_multiplier_store
-        set(value):
-                _skill_gain_multiplier_store = clampf(float(value), 0.0, 5.0)
+	get:
+		return _skill_gain_multiplier_store
+	set(value):
+		_skill_gain_multiplier_store = clampf(float(value), 0.0, 5.0)
 
 var _soft_cap_store := 80.0
 @export_range(0, 100, 1) var soft_cap := 80:
@@ -149,45 +149,54 @@ var _allow_stamina_gain := false
 func _init() -> void:
 	_reset_skill_tree_defaults()
 
-func gain_skill(tree: String, skill: String, amount := 1.0, context := {}) -> void:
-	var skills_tree := _get_skill_tree(tree)
+func gain_skill(tree: String, skill: String, amount: float = 1.0, context: Dictionary = {}) -> void:
+	var skills_tree: Dictionary = _get_skill_tree(tree)
 	if skills_tree.is_empty():
 		return
 	if not skills_tree.has(skill):
 		return
-	var sanitized_amount := float(amount)
+
+	var sanitized_amount: float = float(amount)
 	if is_zero_approx(sanitized_amount):
 		return
-	var current := float(skills_tree[skill])
-	var gain := sanitized_amount * max(skill_gain_multiplier, 0.0)
-	var phase_multiplier := _phase_multiplier_for(current)
+
+	var current: float = float(skills_tree[skill])
+	var gain: float = sanitized_amount * maxf(float(skill_gain_multiplier), 0.0)
+	var phase_multiplier: float = _phase_multiplier_for(current)
 	if current >= _soft_cap_store:
 		phase_multiplier *= 0.5
-	var action_hash := ""
-	if typeof(context) == TYPE_DICTIONARY and context.has("action_hash"):
+
+	var action_hash: String = ""
+	if context.has("action_hash"):
 		action_hash = str(context["action_hash"])
+
 	if action_hash != "":
 		if action_hash == _last_action_hash:
-			_session_repeat_factor = max(0.25, _session_repeat_factor * 0.7)
+			_session_repeat_factor = maxf(0.25, _session_repeat_factor * 0.7)
 		else:
-			_session_repeat_factor = min(1.0, _session_repeat_factor + 0.2)
+			_session_repeat_factor = minf(1.0, _session_repeat_factor + 0.2)
 		_last_action_hash = action_hash
 	else:
-		_session_repeat_factor = min(1.0, _session_repeat_factor + 0.05)
+		_session_repeat_factor = minf(1.0, _session_repeat_factor + 0.05)
 		_last_action_hash = ""
-	var key := "%s/%s" % [tree, skill]
-	var skill_decay := _skill_repeat_decay.get(key, 1.0)
-	var final_gain := gain * phase_multiplier * _session_repeat_factor * skill_decay
+
+	var key: String = "%s/%s" % [tree, skill]
+	var skill_decay: float = float(_skill_repeat_decay.get(key, 1.0))
+	var final_gain: float = gain * phase_multiplier * _session_repeat_factor * skill_decay
 	if final_gain <= 0.0:
 		return
-	var new_value := _clamp_skill_value(current + final_gain)
+
+	var new_value: float = _clamp_skill_value(current + final_gain)
 	skills_tree[skill] = new_value
+
 	if _last_skill_key == key:
-		skill_decay = max(0.3, skill_decay * 0.85)
+		skill_decay = maxf(0.3, skill_decay * 0.85)
 	else:
-		skill_decay = min(1.0, skill_decay + 0.1)
+		skill_decay = minf(1.0, skill_decay + 0.1)
+
 	_last_skill_key = key
 	_skill_repeat_decay[key] = skill_decay
+
 
 func gain_base_stat(stat: String, amount := 1.0) -> void:
 	var sanitized := float(amount)
@@ -271,40 +280,43 @@ func sprint_stamina_cost(base_cost: float) -> float:
 
 func _reset_skill_tree_defaults() -> void:
 	for tree_name in SKILL_TREE_DEFAULTS.keys():
-		var defaults := SKILL_TREE_DEFAULTS[tree_name]
+		var defaults: Dictionary = SKILL_TREE_DEFAULTS.get(tree_name, {})
+		# Usa los SETTERS (war/stealth/...) para que se aplique _sanitize_skill_tree()
 		match tree_name:
 			"war":
-				war = defaults
+				war = defaults.duplicate(true)
 			"stealth":
-				stealth = defaults
+				stealth = defaults.duplicate(true)
 			"science":
-				science = defaults
+				science = defaults.duplicate(true)
 			"craft":
-				craft = defaults
+				craft = defaults.duplicate(true)
 			"social":
-				social = defaults
+				social = defaults.duplicate(true)
 
 func _sanitize_skill_tree(tree_name: String, values: Dictionary) -> Dictionary:
-	var defaults := SKILL_TREE_DEFAULTS.get(tree_name, {})
+	var defaults: Dictionary = SKILL_TREE_DEFAULTS.get(tree_name, {})
 	if typeof(values) != TYPE_DICTIONARY:
 		values = {}
-	var sanitized := defaults.duplicate(true)
+	var sanitized: Dictionary = defaults.duplicate(true)
 	for skill_name in defaults.keys():
 		if values.has(skill_name):
 			sanitized[skill_name] = _clamp_skill_value(float(values[skill_name]))
 	_forget_skill_decay(tree_name)
 	return sanitized
 
+
 func _forget_skill_decay(tree_name: String) -> void:
-	var prefix := "%s/" % tree_name
+	var prefix: String = "%s/" % tree_name
 	var keys_to_remove: Array = []
 	for key in _skill_repeat_decay.keys():
-		if key.begins_with(prefix):
+		if String(key).begins_with(prefix):
 			keys_to_remove.append(key)
 	for key in keys_to_remove:
 		_skill_repeat_decay.erase(key)
 	if _last_skill_key.begins_with(prefix):
 		_last_skill_key = ""
+
 
 func _get_skill_tree(tree: String) -> Dictionary:
 	match tree:
