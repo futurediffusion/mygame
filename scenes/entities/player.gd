@@ -234,51 +234,22 @@ func _update_model_rotation(delta: float, input_dir: Vector3) -> void:
 # ============================================================================
 # ANIMATION SYSTEM
 # ============================================================================
-func _update_animation_state(delta: float, _input_dir: Vector3, is_sprinting: bool) -> void:
-	_update_locomotion_blend(is_sprinting)
-	_update_sprint_timescale(is_sprinting)
-	_update_air_blend(delta)
+func _update_animation_state(delta: float, input_dir: Vector3, is_sprinting: bool) -> void:
+	# usamos el air_time del módulo de salto
+	m_anim.update_animation_state(delta, input_dir, is_sprinting, m_jump.get_air_time())
 
-func _update_locomotion_blend(is_sprinting: bool) -> void:
-	var horizontal_speed: float = Vector2(velocity.x, velocity.z).length()
-	var target_max: float = sprint_speed if is_sprinting else run_speed
-	
-	var blend_value: float
-	if horizontal_speed <= walk_speed:
-		blend_value = remap(horizontal_speed, 0.0, walk_speed, 0.0, 0.4)
-	else:
-		blend_value = remap(horizontal_speed, walk_speed, target_max, 0.4, 1.0)
-	
-	if is_sprinting:
-		blend_value = pow(clampf(blend_value, 0.0, 1.0), sprint_blend_bias)
-	
-	anim_tree.set(PARAM_LOC, clampf(blend_value, 0.0, 1.0))
+func _update_locomotion_blend(_is_sprinting: bool) -> void:
+	# ya no se usa (quedará como puente vacío o puedes dejarlo como está si nadie lo llama directo)
+	pass
 
-func _update_sprint_timescale(is_sprinting: bool) -> void:
-	if not is_sprinting:
-		anim_tree.set(PARAM_SPRINTSCL, 1.0)
-		return
-	
-	var blend_pos: float = float(anim_tree.get(PARAM_LOC))
-	var scale_factor: float = lerp(1.0, sprint_anim_speed_scale, blend_pos)
-	anim_tree.set(PARAM_SPRINTSCL, scale_factor)
+func _update_sprint_timescale(_is_sprinting: bool) -> void:
+	pass
 
-func _update_air_blend(delta: float) -> void:
-	var target_blend: float = _calculate_fall_blend()
-	var lerp_speed: float = clampf(delta * fall_blend_lerp, 0.0, 1.0)
-	_current_air_blend = lerpf(_current_air_blend, target_blend, lerp_speed)
-	anim_tree.set(PARAM_AIRBLEND, _current_air_blend)
+func _update_air_blend(_delta: float) -> void:
+	pass
 
 func _calculate_fall_blend() -> float:
-	if is_on_floor() or velocity.y >= fall_threshold:
-		return 0.0
-	
-	var elapsed: float = _air_time - fall_ramp_delay
-	if elapsed <= 0.0:
-		return 0.0
-	
-	var ramp_progress: float = clampf(elapsed / fall_ramp_time, 0.0, 1.0)
-	return smoothstep(0.0, 1.0, ramp_progress)
+	return 0.0
 
 # ============================================================================
 # AUDIO SYSTEM
