@@ -1,7 +1,5 @@
-extends Node
+extends ModuleBase
 class_name JumpModule
-
-@export_enum("global", "regional", "local") var tick_group: String = "local"
 
 var player: CharacterBody3D
 
@@ -41,6 +39,10 @@ func setup(p: CharacterBody3D) -> void:
 	camera_rig = p.camera_rig if "camera_rig" in p else null
 
 func physics_tick(delta: float) -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	if player.has_method("should_skip_module_updates") and player.should_skip_module_updates():
+		return
 	# Fase 3: mover timers + ejecución al tick
 	update_jump_mechanics(delta)
 	handle_jump_input()

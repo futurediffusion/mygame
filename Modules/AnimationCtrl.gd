@@ -1,7 +1,5 @@
-extends Node
+extends ModuleBase
 class_name AnimationCtrlModule
-
-@export_enum("global", "regional", "local") var tick_group: String = "local"
 
 var player: CharacterBody3D
 var anim_tree: AnimationTree
@@ -63,6 +61,12 @@ func set_frame_anim_inputs(is_sprinting: bool, air_time: float) -> void:
 	_air_time = air_time
 
 func physics_tick(delta: float) -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	if player.has_method("should_skip_module_updates") and player.should_skip_module_updates():
+		return
+	if player.has_method("should_block_animation_update") and player.should_block_animation_update():
+		return
 	_update_locomotion_blend(_is_sprinting)
 	_update_sprint_timescale(_is_sprinting)
 	_update_air_blend(delta, _air_time)
