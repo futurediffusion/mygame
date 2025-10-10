@@ -187,37 +187,16 @@ func _apply_deceleration(current: Vector2, delta: float) -> Vector2:
 # JUMP SYSTEM
 # ============================================================================
 func _update_jump_mechanics(delta: float) -> void:
-	if is_on_floor():
-		_coyote_timer = coyote_time
-		_air_time = 0.0
-	else:
-		_coyote_timer = max(0.0, _coyote_timer - delta)
-		_air_time += delta
-	
-	if Input.is_action_just_pressed("jump"):
-		_jump_buffer_timer = jump_buffer
-	else:
-		_jump_buffer_timer = max(0.0, _jump_buffer_timer - delta)
+	m_jump.update_jump_mechanics(delta)
 
 func _handle_jump_input() -> void:
-	var can_jump: bool = _jump_buffer_timer > 0.0 and (is_on_floor() or _coyote_timer > 0.0)
-	
-	if can_jump:
-		_execute_jump()
+	m_jump.handle_jump_input()
 
 func _execute_jump() -> void:
-	velocity.y = jump_velocity
-	_coyote_timer = 0.0
-	_jump_buffer_timer = 0.0
-	
-	_trigger_jump_animation()
-	_play_audio_safe(jump_sfx)
-	
-	if camera_rig:
-		camera_rig.call_deferred("_play_jump_kick")
+	m_jump.execute_jump()
 
 func _trigger_jump_animation() -> void:
-	anim_tree.set(PARAM_JUMP, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+	m_jump.trigger_jump_animation()
 
 # ============================================================================
 # SPRINT & STAMINA
