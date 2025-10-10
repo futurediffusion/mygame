@@ -104,14 +104,14 @@ func _is_moving_h() -> bool:
 # INITIALIZATION
 # ============================================================================
 func _ready() -> void:
-        _initialize_animation_system()
-        _cache_constants()
-        _configure_physics()
-        _was_on_floor = is_on_floor()
+	_initialize_animation_system()
+	_cache_constants()
+	_configure_physics()
+	_was_on_floor = is_on_floor()
 
-        # Setup de módulos (simple referencia al player)
-        for m in [m_movement, m_jump, m_state, m_orientation, m_anim, m_audio]:
-                m.setup(self)
+	# Setup de módulos (simple referencia al player)
+	for m in [m_movement, m_jump, m_state, m_orientation, m_anim, m_audio]:
+		m.setup(self)
 
 func _initialize_animation_system() -> void:
 	anim_tree.anim_player = anim_player.get_path()
@@ -157,9 +157,9 @@ func _physics_process(delta: float) -> void:
 # PHYSICS CALCULATIONS
 # ============================================================================
 func _apply_gravity(delta: float) -> void:
-        var base_gravity: float = m_state.gravity if "gravity" in m_state else float(ProjectSettings.get_setting("physics/3d/default_gravity"))
-        m_jump.apply_gravity(delta, base_gravity)
-        m_jump.apply_variable_jump_height()
+	var base_gravity: float = m_state.gravity if "gravity" in m_state else float(ProjectSettings.get_setting("physics/3d/default_gravity"))
+	m_jump.apply_gravity(delta, base_gravity)
+	m_jump.apply_variable_jump_height()
 
 
 func _get_camera_relative_input() -> Vector3:
@@ -189,15 +189,15 @@ func _apply_deceleration(current: Vector2, delta: float) -> Vector2:
 # JUMP SYSTEM
 # ============================================================================
 func _update_jump_mechanics(delta: float) -> void:
-    m_jump.update_jump_mechanics(delta)
+	m_jump.update_jump_mechanics(delta)
 
-    if "get_air_time" in m_jump:
-        _air_time = m_jump.get_air_time()
-    else:
-        if is_on_floor():
-            _air_time = 0.0
-        else:
-            _air_time += delta
+	if "get_air_time" in m_jump:
+		_air_time = m_jump.get_air_time()
+	else:
+		if is_on_floor():
+			_air_time = 0.0
+		else:
+			_air_time += delta
 
 func _handle_jump_input() -> void:
 	m_jump.handle_jump_input()
