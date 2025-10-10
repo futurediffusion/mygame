@@ -135,6 +135,7 @@ func _physics_process(delta: float) -> void:
 
 	var input_dir: Vector3 = _get_camera_relative_input()
 	var is_sprinting: bool = _update_sprint_state(delta, input_dir)
+	m_movement.set_frame_input(input_dir, is_sprinting)
 
 	# Llamadas de "tick" (no cambian comportamiento si ya delegaste arriba)
 	m_state.physics_tick(delta)
@@ -144,12 +145,11 @@ func _physics_process(delta: float) -> void:
 	m_anim.physics_tick(delta)
 	m_audio.physics_tick(delta)
 
-	_update_horizontal_velocity(delta, input_dir, is_sprinting)
 	_update_jump_mechanics(delta)
 	_handle_jump_input()
-	
+
 	move_and_slide()
-	
+
 	_consume_sprint_stamina(delta, is_sprinting)
 	_update_model_rotation(delta, input_dir)
 	_update_animation_state(delta, input_dir, is_sprinting)
@@ -178,8 +178,8 @@ func _get_camera_relative_input() -> Vector3:
 	var direction: Vector3 = (forward * input_z + right * input_x)
 	return direction.normalized() if direction.length_squared() > 1.0 else direction
 
-func _update_horizontal_velocity(delta: float, input_dir: Vector3, is_sprinting: bool) -> void:
-	m_movement.update_horizontal_velocity(delta, input_dir, is_sprinting)
+func _update_horizontal_velocity(_d: float, _i: Vector3, _s: bool) -> void:
+	pass
 
 func _accelerate_towards(current: Vector2, target: Vector2, delta: float) -> Vector2:
 	return m_movement.accelerate_towards(current, target, delta)

@@ -10,6 +10,10 @@ var decel := 18.0
 var run_speed := 6.0
 var sprint_speed := 9.5
 
+# input cacheado por frame (inyectado desde Player)
+var _input_dir := Vector3.ZERO
+var _is_sprinting := false
+
 func setup(p: CharacterBody3D) -> void:
 	player = p
 	# leemos del Player para replicar valores exportados (por si cambian en el editor)
@@ -19,8 +23,12 @@ func setup(p: CharacterBody3D) -> void:
 	run_speed = p.run_speed
 	sprint_speed = p.sprint_speed
 
-func physics_tick(_delta: float) -> void:
-	pass
+func set_frame_input(input_dir: Vector3, is_sprinting: bool) -> void:
+	_input_dir = input_dir
+	_is_sprinting = is_sprinting
+
+func physics_tick(delta: float) -> void:
+	update_horizontal_velocity(delta, _input_dir, _is_sprinting)
 
 # ---- Funciones 1:1 con el Player original ----
 func update_horizontal_velocity(delta: float, input_dir: Vector3, is_sprinting: bool) -> void:
