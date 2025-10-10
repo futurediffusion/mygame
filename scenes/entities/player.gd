@@ -259,12 +259,7 @@ func _update_footstep_audio(_delta: float) -> void:
 	pass
 
 func _play_footstep_audio() -> void:
-	"""Called by animation track when foot touches ground"""
-	if not is_instance_valid(footstep_sfx) or not is_on_floor():
-		return
-	
-	footstep_sfx.pitch_scale = randf_range(0.95, 1.05)
-	footstep_sfx.play()
+	m_audio.play_footstep()
 
 # ============================================================================
 # ALTERNATIVE: Timer-based footsteps (less accurate, use if no anim callbacks)
@@ -292,17 +287,13 @@ func _handle_landing() -> void:
 
 
 func _play_landing_audio(is_hard: bool) -> void:
-	if not is_instance_valid(land_sfx) or land_sfx.stream == null:
-		return
-	
-	land_sfx.volume_db = -6.0 if is_hard else -12.0
-	land_sfx.pitch_scale = 0.95 if is_hard else 1.05
-	land_sfx.play()
+	m_audio.play_landing(is_hard)
 
 func _trigger_camera_landing(is_hard: bool) -> void:
 	if camera_rig:
 		camera_rig.call_deferred("_on_player_landed", is_hard)
 
 func _play_audio_safe(audio_player: AudioStreamPlayer3D) -> void:
+	# lo mantiene por compatibilidad; si quieres llamar, usa m_audio.play_* en su lugar
 	if is_instance_valid(audio_player):
 		audio_player.play()

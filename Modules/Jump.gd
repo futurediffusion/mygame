@@ -54,16 +54,18 @@ func handle_jump_input() -> void:
                 execute_jump()
 
 func execute_jump() -> void:
-        player.velocity.y = jump_velocity
-        _coyote_timer = 0.0
-        _jump_buffer_timer = 0.0
+	player.velocity.y = jump_velocity
+	_coyote_timer = 0.0
+	_jump_buffer_timer = 0.0
 
-        trigger_jump_animation()
-        if "jump_sfx" in player and is_instance_valid(player.jump_sfx):
-                player.jump_sfx.play()
+	trigger_jump_animation()
+	if "m_audio" in player and is_instance_valid(player.m_audio):
+		player.m_audio.play_jump()
+	elif "jump_sfx" in player and is_instance_valid(player.jump_sfx):
+		player.jump_sfx.play()
 
-        if camera_rig and camera_rig.has_method("_play_jump_kick"):
-                camera_rig.call_deferred("_play_jump_kick")
+	if camera_rig and camera_rig.has_method("_play_jump_kick"):
+		camera_rig.call_deferred("_play_jump_kick")
 
 func trigger_jump_animation() -> void:
         if anim_tree:
