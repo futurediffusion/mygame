@@ -1,7 +1,7 @@
 extends Node
 class_name OrientationModule
 
-@export_enum("global", "regional", "local") var tick_group: StringName = "local"
+@export_enum("global", "regional", "local") var tick_group: String = "local"
 
 var player: CharacterBody3D
 var model: Node3D
