@@ -228,12 +228,8 @@ func _consume_sprint_stamina(delta: float, is_sprinting: bool) -> void:
 # ============================================================================
 # MODEL ORIENTATION
 # ============================================================================
-func _update_model_rotation(_delta: float, input_dir: Vector3) -> void:
-	if input_dir.length_squared() < 0.0025:  # 0.05^2
-		return
-	
-	var target_yaw: float = atan2(input_dir.x, input_dir.z) + _model_correction_rad
-	model.rotation.y = lerp_angle(model.rotation.y, target_yaw, face_lerp)
+func _update_model_rotation(delta: float, input_dir: Vector3) -> void:
+        m_orientation.update_model_rotation(delta, input_dir)
 
 # ============================================================================
 # ANIMATION SYSTEM
