@@ -48,7 +48,7 @@ func unregister(node: Object, group_name: String) -> void:
 	_module_paused.erase(node)
 
 func set_group_interval(group_name: StringName, seconds: float) -> void:
-	var value := max(seconds, 0.0)
+	var value: float = maxf(seconds, 0.0)
 	match String(group_name):
 		"local":
 			local_interval = value

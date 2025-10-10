@@ -22,6 +22,7 @@
 - **SimClock Service** – Authoritative scheduler with configurable per-group intervals, pause controls, and registry-driven tick dispatch for modules and orchestrators.【F:Singletons/SimClock.gd†L1-L139】
 
 ## Recent Fixes
+- Clamped scheduler interval updates with `maxf` to keep type inference strict in Godot 4.4 while preserving safe lower bounds on group cadence edits.【F:Singletons/SimClock.gd†L50-L58】
 - Relaxed the typed registry declaration in `SimClock` to avoid nested generic collection errors while keeping group iteration logic intact.【F:Singletons/SimClock.gd†L16-L118】
 
 ## Player Orchestration
