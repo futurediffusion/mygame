@@ -53,6 +53,14 @@ class_name Player
 @onready var stamina: Stamina = $Stamina
 @onready var camera_rig: Node = get_node_or_null(^"CameraRig")
 
+# --- MÓDULOS (nuevos onready) ---
+@onready var m_movement: MovementModule = $Modules/Movement
+@onready var m_jump: JumpModule = $Modules/Jump
+@onready var m_state: StateModule = $Modules/State
+@onready var m_orientation: OrientationModule = $Modules/Orientation
+@onready var m_anim: AnimationCtrlModule = $Modules/AnimationCtrl
+@onready var m_audio: AudioCtrlModule = $Modules/AudioCtrl
+
 # ============================================================================
 # ANIMATION TREE PATHS (Constants for performance)
 # ============================================================================
@@ -96,10 +104,14 @@ func _is_moving_h() -> bool:
 # INITIALIZATION
 # ============================================================================
 func _ready() -> void:
-	_initialize_animation_system()
-	_cache_constants()
-	_configure_physics()
-	_was_on_floor = is_on_floor()
+        _initialize_animation_system()
+        _cache_constants()
+        _configure_physics()
+        _was_on_floor = is_on_floor()
+
+        # Setup de módulos (simple referencia al player)
+        for m in [m_movement, m_jump, m_state, m_orientation, m_anim, m_audio]:
+                m.setup(self)
 
 func _initialize_animation_system() -> void:
 	anim_tree.anim_player = anim_player.get_path()
