@@ -54,6 +54,8 @@ class_name Player
 @onready var camera_rig: Node = get_node_or_null(^"CameraRig")
 @onready var game_state: GameState = get_node_or_null(^"/root/GameState")
 
+@onready var sim_clock: SimClock = get_node_or_null(^"/root/SimClock")
+
 # --- MÓDULOS (nuevos onready) ---
 @onready var m_movement: MovementModule = $Modules/Movement
 @onready var m_jump: JumpModule = $Modules/Jump
@@ -99,21 +101,30 @@ func _physics_process(delta: float) -> void:
 
 	# ORDEN CANÓNICO
 	if not paused:
-		m_state.physics_tick(delta)
-		m_jump.physics_tick(delta)
-		m_movement.physics_tick(delta)
-		m_orientation.physics_tick(delta)
+		_tick_module(m_state, delta)
+		_tick_module(m_jump, delta)
+		_tick_module(m_movement, delta)
+		_tick_module(m_orientation, delta)
 		if not block_anim:
-			m_anim.physics_tick(delta)
+			_tick_module(m_anim, delta)
 
 	# Audio puede correr incluso si paused (tu decisión)
-	m_audio.physics_tick(delta)
+	_tick_module(m_audio, delta)
 
 	# FÍSICAS
 	move_and_slide()
 
 	# POST-MOVE
 	_consume_sprint_stamina(delta, is_sprinting)
+
+
+func _tick_module(module: Object, delta: float) -> void:
+	if module == null:
+		return
+	if sim_clock:
+		sim_clock.process_module_tick(module, delta)
+	elif module.has_method("physics_tick"):
+		module.physics_tick(delta)
 
 func _get_camera_relative_input() -> Vector3:
 	var input_z: float = Input.get_axis("move_back", "move_forward")

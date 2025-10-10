@@ -1,6 +1,8 @@
 extends Node
 class_name AnimationCtrlModule
 
+@export_enum("global", "regional", "local") var tick_group: StringName = "local"
+
 var player: CharacterBody3D
 var anim_tree: AnimationTree
 var anim_player: AnimationPlayer
