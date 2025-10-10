@@ -228,6 +228,7 @@ func _consume_sprint_stamina(delta: float, is_sprinting: bool) -> void:
 # ============================================================================
 # MODEL ORIENTATION
 # ============================================================================
+func _update_model_rotation(delta: float, input_dir: Vector3) -> void:
 	m_orientation.update_model_rotation(delta, input_dir)
 
 # ============================================================================
