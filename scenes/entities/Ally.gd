@@ -18,6 +18,7 @@ enum State {
 @export var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 @export var sprint_enabled: bool = true
 @export_enum("sword", "unarmed", "ranged") var weapon_kind: String = "sword"
+@export var player_visual_preset: PackedScene
 
 @export var anim_idle: String = "idle"
 @export var anim_walk: String = "walk"
@@ -34,8 +35,9 @@ enum State {
 
 @export var sit_offset: Vector3 = Vector3(0, 0, 0)
 
-@onready var anim_player: AnimationPlayer = $AnimPlayer
+@onready var anim_player: AnimationPlayer = null
 @onready var seat_anchor: Node3D = $SeatAnchor
+@onready var _model_root: Node3D = $Model
 
 var _target_dir: Vector3 = Vector3.ZERO
 var _combat_target: Node3D
@@ -58,6 +60,14 @@ func _ready() -> void:
 	if stats == null:
 		stats = AllyStats.new()
 	_last_state = state
+	if player_visual_preset != null and _model_root != null:
+		var inst := player_visual_preset.instantiate()
+		_model_root.add_child(inst)
+		_bind_anim_player_from(_model_root)
+		if anim_player == null:
+			_bind_anim_player_from(self)
+	else:
+		_bind_anim_player_from(self)
 	# var sim_clock: Node = get_node_or_null(^"/root/SimClock")
 	# if sim_clock:
 	# 	sim_clock.register(self, "local")
@@ -92,7 +102,7 @@ func physics_tick(delta: float) -> void:
 			_do_talk(delta)
 		State.SIT:
 			_do_sit(delta)
-	velocity = move_and_slide()
+	move_and_slide()
 	_track_stamina_cycle(delta)
 
 func _do_idle(delta: float) -> void:
@@ -149,6 +159,9 @@ func register_ranged_attack() -> void:
 	if not stats:
 		return
 	stats.gain_skill("war", "ranged", 1.0, {"action_hash": "ranged_shot"})
+
+func notify_jump_started() -> void:
+	_play_anim("jump")
 
 func _do_build(delta: float) -> void:
 	velocity.x = 0.0
@@ -297,14 +310,15 @@ func _flat_dir(vector: Vector3) -> Vector3:
 func _play_anim(name: String) -> void:
 	if name == "":
 		return
-	if anim_player == null or not is_instance_valid(anim_player):
+	if anim_player == null:
+		return
+	if not is_instance_valid(anim_player):
+		anim_player = null
 		return
 	if not anim_player.has_animation(name):
 		return
-	if anim_player.current_animation == name and anim_player.is_playing():
-		return
-	anim_player.play(name)
-	# TODO Animación: si se conecta un AnimationTree o un blend avanzado, reemplazar esta función por la lógica de ruteo deseada.
+	if anim_player.current_animation != name:
+		anim_player.play(name)
 
 func _snap_to_seat() -> void:
 	if _current_seat == null or not is_instance_valid(_current_seat):
@@ -364,6 +378,19 @@ func _on_talk_timer_timeout() -> void:
 	_talk_timer = null
 	stop_talking()
 
+func _bind_anim_player_from(root: Node) -> void:
+	anim_player = null
+	if root == null:
+		return
+	var stack := [root]
+	while stack.size() > 0:
+		var n: Node = stack.pop_back()
+		if n is AnimationPlayer:
+			anim_player = n
+			break
+		for c in n.get_children():
+			stack.push_back(c)
+
 # ------------------------------------------------------------------------------
 # Ejemplos de uso (comentados):
 # ally.set_move_dir(Vector3.FORWARD)
@@ -373,3 +400,5 @@ func _on_talk_timer_timeout() -> void:
 # ally.stand_up()
 # ally.start_talking(3.0)
 # ally.stop_talking()
+# ally.player_visual_preset = load("res://scenes/entities/PlayerModel.tscn")
+# jump_module.jump_started.connect(ally.notify_jump_started)
