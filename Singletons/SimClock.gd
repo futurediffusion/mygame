@@ -1,5 +1,5 @@
 extends Node
-class_name SimClock
+class_name SimClockService
 
 const DEFAULT_GROUP: StringName = "local"
 const MAX_TICKS_PER_FRAME := 8
