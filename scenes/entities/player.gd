@@ -83,20 +83,6 @@ var _model_correction_rad: float
 var _max_slope_rad: float
 var _sprint_threshold: float
 
-# --- Helpers de velocidad horizontal (no cambian lógica) ---
-func _h_vec() -> Vector2:
-	return Vector2(velocity.x, velocity.z)
-
-func _set_h_vec(v: Vector2) -> void:
-	velocity.x = v.x
-	velocity.z = v.y
-
-func _h_speed() -> float:
-	return _h_vec().length()
-
-func _is_moving_h() -> bool:
-	return _h_speed() > 0.001
-
 # ============================================================================
 # INITIALIZATION
 # ============================================================================
@@ -191,9 +177,6 @@ func _get_camera_relative_input() -> Vector3:
 	
 	var direction: Vector3 = (forward * input_z + right * input_x)
 	return direction.normalized() if direction.length_squared() > 1.0 else direction
-
-func _update_horizontal_velocity(_d: float, _i: Vector3, _s: bool) -> void:
-	pass
 
 func _accelerate_towards(current: Vector2, target: Vector2, delta: float) -> Vector2:
 	return m_movement.accelerate_towards(current, target, delta)
