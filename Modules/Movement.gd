@@ -27,22 +27,34 @@ func set_frame_input(input_dir: Vector3, is_sprinting: bool) -> void:
 	_input_dir = input_dir
 	_is_sprinting = is_sprinting
 
+func h_vec() -> Vector2:
+	return Vector2(player.velocity.x, player.velocity.z)
+
+func set_h_vec(v: Vector2) -> void:
+	player.velocity.x = v.x
+	player.velocity.z = v.y
+
+func h_speed() -> float:
+	return h_vec().length()
+
 func physics_tick(delta: float) -> void:
 	update_horizontal_velocity(delta, _input_dir, _is_sprinting)
 
 # ---- Funciones 1:1 con el Player original ----
 func update_horizontal_velocity(delta: float, input_dir: Vector3, is_sprinting: bool) -> void:
 	var target_speed: float = sprint_speed if is_sprinting else run_speed
-	var current_horiz: Vector2 = Vector2(player.velocity.x, player.velocity.z)
+	var current_horiz: Vector2 = h_vec()
 
 	if input_dir != Vector3.ZERO:
 		var target_horiz: Vector2 = Vector2(input_dir.x, input_dir.z) * target_speed
 		current_horiz = accelerate_towards(current_horiz, target_horiz, delta)
 	else:
-		current_horiz = apply_deceleration(current_horiz, delta)
+		if h_speed() < 0.001:
+			current_horiz = Vector2.ZERO
+		else:
+			current_horiz = apply_deceleration(current_horiz, delta)
 
-	player.velocity.x = current_horiz.x
-	player.velocity.z = current_horiz.y
+	set_h_vec(current_horiz)
 
 func accelerate_towards(current: Vector2, target: Vector2, delta: float) -> Vector2:
 	var accel_rate: float = accel_ground if player.is_on_floor() else accel_air
