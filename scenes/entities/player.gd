@@ -174,12 +174,8 @@ func _physics_process(delta: float) -> void:
 # ============================================================================
 # PHYSICS CALCULATIONS
 # ============================================================================
-func _apply_gravity(delta: float) -> void:
-	var base_gravity: float = m_state.gravity if "gravity" in m_state else _gravity
-	if "apply_gravity" in m_state:
-		m_state.apply_gravity(delta)
-	else:
-		velocity.y -= base_gravity * delta
+func _apply_gravity(_delta: float) -> void:
+	pass	# DEPRECATED: la gravedad la aplica State.physics_tick()
 
 
 func _get_camera_relative_input() -> Vector3:
