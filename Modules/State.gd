@@ -1,6 +1,8 @@
 extends Node
 class_name StateModule
 
+@export_enum("global", "regional", "local") var tick_group: StringName = "local"
+
 var player: CharacterBody3D
 var gravity: float
 var _was_on_floor := true

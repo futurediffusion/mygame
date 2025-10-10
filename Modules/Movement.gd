@@ -1,6 +1,8 @@
 extends Node
 class_name MovementModule
 
+@export_enum("global", "regional", "local") var tick_group: StringName = "local"
+
 var player: CharacterBody3D
 
 # cache de parámetros que lee del Player (para ser fieles al original)

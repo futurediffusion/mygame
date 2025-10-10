@@ -1,6 +1,8 @@
 extends Node
 class_name JumpModule
 
+@export_enum("global", "regional", "local") var tick_group: StringName = "local"
+
 var player: CharacterBody3D
 
 # Parámetros de salto (mantengo tus valores)

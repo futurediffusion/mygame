@@ -1,6 +1,8 @@
 extends Node
 class_name AudioCtrlModule
 
+@export_enum("global", "regional", "local") var tick_group: StringName = "local"
+
 var player: CharacterBody3D
 var jump_sfx: AudioStreamPlayer3D
 var land_sfx: AudioStreamPlayer3D
