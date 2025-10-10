@@ -65,37 +65,17 @@ class_name Player
 # ============================================================================
 # INTERNAL STATE
 # ============================================================================
-var _was_on_floor: bool = true
-var _air_time: float = 0.0
-var _footstep_timer: float = 0.0
-
-# Cached values
-var _gravity: float
-var _model_correction_rad: float
-var _max_slope_rad: float
 var _sprint_threshold: float
 
 # ============================================================================
 # INITIALIZATION
 # ============================================================================
 func _ready() -> void:
-	_cache_constants()
-	_configure_physics()
-	_was_on_floor = is_on_floor()
+	_sprint_threshold = run_speed * 0.4
 
 	# Setup de módulos (simple referencia al player)
 	for m in [m_movement, m_jump, m_state, m_orientation, m_anim, m_audio]:
 		m.setup(self)
-
-func _cache_constants() -> void:
-	_gravity = float(ProjectSettings.get_setting("physics/3d/default_gravity"))
-	_model_correction_rad = deg_to_rad(model_forward_correction_deg)
-	_max_slope_rad = deg_to_rad(max_slope_deg)
-	_sprint_threshold = run_speed * 0.4
-
-func _configure_physics() -> void:
-	floor_max_angle = _max_slope_rad
-	floor_snap_length = snap_len
 
 # ============================================================================
 # MAIN PHYSICS LOOP
@@ -107,7 +87,8 @@ func _physics_process(delta: float) -> void:
 
 	# INYECCIONES POR FRAME
 	m_movement.set_frame_input(input_dir, is_sprinting)
-	var air_time := _air_time
+	m_orientation.set_frame_input(input_dir)
+	var air_time := 0.0
 	if "get_air_time" in m_jump:
 		air_time = m_jump.get_air_time()
 	m_anim.set_frame_anim_inputs(is_sprinting, air_time)
@@ -134,19 +115,6 @@ func _physics_process(delta: float) -> void:
 	# POST-MOVE
 	_consume_sprint_stamina(delta, is_sprinting)
 
-	# Puentes legacy (inofensivos si quedaron vacíos)
-	_update_model_rotation(delta, input_dir)
-	_update_footstep_audio(delta)
-
-	_was_on_floor = is_on_floor()
-
-# ============================================================================
-# PHYSICS CALCULATIONS
-# ============================================================================
-func _apply_gravity(_delta: float) -> void:
-	pass	# DEPRECATED: la gravedad la aplica State.physics_tick()
-
-
 func _get_camera_relative_input() -> Vector3:
 	var input_z: float = Input.get_axis("move_back", "move_forward")
 	var input_x: float = Input.get_axis("move_left", "move_right")
@@ -161,34 +129,6 @@ func _get_camera_relative_input() -> Vector3:
 	var direction: Vector3 = (forward * input_z + right * input_x)
 	return direction.normalized() if direction.length_squared() > 1.0 else direction
 
-func _accelerate_towards(current: Vector2, target: Vector2, delta: float) -> Vector2:
-	return m_movement.accelerate_towards(current, target, delta)
-
-func _apply_deceleration(current: Vector2, delta: float) -> Vector2:
-	return m_movement.apply_deceleration(current, delta)
-
-# ============================================================================
-# JUMP SYSTEM
-# ============================================================================
-func _update_jump_mechanics(delta: float) -> void:
-	m_jump.update_jump_mechanics(delta)
-
-	if "get_air_time" in m_jump:
-		_air_time = m_jump.get_air_time()
-	else:
-		if is_on_floor():
-			_air_time = 0.0
-		else:
-			_air_time += delta
-
-func _handle_jump_input() -> void:
-	m_jump.handle_jump_input()
-
-func _execute_jump() -> void:
-	m_jump.execute_jump()
-
-func _trigger_jump_animation() -> void:
-	m_jump.trigger_jump_animation()
 
 # ============================================================================
 # SPRINT & STAMINA
@@ -207,65 +147,8 @@ func _consume_sprint_stamina(delta: float, is_sprinting: bool) -> void:
 	if horizontal_speed > _sprint_threshold:
 		stamina.consume_for_sprint(delta)
 
-# ============================================================================
-# MODEL ORIENTATION
-# ============================================================================
-func _update_model_rotation(delta: float, input_dir: Vector3) -> void:
-	m_orientation.update_model_rotation(delta, input_dir)
-
-# ============================================================================
-# ANIMATION SYSTEM
-# ============================================================================
-func _update_animation_state(delta: float, _input_dir: Vector3, _is_sprinting: bool) -> void:
-	pass
-
-func _update_locomotion_blend(_is_sprinting: bool) -> void:
-	# ya no se usa (quedará como puente vacío o puedes dejarlo como está si nadie lo llama directo)
-	pass
-
-func _update_sprint_timescale(_is_sprinting: bool) -> void:
-	pass
-
-func _update_air_blend(_delta: float) -> void:
-	pass
-
-func _calculate_fall_blend() -> float:
-	return 0.0
-
-# ============================================================================
-# AUDIO SYSTEM
-# ============================================================================
-func _update_footstep_audio(_delta: float) -> void:
-	# Footsteps are now driven by animation callbacks for perfect sync
-	pass
-
 func _play_footstep_audio() -> void:
 	m_audio.play_footstep()
-
-# ============================================================================
-# ALTERNATIVE: Timer-based footsteps (less accurate, use if no anim callbacks)
-# ============================================================================
-func _update_footstep_audio_timer(delta: float) -> void:
-	"""Timer-based footsteps - adjust step_period_multiplier to sync with animation"""
-	var horizontal_speed: float = Vector2(velocity.x, velocity.z).length()
-	
-	if not is_on_floor() or horizontal_speed < 0.5:
-		_footstep_timer = 0.0
-		return
-	
-	# Adjust this multiplier to match your animation timing
-	const STEP_PERIOD_MULTIPLIER: float = 1.05  # Increase if sounds are too fast
-	var speed_ratio: float = clampf(horizontal_speed / sprint_speed, 0.0, 1.0)
-	var step_period: float = lerpf(0.5, 0.28, speed_ratio) * STEP_PERIOD_MULTIPLIER
-	
-	_footstep_timer += delta
-	if _footstep_timer >= step_period:
-		_footstep_timer -= step_period
-		_play_footstep_audio()
-
-func _handle_landing() -> void:
-	m_state.handle_landing()
-
 
 func _play_landing_audio(is_hard: bool) -> void:
 	m_audio.play_landing(is_hard)
@@ -274,7 +157,3 @@ func _trigger_camera_landing(is_hard: bool) -> void:
 	if camera_rig:
 		camera_rig.call_deferred("_on_player_landed", is_hard)
 
-func _play_audio_safe(audio_player: AudioStreamPlayer3D) -> void:
-	# lo mantiene por compatibilidad; si quieres llamar, usa m_audio.play_* en su lugar
-	if is_instance_valid(audio_player):
-		audio_player.play()
