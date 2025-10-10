@@ -132,10 +132,18 @@ func _configure_physics() -> void:
 # ============================================================================
 func _physics_process(delta: float) -> void:
 	_apply_gravity(delta)
-	
+
 	var input_dir: Vector3 = _get_camera_relative_input()
 	var is_sprinting: bool = _update_sprint_state(delta, input_dir)
-	
+
+	# Llamadas de "tick" (no cambian comportamiento si ya delegaste arriba)
+	m_state.physics_tick(delta)
+	m_movement.physics_tick(delta)
+	m_jump.physics_tick(delta)
+	m_orientation.physics_tick(delta)
+	m_anim.physics_tick(delta)
+	m_audio.physics_tick(delta)
+
 	_update_horizontal_velocity(delta, input_dir, is_sprinting)
 	_update_jump_mechanics(delta)
 	_handle_jump_input()
