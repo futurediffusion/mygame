@@ -1,0 +1,375 @@
+extends CharacterBody3D
+
+enum State {
+	IDLE,
+	MOVE,
+	COMBAT_MELEE,
+	COMBAT_RANGED,
+	BUILD,
+	SNEAK,
+	SWIM,
+	TALK,
+	SIT
+}
+
+@export var state: State = State.IDLE
+@export var stats: AllyStats
+@export var move_speed_base: float = 5.0
+@export var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+@export var sprint_enabled: bool = true
+@export_enum("sword", "unarmed", "ranged") var weapon_kind: String = "sword"
+
+@export var anim_idle: String = "idle"
+@export var anim_walk: String = "walk"
+@export var anim_run: String = "run"
+@export var anim_sneak: String = "sneak"
+@export var anim_swim: String = "swim"
+@export var anim_talk_loop: String = "talk_loop"
+@export var anim_sit_down: String = "sit_down"
+@export var anim_sit_loop: String = "sit_loop"
+@export var anim_stand_up: String = "stand_up"
+@export var anim_attack_melee: String = "attack_melee"
+@export var anim_aim_ranged: String = "aim_ranged"
+@export var anim_build: String = "build"
+
+@export var sit_offset: Vector3 = Vector3(0, 0, 0)
+
+@onready var anim_player: AnimationPlayer = $AnimPlayer
+@onready var seat_anchor: Node3D = $SeatAnchor
+
+var _target_dir: Vector3 = Vector3.ZERO
+var _combat_target: Node3D
+var _is_crouched: bool = false
+var _is_in_water: bool = false
+var _is_sprinting: bool = false
+var _t_stealth_accum: float = 0.0
+var _t_swim_accum: float = 0.0
+var _t_build_accum: float = 0.0
+var _t_move_accum: float = 0.0
+var _stamina_ratio_min: float = 1.0
+var _stamina_ratio_max_since_min: float = 1.0
+var _stamina_cycle_window: float = 10.0
+var _t_stamina_window: float = 0.0
+var _current_seat: Node3D
+var _talk_timer: SceneTreeTimer
+var _last_state: State = State.IDLE
+
+func _ready() -> void:
+	if stats == null:
+		stats = AllyStats.new()
+	_last_state = state
+	# var sim_clock: Node = get_node_or_null(^"/root/SimClock")
+	# if sim_clock:
+	# 	sim_clock.register(self, "local")
+
+func _physics_process(delta: float) -> void:
+	physics_tick(delta)
+
+func physics_tick(delta: float) -> void:
+	if state != _last_state:
+		_on_state_changed(_last_state, state)
+		_last_state = state
+	if _is_in_water:
+		velocity.y = lerpf(velocity.y, 0.0, delta * 2.0)
+	else:
+		velocity.y -= gravity * delta
+	match state:
+		State.IDLE:
+			_do_idle(delta)
+		State.MOVE:
+			_do_move(delta)
+		State.COMBAT_MELEE:
+			_do_combat_melee(delta)
+		State.COMBAT_RANGED:
+			_do_combat_ranged(delta)
+		State.BUILD:
+			_do_build(delta)
+		State.SNEAK:
+			_do_sneak(delta)
+		State.SWIM:
+			_do_swim(delta)
+		State.TALK:
+			_do_talk(delta)
+		State.SIT:
+			_do_sit(delta)
+	velocity = move_and_slide()
+	_track_stamina_cycle(delta)
+
+func _do_idle(delta: float) -> void:
+	velocity.x = 0.0
+	velocity.z = 0.0
+	_play_anim(anim_idle)
+
+func _do_move(delta: float) -> void:
+	var flat_dir := _flat_dir(_target_dir)
+	if flat_dir == Vector3.ZERO:
+		state = State.IDLE
+		return
+	var speed := move_speed_base
+	if _is_sprinting and sprint_enabled:
+		if stats:
+			speed = stats.sprint_speed(move_speed_base)
+		else:
+			speed = move_speed_base * 1.2
+	var desired_velocity := flat_dir * speed
+	velocity.x = desired_velocity.x
+	velocity.z = desired_velocity.z
+	if _is_sprinting and sprint_enabled:
+		_play_anim(anim_run)
+	else:
+		_play_anim(anim_walk)
+	_t_move_accum += delta
+	if _t_move_accum >= 3.0:
+		_t_move_accum = 0.0
+		if stats:
+			stats.gain_base_stat("athletics", 0.5)
+
+func _do_combat_melee(delta: float) -> void:
+	if _combat_target == null or not is_instance_valid(_combat_target):
+		state = State.IDLE
+		return
+	var to_target := _combat_target.global_transform.origin - global_transform.origin
+	var flat := _flat_dir(to_target)
+	var speed := move_speed_base * 0.8
+	velocity.x = flat.x * speed
+	velocity.z = flat.z * speed
+	_play_anim(anim_attack_melee)
+	if stats:
+		if weapon_kind == "unarmed":
+			stats.gain_skill("war", "unarmed", 1.0, {"action_hash": "melee_unarmed"})
+		else:
+			stats.gain_skill("war", "swords", 1.0, {"action_hash": "melee_sword"})
+
+func _do_combat_ranged(delta: float) -> void:
+	velocity.x = 0.0
+	velocity.z = 0.0
+	_play_anim(anim_aim_ranged)
+
+func register_ranged_attack() -> void:
+	if not stats:
+		return
+	stats.gain_skill("war", "ranged", 1.0, {"action_hash": "ranged_shot"})
+
+func _do_build(delta: float) -> void:
+	velocity.x = 0.0
+	velocity.z = 0.0
+	_play_anim(anim_build)
+	_t_build_accum += delta
+	if _t_build_accum >= 2.0:
+		_t_build_accum = 0.0
+		if stats:
+			stats.gain_skill("science", "engineering", 1.0, {"action_hash": "build"})
+
+func _do_sneak(delta: float) -> void:
+	var flat_dir := _flat_dir(_target_dir)
+	var speed := move_speed_base * 0.6
+	velocity.x = flat_dir.x * speed
+	velocity.z = flat_dir.z * speed
+	_play_anim(anim_sneak)
+	_t_stealth_accum += delta
+	if _t_stealth_accum >= 4.0:
+		_t_stealth_accum = 0.0
+		if stats:
+			stats.gain_skill("stealth", "stealth", 1.0, {"action_hash": "sneak"})
+
+func _do_swim(delta: float) -> void:
+	var flat_dir := _flat_dir(_target_dir)
+	var swim_factor := 0.0
+	if stats:
+		swim_factor = clampf(float(stats.swimming) / 100.0, 0.0, 1.0)
+	var speed_multiplier := lerpf(0.5, 1.8, swim_factor)
+	var speed := move_speed_base * speed_multiplier
+	velocity.x = flat_dir.x * speed
+	velocity.z = flat_dir.z * speed
+	_play_anim(anim_swim)
+	_t_swim_accum += delta
+	if _t_swim_accum >= 3.0:
+		_t_swim_accum = 0.0
+		if stats:
+			stats.gain_base_stat("swimming", 1.0)
+
+func _do_talk(delta: float) -> void:
+	velocity.x = 0.0
+	velocity.z = 0.0
+	_play_anim(anim_talk_loop)
+
+func _do_sit(delta: float) -> void:
+	velocity = Vector3.ZERO
+	_snap_to_seat()
+	_play_anim(anim_sit_loop)
+
+func set_move_dir(dir: Vector3) -> void:
+	if state == State.SIT or state == State.TALK:
+		return
+	_target_dir = _flat_dir(dir)
+	if _target_dir == Vector3.ZERO:
+		if state in [State.MOVE, State.SNEAK, State.SWIM]:
+			state = State.IDLE
+		return
+	if _is_in_water:
+		state = State.SWIM
+	elif _is_crouched:
+		state = State.SNEAK
+	else:
+		state = State.MOVE
+
+func engage_melee(target: Node3D) -> void:
+	_combat_target = target
+	state = State.COMBAT_MELEE
+
+func engage_ranged(target: Node3D) -> void:
+	_combat_target = target
+	state = State.COMBAT_RANGED
+
+func set_crouched(on: bool) -> void:
+	_is_crouched = on
+	if on:
+		if _target_dir != Vector3.ZERO and state != State.SIT and state != State.TALK:
+			state = State.SNEAK
+	else:
+		if state == State.SNEAK:
+			if _is_in_water:
+				if _target_dir != Vector3.ZERO:
+					state = State.SWIM
+				else:
+					state = State.IDLE
+			else:
+				if _target_dir != Vector3.ZERO:
+					state = State.MOVE
+				else:
+					state = State.IDLE
+
+func set_sprinting(on: bool) -> void:
+	if sprint_enabled:
+		_is_sprinting = on
+	else:
+		_is_sprinting = false
+
+func set_in_water(on: bool) -> void:
+	_is_in_water = on
+	if on:
+		if _target_dir != Vector3.ZERO:
+			state = State.SWIM
+	else:
+		if state == State.SWIM:
+			if _is_crouched and _target_dir != Vector3.ZERO:
+				state = State.SNEAK
+			elif _target_dir != Vector3.ZERO:
+				state = State.MOVE
+			else:
+				state = State.IDLE
+
+func start_talking(seconds: float = -1.0) -> void:
+	if state == State.SIT:
+		return
+	_cleanup_talk_timer()
+	state = State.TALK
+	if seconds > 0.0:
+		var timer := get_tree().create_timer(seconds)
+		if timer:
+			timer.timeout.connect(_on_talk_timer_timeout)
+			_talk_timer = timer
+
+func stop_talking() -> void:
+	_cleanup_talk_timer()
+	if state == State.TALK:
+		state = State.IDLE
+
+func sit_on(seat: Node3D) -> void:
+	_current_seat = seat
+	_snap_to_seat()
+	_play_anim(anim_sit_down)
+	state = State.SIT
+
+func stand_up() -> void:
+	if state != State.SIT:
+		return
+	_current_seat = null
+	_play_anim(anim_stand_up)
+	state = State.IDLE
+
+func _flat_dir(vector: Vector3) -> Vector3:
+	var result := Vector3(vector.x, 0.0, vector.z)
+	if result.length_squared() > 0.0:
+		result = result.normalized()
+	return result
+
+func _play_anim(name: String) -> void:
+	if name == "":
+		return
+	if anim_player == null or not is_instance_valid(anim_player):
+		return
+	if not anim_player.has_animation(name):
+		return
+	if anim_player.current_animation == name and anim_player.is_playing():
+		return
+	anim_player.play(name)
+	# TODO Animación: si se conecta un AnimationTree o un blend avanzado, reemplazar esta función por la lógica de ruteo deseada.
+
+func _snap_to_seat() -> void:
+	if _current_seat == null or not is_instance_valid(_current_seat):
+		return
+	var seat_transform := _current_seat.global_transform
+	seat_transform.origin += seat_transform.basis * sit_offset
+	var anchor_transform := Transform3D.IDENTITY
+	if seat_anchor:
+		anchor_transform = seat_anchor.transform
+	var inverse_anchor := anchor_transform.affine_inverse()
+	global_transform = seat_transform * inverse_anchor
+
+func _track_stamina_cycle(delta: float) -> void:
+	_t_stamina_window += delta
+	var ratio := 0.9
+	if _is_sprinting and sprint_enabled:
+		ratio = 0.5
+	if ratio < _stamina_ratio_min:
+		_stamina_ratio_min = ratio
+	if ratio > _stamina_ratio_max_since_min:
+		_stamina_ratio_max_since_min = ratio
+	if not (_is_sprinting and sprint_enabled):
+		_stamina_ratio_max_since_min = clampf(_stamina_ratio_max_since_min + (delta * 0.02), 0.0, 1.0)
+	if _t_stamina_window >= _stamina_cycle_window:
+		var consumed := 1.0 - _stamina_ratio_min
+		var recovered := _stamina_ratio_max_since_min
+		if consumed >= 0.4 and recovered >= 0.95 and stats:
+			stats.note_stamina_cycle(consumed, recovered, _t_stamina_window)
+		_stamina_ratio_min = 1.0
+		_stamina_ratio_max_since_min = 1.0
+		_t_stamina_window = 0.0
+
+func _on_state_changed(previous: State, current: State) -> void:
+	match current:
+		State.MOVE:
+			_t_move_accum = 0.0
+		State.SNEAK:
+			_t_stealth_accum = 0.0
+		State.SWIM:
+			_t_swim_accum = 0.0
+		State.BUILD:
+			_t_build_accum = 0.0
+		State.SIT:
+			_snap_to_seat()
+		State.TALK:
+			velocity = Vector3.ZERO
+	if current != State.COMBAT_MELEE:
+		_combat_target = null
+
+func _cleanup_talk_timer() -> void:
+	if _talk_timer and is_instance_valid(_talk_timer):
+		if _talk_timer.timeout.is_connected(_on_talk_timer_timeout):
+			_talk_timer.timeout.disconnect(_on_talk_timer_timeout)
+		_talk_timer = null
+
+func _on_talk_timer_timeout() -> void:
+	_talk_timer = null
+	stop_talking()
+
+# ------------------------------------------------------------------------------
+# Ejemplos de uso (comentados):
+# ally.set_move_dir(Vector3.FORWARD)
+# ally.set_crouched(true)
+# ally.set_in_water(true)
+# ally.sit_on(seat_node)
+# ally.stand_up()
+# ally.start_talking(3.0)
+# ally.stop_talking()

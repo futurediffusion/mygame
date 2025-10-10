@@ -18,6 +18,7 @@
 - **AudioCtrlModule** – Centralizes SFX playback (jump, land, footsteps) and optional timer-driven footsteps to keep audio logic decoupled from movement.【F:Modules/AudioCtrl.gd†L1-L45】
 - **CameraRig** – Provides smooth orbit camera controls, zoom, input capture toggling, and FOV kick responses exposed via a public API.【F:scripts/player/CameraOrbit.gd†L1-L236】
 - **Stamina** – Manages sprint resource drain/regeneration and gating for sprint activation.【F:scripts/player/Stamina.gd†L1-L26】
+- **Ally FSM** – Introduced a reusable ally scene with a tab-indented GDScript state machine covering idle, movement, combat, building, sneaking, swimming, talking, and sitting, including stat progression hooks and optional AnimationPlayer playback.【F:scenes/entities/Ally.gd†L1-L356】【F:scenes/entities/Ally.tscn†L1-L33】
 - **GameState Singleton** – Tracks pause/cinematic state and exposes signals to listeners.【F:Singletons/GameState.gd†L1-L19】
 - **EventBus Singleton** – Broadcasts HUD, ally, save/load, and stamina signals to keep UI, audio, and gameplay notifications decoupled.【F:Singletons/EventBus.gd†L1-L14】
 - **Save Singleton** – Persists arbitrary dictionaries via JSON plus optional ZSTD compression while gracefully handling missing or legacy save files.【F:Singletons/Save.gd†L1-L43】
