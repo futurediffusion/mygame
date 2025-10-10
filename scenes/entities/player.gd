@@ -157,8 +157,8 @@ func _physics_process(delta: float) -> void:
 # PHYSICS CALCULATIONS
 # ============================================================================
 func _apply_gravity(delta: float) -> void:
-	if not is_on_floor():
-		velocity.y -= _gravity * delta
+	m_state.apply_gravity(delta)
+
 
 func _get_camera_relative_input() -> Vector3:
 	var input_z: float = Input.get_axis("move_back", "move_forward")
@@ -354,14 +354,8 @@ func _update_footstep_audio_timer(delta: float) -> void:
 		_play_footstep_audio()
 
 func _handle_landing() -> void:
-	if not is_on_floor() or _was_on_floor:
-		return
-	
-	var impact_velocity: float = abs(velocity.y)
-	var is_hard_landing: bool = impact_velocity > 10.0
-	
-	_play_landing_audio(is_hard_landing)
-	_trigger_camera_landing(is_hard_landing)
+	m_state.handle_landing()
+
 
 func _play_landing_audio(is_hard: bool) -> void:
 	if not is_instance_valid(land_sfx) or land_sfx.stream == null:
