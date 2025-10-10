@@ -61,9 +61,7 @@ func _ready() -> void:
 		stats = AllyStats.new()
 	_last_state = state
 	if player_visual_preset != null and _model_root != null:
-		var inst := player_visual_preset.instantiate()
-		_model_root.add_child(inst)
-		_bind_anim_player_from(_model_root)
+		_swap_visual(player_visual_preset)
 		if anim_player == null:
 			_bind_anim_player_from(self)
 	else:
@@ -390,6 +388,123 @@ func _bind_anim_player_from(root: Node) -> void:
 			break
 		for c in n.get_children():
 			stack.push_back(c)
+
+func apply_visual_from_archetype(id: String) -> void:
+	if typeof(Data) != TYPE_OBJECT:
+		return
+	var archetype: Dictionary = Data.allies.get(id, {})
+	var visual: Dictionary = archetype.get("visual", {})
+	if visual.is_empty():
+		return
+	if visual.has("preset"):
+		var preset := load(String(visual["preset"])) as PackedScene
+		_swap_visual(preset)
+	if visual.has("materials"):
+		var material_overrides := visual["materials"]
+		if material_overrides is Dictionary:
+			_apply_material_overrides(material_overrides)
+	if visual.has("gear"):
+		var gear := visual["gear"]
+		if gear is Dictionary:
+			_attach_gear(gear)
+	if visual.has("tint"):
+		var tint_value = visual["tint"]
+		if tint_value is Array and tint_value.size() >= 3:
+			var color := Color(float(tint_value[0]), float(tint_value[1]), float(tint_value[2]))
+			if tint_value.size() >= 4:
+				color.a = float(tint_value[3])
+			_tint_meshes(color)
+
+func _swap_visual(preset: PackedScene) -> void:
+	if _model_root == null or preset == null:
+		return
+	for child in _model_root.get_children():
+		child.queue_free()
+	var inst := preset.instantiate()
+	_model_root.add_child(inst)
+	_bind_anim_player_from(_model_root)
+	if anim_player == null:
+		_bind_anim_player_from(self)
+
+func _apply_material_overrides(dict_paths: Dictionary) -> void:
+	if _model_root == null or dict_paths.is_empty():
+		return
+	var queue := [_model_root]
+	while queue.size() > 0:
+		var node := queue.pop_back()
+		if node is MeshInstance3D:
+			var mesh_instance := node as MeshInstance3D
+			if dict_paths.has(mesh_instance.name):
+				var resource_path := String(dict_paths[mesh_instance.name])
+				var material := load(resource_path) as Material
+				if material != null and mesh_instance.mesh != null:
+					for surface in range(mesh_instance.mesh.get_surface_count()):
+						mesh_instance.set_surface_override_material(surface, material)
+		for child in node.get_children():
+			queue.push_back(child)
+
+func _attach_gear(gear: Dictionary) -> void:
+	if _model_root == null or gear.is_empty():
+		return
+	var skeleton := _find_skeleton(_model_root)
+	if skeleton == null:
+		return
+	for child in skeleton.get_children():
+		if child is SkeletonAttachment3D and child.has_meta("gear_slot"):
+			child.queue_free()
+	for slot in gear.keys():
+		var scene_path := String(gear[slot])
+		var scene := load(scene_path) as PackedScene
+		if scene == null:
+			continue
+		var attachment := SkeletonAttachment3D.new()
+		attachment.bone_name = _slot_to_bone(slot)
+		attachment.name = "Gear_%s" % slot
+		attachment.set_meta("gear_slot", slot)
+		skeleton.add_child(attachment)
+		var inst := scene.instantiate()
+		attachment.add_child(inst)
+
+func _slot_to_bone(slot: String) -> String:
+	match slot:
+		"head":
+			return "Head"
+		"back":
+			return "Spine2"
+		_:
+			return "Spine"
+
+func _tint_meshes(color: Color) -> void:
+	if _model_root == null:
+		return
+	var queue := [_model_root]
+	while queue.size() > 0:
+		var node := queue.pop_back()
+		if node is MeshInstance3D:
+			var mesh_instance := node as MeshInstance3D
+			var mesh := mesh_instance.mesh
+			if mesh == null:
+				continue
+			for surface in range(mesh.get_surface_count()):
+				var material := mesh_instance.get_active_material(surface)
+				if material is StandardMaterial3D:
+					var duplicated := material.duplicate() as StandardMaterial3D
+					duplicated.albedo_color = color
+					mesh_instance.set_surface_override_material(surface, duplicated)
+		for child in node.get_children():
+			queue.push_back(child)
+
+func _find_skeleton(root: Node) -> Skeleton3D:
+	if root == null:
+		return null
+	var queue := [root]
+	while queue.size() > 0:
+		var node := queue.pop_back()
+		if node is Skeleton3D:
+			return node
+		for child in node.get_children():
+			queue.push_back(child)
+	return null
 
 # ------------------------------------------------------------------------------
 # Ejemplos de uso (comentados):

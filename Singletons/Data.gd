@@ -16,6 +16,7 @@ const BASE_PROPERTY_MAP := {
 
 var _defaults: Dictionary = {}
 var _archetypes: Dictionary = {}
+var allies: Dictionary = {}
 
 func _ready() -> void:
 	var data := _load_json(ARCHETYPE_JSON_PATH)
@@ -25,10 +26,13 @@ func _ready() -> void:
 	_defaults = data.get("defaults", {}).duplicate(true)
 	var archetype_array: Array = data.get("archetypes", [])
 	_archetypes.clear()
+	allies.clear()
 	for entry in archetype_array:
-		if not entry.has("id"):
-			continue
-		_archetypes[entry["id"]] = entry.duplicate(true)
+                if not entry.has("id"):
+                        continue
+                var copy: Dictionary = entry.duplicate(true)
+                _archetypes[entry["id"]] = copy
+                allies[entry["id"]] = copy
 
 func archetype_exists(id: String) -> bool:
 	return _archetypes.has(id)
