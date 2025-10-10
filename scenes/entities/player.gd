@@ -52,7 +52,7 @@ class_name Player
 @onready var anim_player: AnimationPlayer = $Pivot/Model/AnimationPlayer
 @onready var stamina: Stamina = $Stamina
 @onready var camera_rig: Node = get_node_or_null(^"CameraRig")
-@onready var game_state: Node = get_node(^"/root/GameState")
+@onready var game_state: GameState = get_node_or_null(^"/root/GameState")
 
 # --- MÓDULOS (nuevos onready) ---
 @onready var m_movement: MovementModule = $Modules/Movement
@@ -94,8 +94,8 @@ func _physics_process(delta: float) -> void:
 	m_anim.set_frame_anim_inputs(is_sprinting, air_time)
 
 	# FLAGS GLOBALES
-	var paused: bool = game_state.is_paused
-	var block_anim: bool = game_state.is_in_cinematic  # ejemplo: en cinemática, mover pero no animar
+	var paused := (game_state and game_state.is_paused) or false
+	var block_anim := (game_state and game_state.is_in_cinematic) or false
 
 	# ORDEN CANÓNICO
 	if not paused:
