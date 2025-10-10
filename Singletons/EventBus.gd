@@ -1,5 +1,4 @@
 extends Node
-class_name EventBus
 
 signal hud_message(text: String, seconds: float)
 signal ally_died(ally_id: int)

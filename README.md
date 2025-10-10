@@ -25,6 +25,7 @@
 ## Recent Fixes
 - Clamped scheduler interval updates with `maxf` to keep type inference strict in Godot 4.4 while preserving safe lower bounds on group cadence edits.【F:Singletons/SimClock.gd†L50-L58】
 - Relaxed the typed registry declaration in `SimClock` to avoid nested generic collection errors while keeping group iteration logic intact.【F:Singletons/SimClock.gd†L16-L118】
+- Cleared the autoload/class registration conflict on `EventBus` so Godot 4.4 stops flagging the singleton as hidden while keeping all broadcast signals intact.【F:Singletons/EventBus.gd†L1-L12】
 
 ## Player Orchestration
 - `Player.gd` exports tuning parameters, caches node references, and `setup()`-injects itself into each module on `_ready()` to keep module state synchronized.【F:scenes/entities/player.gd†L14-L96】
