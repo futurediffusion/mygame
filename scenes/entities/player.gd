@@ -26,6 +26,7 @@ const INPUT_ACTIONS := {
 	"combat_switch": ["switch_weapon", "toggle_weapon", "melee_ranged_switch"],
 	"build": ["build", "toggle_build", "build_mode"]
 }
+const SIMCLOCK_SCRIPT := preload("res://Singletons/SimClock.gd")
 
 # ============================================================================
 # AUDIO SYSTEM
@@ -36,7 +37,7 @@ const INPUT_ACTIONS := {
 
 @export var stats: AllyStats
 
-@export var sim_group: StringName = SimClock.GROUP_LOCAL
+@export var sim_group: StringName = SIMCLOCK_SCRIPT.GROUP_LOCAL
 @export var priority: int = 10
 
 # ============================================================================
@@ -548,10 +549,12 @@ func _trigger_camera_landing(is_hard: bool) -> void:
 		camera_rig.call_deferred("_on_player_landed", is_hard)
 
 func _get_simclock() -> SimClockAutoload:
-	var tree := get_tree()
+	var tree: SceneTree = get_tree()
 	if tree == null:
 		return null
-	var autoload := tree.get_root().get_node_or_null("/root/SimClock")
+	var autoload: Node = tree.get_root().get_node_or_null(^"/root/SimClock")
 	if autoload == null:
 		return null
-	return autoload as SimClockAutoload
+	if autoload is SIMCLOCK_SCRIPT:
+		return autoload as SimClockAutoload
+	return null

@@ -3,6 +3,7 @@ class_name ModuleBase
 
 const DEFAULT_SIM_GROUP: StringName = &"local"
 const DEFAULT_PRIORITY: int = 0
+const SIMCLOCK_SCRIPT := preload("res://Singletons/SimClock.gd")
 
 @export var sim_group: StringName = DEFAULT_SIM_GROUP
 @export var priority: int = DEFAULT_PRIORITY
@@ -35,10 +36,15 @@ func physics_tick(_dt: float) -> void:
 	pass
 
 func _get_simclock() -> SimClockAutoload:
-	var tree := get_tree()
+	var tree: SceneTree = get_tree()
 	if tree == null:
 		return null
-	var autoload := tree.get_root().get_node_or_null("/root/SimClock")
+	var root: Viewport = tree.get_root()
+	if root == null:
+		return null
+	var autoload: Node = root.get_node_or_null(^"/root/SimClock")
 	if autoload == null:
 		return null
-	return autoload as SimClockAutoload
+	if autoload is SIMCLOCK_SCRIPT:
+		return autoload as SimClockAutoload
+	return null

@@ -1,4 +1,5 @@
 extends Node3D
+const SIMCLOCK_SCRIPT := preload("res://Singletons/SimClock.gd")
 
 @export var allies_to_spawn: int = 30
 @export var spawn_spacing: float = 2.5
@@ -81,8 +82,14 @@ func _update_ticks_label() -> void:
 
 func _get_simclock() -> SimClockAutoload:
 	if typeof(SimClock) != TYPE_NIL:
-		return SimClock as SimClockAutoload
-	var tree := get_tree()
+		if SimClock is SIMCLOCK_SCRIPT:
+			return SimClock as SimClockAutoload
+	var tree: SceneTree = get_tree()
 	if tree == null:
 		return null
-	return tree.get_root().get_node_or_null(^"/root/SimClock") as SimClockAutoload
+	var autoload: Node = tree.get_root().get_node_or_null(^"/root/SimClock")
+	if autoload == null:
+		return null
+	if autoload is SIMCLOCK_SCRIPT:
+		return autoload as SimClockAutoload
+	return null
