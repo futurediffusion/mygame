@@ -13,17 +13,17 @@ func set_paused(paused: bool) -> void:
 		return
 	is_paused = paused
 	paused_changed.emit(paused)
-	_update_sim_clock_pause() # R3→R4 MIGRATION
+        _update_simclock_pause() # R3→R4 MIGRATION
 
 func set_cinematic(in_cinematic: bool) -> void:
 	if is_in_cinematic == in_cinematic:
 		return
 	is_in_cinematic = in_cinematic
 	cinematic_changed.emit(in_cinematic)
-	_update_sim_clock_pause() # R3→R4 MIGRATION
+        _update_simclock_pause() # R3→R4 MIGRATION
 
-func _update_sim_clock_pause() -> void:
-        var clock := _get_sim_clock() # R3→R4 MIGRATION
+func _update_simclock_pause() -> void:
+        var clock := _get_simclock() # R3→R4 MIGRATION
         if clock == null:
                 return
         var should_pause := is_paused or is_in_cinematic
@@ -31,7 +31,7 @@ func _update_sim_clock_pause() -> void:
         if Engine.is_editor_hint():
                 print_verbose("GameState -> SimClock.pause_group(%s)" % should_pause) # R3→R4 MIGRATION
 
-func _get_sim_clock() -> SimClock:
+func _get_simclock() -> SimClock:
 	var root := get_tree()
 	if root == null:
 		return null

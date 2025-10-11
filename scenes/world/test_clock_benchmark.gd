@@ -5,7 +5,7 @@ extends Node3D
 @export var ally_scene: PackedScene = preload("res://scenes/entities/Ally.tscn")
 
 @onready var _ally_container: Node3D = %Allies
-@onready var _toggle_sim_clock_button: Button = %ToggleSimClockButton
+@onready var _toggle_simclock_button: Button = %ToggleSimClockButton
 @onready var _toggle_pause_button: Button = %TogglePauseButton
 @onready var _ticks_label: Label = %TicksLabel
 
@@ -20,9 +20,9 @@ func _process(_delta: float) -> void:
 	_update_ticks_label()
 
 func _connect_controls() -> void:
-	if _toggle_sim_clock_button != null:
-		_toggle_sim_clock_button.disabled = true
-		_toggle_sim_clock_button.text = "Modo Ally: SimClock"
+        if _toggle_simclock_button != null:
+                _toggle_simclock_button.disabled = true
+                _toggle_simclock_button.text = "Modo Ally: SimClock"
 	if _toggle_pause_button != null:
 		_toggle_pause_button.pressed.connect(_on_toggle_pause_pressed)
 
@@ -44,7 +44,7 @@ func _spawn_allies() -> void:
 		ally.global_position = offset
 
 func _on_toggle_pause_pressed() -> void:
-        var clock := _get_sim_clock()
+        var clock := _get_simclock()
         if clock == null:
                 return
         _is_group_paused = not _is_group_paused
@@ -53,8 +53,8 @@ func _on_toggle_pause_pressed() -> void:
 
 func _update_controls() -> void:
 	_update_pause_button()
-	if _toggle_sim_clock_button != null:
-		_toggle_sim_clock_button.text = "Modo Ally: SimClock"
+        if _toggle_simclock_button != null:
+                _toggle_simclock_button.text = "Modo Ally: SimClock"
 
 func _update_pause_button() -> void:
 	if _toggle_pause_button == null:
@@ -65,7 +65,7 @@ func _update_pause_button() -> void:
 func _update_ticks_label() -> void:
         if _ticks_label == null:
                 return
-        var clock := _get_sim_clock()
+        var clock := _get_simclock()
         if clock == null:
                 _ticks_label.text = "SimClock no disponible"
                 return
@@ -79,7 +79,7 @@ func _update_ticks_label() -> void:
 		ticks_per_second = float(tick_count) / sim_time
 	_ticks_label.text = "Grupo %s → ticks: %d | sim_time: %.2f | ticks/s: %.2f | modo: SimClock" % [String(group), tick_count, sim_time, ticks_per_second]
 
-func _get_sim_clock() -> SimClock:
+func _get_simclock() -> SimClock:
 	if typeof(SimClock) != TYPE_NIL:
 		return SimClock
 	var tree := get_tree()
