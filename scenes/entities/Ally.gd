@@ -99,42 +99,42 @@ func _on_sim_clock_ticked(group_name: StringName, dt: float) -> void:
 func _on_local_tick(dt: float) -> void:
 	_ally_physics_update(dt)
 
-func physics_tick(delta: float) -> void:
+func physics_tick(dt: float) -> void:
 	if state != _last_state:
 		_on_state_changed(_last_state, state)
 		_last_state = state
 	if _is_in_water:
-		velocity.y = lerpf(velocity.y, 0.0, delta * 2.0)
+		velocity.y = lerpf(velocity.y, 0.0, dt * 2.0)
 	else:
-		velocity.y -= gravity * delta
+		velocity.y -= gravity * dt
 	match state:
 		State.IDLE:
-			_do_idle(delta)
+			_do_idle(dt)
 		State.MOVE:
-			_do_move(delta)
+			_do_move(dt)
 		State.COMBAT_MELEE:
-			_do_combat_melee(delta)
+			_do_combat_melee(dt)
 		State.COMBAT_RANGED:
-			_do_combat_ranged(delta)
+			_do_combat_ranged(dt)
 		State.BUILD:
-			_do_build(delta)
+			_do_build(dt)
 		State.SNEAK:
-			_do_sneak(delta)
+			_do_sneak(dt)
 		State.SWIM:
-			_do_swim(delta)
+			_do_swim(dt)
 		State.TALK:
-			_do_talk(delta)
+			_do_talk(dt)
 		State.SIT:
-			_do_sit(delta)
+			_do_sit(dt)
 	move_and_slide()
-	_track_stamina_cycle(delta)
+	_track_stamina_cycle(dt)
 
-func _do_idle(_delta: float) -> void:
+func _do_idle(_dt: float) -> void:
 	velocity.x = 0.0
 	velocity.z = 0.0
 	_play_anim(anim_idle)
 
-func _do_move(delta: float) -> void:
+func _do_move(dt: float) -> void:
 	var flat_dir := _flat_dir(_target_dir)
 	if flat_dir == Vector3.ZERO:
 		state = State.IDLE
@@ -152,13 +152,13 @@ func _do_move(delta: float) -> void:
 		_play_anim(anim_run)
 	else:
 		_play_anim(anim_walk)
-	_t_move_accum += delta
+	_t_move_accum += dt
 	if _t_move_accum >= 3.0:
 		_t_move_accum = 0.0
 		if stats:
 			stats.gain_base_stat("athletics", 0.5)
 
-func _do_combat_melee(_delta: float) -> void:
+func _do_combat_melee(_dt: float) -> void:
 	if _combat_target == null or not is_instance_valid(_combat_target):
 		state = State.IDLE
 		return
@@ -174,7 +174,7 @@ func _do_combat_melee(_delta: float) -> void:
 		else:
 			stats.gain_skill("war", "swords", 1.0, {"action_hash": "melee_sword"})
 
-func _do_combat_ranged(_delta: float) -> void:
+func _do_combat_ranged(_dt: float) -> void:
 	velocity.x = 0.0
 	velocity.z = 0.0
 	_play_anim(anim_aim_ranged)
@@ -187,29 +187,29 @@ func register_ranged_attack() -> void:
 func notify_jump_started() -> void:
 	_play_anim("jump")
 
-func _do_build(delta: float) -> void:
+func _do_build(dt: float) -> void:
 	velocity.x = 0.0
 	velocity.z = 0.0
 	_play_anim(anim_build)
-	_t_build_accum += delta
+	_t_build_accum += dt
 	if _t_build_accum >= 2.0:
 		_t_build_accum = 0.0
 		if stats:
 			stats.gain_skill("science", "engineering", 1.0, {"action_hash": "build"})
 
-func _do_sneak(delta: float) -> void:
+func _do_sneak(dt: float) -> void:
 	var flat_dir := _flat_dir(_target_dir)
 	var speed := move_speed_base * 0.6
 	velocity.x = flat_dir.x * speed
 	velocity.z = flat_dir.z * speed
 	_play_anim(anim_sneak)
-	_t_stealth_accum += delta
+	_t_stealth_accum += dt
 	if _t_stealth_accum >= 4.0:
 		_t_stealth_accum = 0.0
 		if stats:
 			stats.gain_skill("stealth", "stealth", 1.0, {"action_hash": "sneak"})
 
-func _do_swim(delta: float) -> void:
+func _do_swim(dt: float) -> void:
 	var flat_dir := _flat_dir(_target_dir)
 	var swim_factor := 0.0
 	if stats:
@@ -219,18 +219,18 @@ func _do_swim(delta: float) -> void:
 	velocity.x = flat_dir.x * speed
 	velocity.z = flat_dir.z * speed
 	_play_anim(anim_swim)
-	_t_swim_accum += delta
+	_t_swim_accum += dt
 	if _t_swim_accum >= 3.0:
 		_t_swim_accum = 0.0
 		if stats:
 			stats.gain_base_stat("swimming", 1.0)
 
-func _do_talk(_delta: float) -> void:
+func _do_talk(_dt: float) -> void:
 	velocity.x = 0.0
 	velocity.z = 0.0
 	_play_anim(anim_talk_loop)
 
-func _do_sit(_delta: float) -> void:
+func _do_sit(_dt: float) -> void:
 	velocity = Vector3.ZERO
 	_snap_to_seat()
 	_play_anim(anim_sit_loop)
@@ -355,8 +355,8 @@ func _snap_to_seat() -> void:
 	var inverse_anchor := anchor_transform.affine_inverse()
 	global_transform = seat_transform * inverse_anchor
 
-func _track_stamina_cycle(delta: float) -> void:
-	_t_stamina_window += delta
+func _track_stamina_cycle(dt: float) -> void:
+	_t_stamina_window += dt
 	var ratio := 0.9
 	if _is_sprinting and sprint_enabled:
 		ratio = 0.5
@@ -365,7 +365,7 @@ func _track_stamina_cycle(delta: float) -> void:
 	if ratio > _stamina_ratio_max_since_min:
 		_stamina_ratio_max_since_min = ratio
 	if not (_is_sprinting and sprint_enabled):
-		_stamina_ratio_max_since_min = clampf(_stamina_ratio_max_since_min + (delta * 0.02), 0.0, 1.0)
+		_stamina_ratio_max_since_min = clampf(_stamina_ratio_max_since_min + (dt * 0.02), 0.0, 1.0)
 	if _t_stamina_window >= _stamina_cycle_window:
 		var consumed := 1.0 - _stamina_ratio_min
 		var recovered := _stamina_ratio_max_since_min

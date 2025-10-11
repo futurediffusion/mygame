@@ -33,6 +33,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Restaurada la indentación por tabs en `scenes/entities/player.gd` para Godot 4.4, resolviendo los errores de parsing que aparecían alrededor de `_update_module_stats()` y reactivando el script principal.
 - Eliminadas las advertencias del depurador al prefijar parámetros opcionales en `scenes/entities/Ally.gd`, silenciar la señal `jumped` en `Modules/State.gd` y autoasignar `animation_tree_path` en `Modules/AnimationCtrl.gd` cuando falta en el inspector.
 - Tipado explícito de `group_variant` en `Singletons/SimClock.gd` para eliminar el error de inferencia de `Variant` que bloqueaba el parseo en Godot 4.4.
+- Unificado el consumo de `delta` de la FSM de `scenes/entities/Ally.gd` para que dependa del `dt` entregado por `_ally_physics_update` durante la migración a `SimClock`, manteniendo consistencia con `USE_SIMCLOCK_ALLY`.
 
 ---
 
