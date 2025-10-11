@@ -49,9 +49,9 @@ const INPUT_ACTIONS := {
 @export_range(1.0, 15.0, 0.1) var jump_velocity: float = 8.5
 
 @export_group("Physics")
-@export_range(1.0, 50.0, 0.5) var accel_ground: float = 22.0
-@export_range(1.0, 30.0, 0.5) var accel_air: float = 8.0
-@export_range(1.0, 50.0, 0.5) var decel: float = 18.0
+@export_range(1.0, 50.0, 0.5) var accel_ground: float = 26.0
+@export_range(1.0, 30.0, 0.5) var accel_air: float = 9.5
+@export_range(1.0, 50.0, 0.5) var decel: float = 10.0
 @export_range(0.0, 89.0, 1.0) var max_slope_deg: float = 46.0
 @export_range(0.0, 2.0, 0.05) var snap_len: float = 0.3
 
@@ -95,6 +95,8 @@ const INPUT_ACTIONS := {
 @onready var m_anim: AnimationCtrlModule = $Modules/AnimationCtrl
 @onready var m_audio: AudioCtrlModule = $Modules/AudioCtrl
 
+var input_buffer: InputBuffer
+
 # ============================================================================
 # INTERNAL STATE
 # ============================================================================
@@ -125,6 +127,10 @@ func _ready() -> void:
 	_sprint_threshold = run_speed * 0.4
 	for m in [m_movement, m_jump, m_state, m_orientation, m_anim, m_audio]:
 		m.setup(self)
+
+	input_buffer = InputBuffer.new()
+	input_buffer.jump_buffer_time = jump_buffer
+	add_child(input_buffer)
 
 	if anim_tree == null:
 		push_warning("AnimationTree no encontrado; animaciones desactivadas en este modo.")
@@ -169,6 +175,12 @@ func _ready() -> void:
 			ratio = clampf(stamina.value / stamina.max_stamina, 0.0, 1.0)
 		_stamina_ratio_min = ratio
 		_stamina_ratio_max_since_min = ratio
+
+func _unhandled_input(event: InputEvent) -> void:
+	if input_buffer == null:
+		return
+	if event.is_action_pressed("jump"):
+		input_buffer.note_jump_pressed(Time.get_unix_time_from_system())
 
 func _on_clock_tick(group: StringName, dt: float) -> void:
 	if group == sim_group:
@@ -414,8 +426,18 @@ func _update_module_stats() -> void:
 		combo.base_jump_velocity = jump_velocity
 		combo.coyote_time = coyote_time
 		combo.jump_buffer = jump_buffer
+	if input_buffer:
+		input_buffer.jump_buffer_time = jump_buffer
 	if m_jump:
 		m_jump.jump_velocity = jump_velocity
+		m_jump.coyote_time = coyote_time
+	if m_movement:
+		m_movement.max_speed_ground = run_speed
+		m_movement.max_speed_air = run_speed
+		m_movement.accel_ground = accel_ground
+		m_movement.accel_air = accel_air
+		m_movement.ground_friction = decel
+		m_movement.sprint_speed = sprint_speed
 	var speed_multiplier := 1.0
 	if combo and is_instance_valid(combo):
 		speed_multiplier = combo.get_speed_multiplier()

@@ -26,6 +26,8 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Registro de mantenimiento reciente
+- Añadido `scripts/player/InputBuffer.gd` y `scenes/entities/player.gd` ahora captura `jump` en `_unhandled_input`, bufferiza 120 ms y alimenta el salto desde el tick del `SimClock` para que no se pierdan pulsaciones.
+- Reescrito el trinomio de locomoción: `Modules/Jump.gd` usa buffer+coyote con `floor_snap` seguro y hold variable, `Modules/State.gd` reduce gravedad mientras se mantiene el salto y `Modules/Movement.gd` adopta aceleraciones 26/9.5 con fricción 10; `player.gd` sincroniza los nuevos exports (accel/air/fricción).
 - Renombrado `class_name` de `Singletons/SimClock.gd` a `SimClockAutoload` y actualizados los casts tipados en `ModuleBase`, `GameState`, `player.gd`, `Ally.gd` y el benchmark para evitar la colisión con el autoload de Godot 4.4.
 - Ajustado `ModuleBase` con constantes `DEFAULT_*` y `Modules/AllyFSMModule.gd` reasigna los defaults antes de `super._ready()` para eliminar la duplicación de exports (`sim_group`, `priority`) y mantener prioridad 15 para aliados.
 - Restaurado `Singletons/SimClock.gd` con indentación a tabs, comparador tipado y limpieza de entradas para que Godot 4.4 vuelva a exponer la clase `SimClock` a `GameState` y al resto de autoloads.
@@ -98,6 +100,7 @@ res://
      │   └─ Flags.gd (feature flags R3→R4)
      └─ player/
          ├─ CameraOrbit.gd (rig orbital y efectos de cámara)
+         ├─ InputBuffer.gd (buffer de salto desacoplado del tick)
          └─ Stamina.gd (recurso de resistencia del jugador)
 ```
 
