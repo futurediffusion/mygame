@@ -59,6 +59,7 @@ var _current_seat: Node3D
 var _talk_timer: SceneTreeTimer
 var _last_state: State = State.IDLE
 var _fsm_tick_ran: bool = false
+var _last_tick_counter: int = -1
 var _moved_this_tick: bool = false
 
 func _ready() -> void:
@@ -111,17 +112,23 @@ func fsm_step(dt: float) -> void:
 			_do_sit(dt)
 
 func physics_tick(dt: float) -> void:
+	var tick_counter := -1
 	if OS.is_debug_build():
-		assert(!_moved_this_tick, "Ally movido dos veces en el mismo tick")
+		var clock := _get_simclock()
+		if clock != null:
+			tick_counter = clock.get_group_tick_counter(sim_group)
+			assert(tick_counter != _last_tick_counter, "Ally movido dos veces en el mismo tick")
+			_last_tick_counter = tick_counter
+		else:
+			assert(!_moved_this_tick, "Ally movido dos veces en el mismo tick")
+			_moved_this_tick = true
 	if not _fsm_tick_ran and has_method("fsm_step"):
 		fsm_step(dt)
 	_fsm_tick_ran = false
 
 	_ally_physics_update(dt)
 	move_and_slide()
-	if OS.is_debug_build():
-		_moved_this_tick = true
-		await get_tree().process_frame
+	if OS.is_debug_build() and tick_counter == -1:
 		_moved_this_tick = false
 
 func _do_idle(_dt: float) -> void:
