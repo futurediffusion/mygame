@@ -44,12 +44,12 @@ func _spawn_allies() -> void:
 		ally.global_position = offset
 
 func _on_toggle_pause_pressed() -> void:
-	var sim_clock := _get_sim_clock()
-	if sim_clock == null:
-		return
-	_is_group_paused = not _is_group_paused
-	sim_clock.pause_group(Flags.ALLY_TICK_GROUP, _is_group_paused)
-	_update_controls()
+        var clock := _get_sim_clock()
+        if clock == null:
+                return
+        _is_group_paused = not _is_group_paused
+        clock.pause_group(Flags.ALLY_TICK_GROUP, _is_group_paused)
+        _update_controls()
 
 func _update_controls() -> void:
 	_update_pause_button()
@@ -63,13 +63,13 @@ func _update_pause_button() -> void:
 	_toggle_pause_button.text = label
 
 func _update_ticks_label() -> void:
-	if _ticks_label == null:
-		return
-	var sim_clock := _get_sim_clock()
-	if sim_clock == null:
-		_ticks_label.text = "SimClock no disponible"
-		return
-	var stats := sim_clock.get_group_stats()
+        if _ticks_label == null:
+                return
+        var clock := _get_sim_clock()
+        if clock == null:
+                _ticks_label.text = "SimClock no disponible"
+                return
+        var stats := clock.get_group_stats()
 	var group := Flags.ALLY_TICK_GROUP
 	var data: Dictionary = stats.get(group, {})
 	var tick_count: int = int(data.get("tick_count", 0))

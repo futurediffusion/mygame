@@ -1,25 +1,27 @@
 extends Node
-class TestMod := preload("res://Modules/ModuleBase.gd")
 
-var log: Array = []
+class DummyMod:
+        extends ModuleBase
 
-class A:
-	extends TestMod
-	@export var sim_group: StringName = &"local"
-	@export var priority: int = 0
-	func physics_tick(dt: float) -> void:
-		get_parent().log.append("A")
+        var name: String = ""
+        var hits: int = 0
 
-class B:
-	extends TestMod
-	@export var sim_group: StringName = &"local"
-	@export var priority: int = 10
-	func physics_tick(dt: float) -> void:
-		get_parent().log.append("B")
+        func physics_tick(_dt: float) -> void:
+                hits += 1
+                var owner := get_parent()
+                if owner != null:
+                        owner._order.append(name)
+
+var _order: Array = []
 
 func _ready() -> void:
-	add_child(A.new())
-	add_child(B.new())
-	await get_tree().process_frame
-	await get_tree().process_frame
-	print(log)
+        var mod_a := DummyMod.new()
+        mod_a.name = "A"
+        mod_a.priority = 10
+        var mod_b := DummyMod.new()
+        mod_b.name = "B"
+        mod_b.priority = 20
+        add_child(mod_a)
+        add_child(mod_b)
+        await get_tree().create_timer(0.2).timeout
+        print(_order) # Esperado: ["A", "B", "A", "B", ...]
