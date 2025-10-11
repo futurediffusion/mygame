@@ -10,6 +10,7 @@ const GROUP_GLOBAL: StringName = &"global"
 @export_range(0.01, 5.0, 0.01) var local_interval: float = 0.0167 # ~60 FPS sim local
 @export_range(0.05, 2.0, 0.01) var regional_interval: float = 0.25
 @export_range(0.5, 300.0, 0.5) var global_interval: float = 5.0
+@export var order_strategy: String = "path" # R3→R4 MIGRATION
 
 var _acc: Dictionary = {
 	GROUP_LOCAL: 0.0,
@@ -34,6 +35,7 @@ var _group_paused: Dictionary = {
 var _module_paused: Dictionary = {}
 # R3→R4 MIGRATION: Lookup para asociaciones nodo-grupo.
 var _node_groups: Dictionary = {}
+var _module_priority: Dictionary = {} # R3→R4 MIGRATION
 
 signal ticked(group_name: StringName, dt: float)
 
@@ -56,6 +58,8 @@ func register(node: Node, group_name: StringName) -> void:
 		return
 	_registry[canonical_group].append(module)
 	_node_groups[module] = canonical_group
+	if not _module_priority.has(module): # R3→R4 MIGRATION
+		_module_priority[module] = 0
 	if Engine.is_editor_hint():
 		print_verbose("SimClock register %s -> %s" % [module, canonical_group]) # R3→R4 MIGRATION
 
@@ -70,6 +74,7 @@ func unregister(node: Node) -> void:
 		_registry[group_name].erase(module) # R3→R4 MIGRATION
 	_node_groups.erase(module)
 	_module_paused.erase(module)
+	_module_priority.erase(module) # R3→R4 MIGRATION
 	if Engine.is_editor_hint():
 		print_verbose("SimClock unregister %s" % module) # R3→R4 MIGRATION
 
@@ -104,6 +109,13 @@ func pause_group(group_name: StringName, paused: bool) -> void:
 
 func set_group_paused(group_name: StringName, paused: bool) -> void:
 	pause_group(group_name, paused)
+
+func set_priority(node: Node, prio: int) -> void: # R3→R4 MIGRATION
+	if node == null or not is_instance_valid(node):
+		return
+	_module_priority[node] = prio
+	if Engine.is_editor_hint():
+		print_verbose("SimClock set_priority %s -> %s" % [node, prio])
 
 func set_module_paused(node: Object, paused: bool) -> void:
 	if node == null or not is_instance_valid(node):
@@ -158,13 +170,8 @@ func _tick_group(group_name: StringName, dt: float) -> void:
 		return
 	if not _registry.has(group_name):
 		return
-	var list: Array = _registry[group_name]
-	# Copia para evitar invalidación si alguien se desregistra en tick
-	for n in list.duplicate():
-		if not is_instance_valid(n):
-			_registry[group_name].erase(n)
-			_module_paused.erase(n)
-			continue
+	var ordered: Array = _get_ordered_modules(group_name) # R3→R4 MIGRATION
+	for n in ordered:
 		if _module_paused.get(n, false):
 			continue
 		if n.has_method("physics_tick"):
@@ -198,3 +205,41 @@ func _normalize_group(group_name: StringName) -> StringName:
 		if candidate == group_name or String(candidate) == String(group_name):
 			return candidate
 	return StringName()
+
+# R3→R4 MIGRATION: Deterministic ordering helpers.
+func _get_ordered_modules(group_name: StringName) -> Array:
+	var cleaned: Array = []
+	if not _registry.has(group_name):
+		return cleaned
+	for n in _registry[group_name].duplicate():
+		if not is_instance_valid(n):
+			_registry[group_name].erase(n)
+			_module_paused.erase(n)
+			_module_priority.erase(n)
+			continue
+		cleaned.append(n)
+	match order_strategy:
+		"priority":
+			cleaned.sort_custom(self, "_compare_by_priority")
+		"path":
+			cleaned.sort_custom(self, "_compare_by_path")
+		_:
+			pass
+	return cleaned
+
+func _compare_by_path(a: Object, b: Object) -> bool:
+	var path_a := String(_safe_node_path(a))
+	var path_b := String(_safe_node_path(b))
+	return path_a < path_b
+
+func _compare_by_priority(a: Object, b: Object) -> bool:
+	var priority_a: int = int(_module_priority.get(a, 0))
+	var priority_b: int = int(_module_priority.get(b, 0))
+	if priority_a == priority_b:
+		return _compare_by_path(a, b)
+	return priority_a < priority_b
+
+func _safe_node_path(node: Object) -> NodePath:
+	if node != null and is_instance_valid(node) and node is Node:
+		return (node as Node).get_path()
+	return NodePath()
