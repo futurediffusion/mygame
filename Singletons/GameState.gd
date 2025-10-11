@@ -23,13 +23,13 @@ func set_cinematic(in_cinematic: bool) -> void:
 	_update_sim_clock_pause() # R3→R4 MIGRATION
 
 func _update_sim_clock_pause() -> void:
-	var sim_clock := _get_sim_clock() # R3→R4 MIGRATION
-	if sim_clock == null:
-		return
-	var should_pause := is_paused or is_in_cinematic
-	sim_clock.pause_group(LOCAL_GROUP, should_pause)
-	if Engine.is_editor_hint():
-		print_verbose("GameState -> SimClock.pause_group(%s)" % should_pause) # R3→R4 MIGRATION
+        var clock := _get_sim_clock() # R3→R4 MIGRATION
+        if clock == null:
+                return
+        var should_pause := is_paused or is_in_cinematic
+        clock.pause_group(LOCAL_GROUP, should_pause)
+        if Engine.is_editor_hint():
+                print_verbose("GameState -> SimClock.pause_group(%s)" % should_pause) # R3→R4 MIGRATION
 
 func _get_sim_clock() -> SimClock:
 	var root := get_tree()

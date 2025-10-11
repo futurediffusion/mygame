@@ -59,6 +59,7 @@ var _current_seat: Node3D
 var _talk_timer: SceneTreeTimer
 var _last_state: State = State.IDLE
 var _fsm_tick_ran: bool = false
+var _moved_this_tick: bool = false
 
 func _ready() -> void:
 	if stats == null:
@@ -77,14 +78,15 @@ func _on_clock_tick(group: StringName, dt: float) -> void:
 		physics_tick(dt)
 
 func fsm_step(dt: float) -> void:
-	if state != _last_state:
-		_on_state_changed(_last_state, state)
-		_last_state = state
-	if _is_in_water:
-		velocity.y = lerpf(velocity.y, 0.0, dt * 2.0)
-	else:
-		velocity.y -= gravity * dt
-	match state:
+        # Lee sensores y decide velocidad deseada; no llames move_and_slide() aquí.
+        if state != _last_state:
+                _on_state_changed(_last_state, state)
+                _last_state = state
+        if _is_in_water:
+                velocity.y = lerpf(velocity.y, 0.0, dt * 2.0)
+        else:
+                velocity.y -= gravity * dt
+        match state:
 		State.IDLE:
 			_do_idle(dt)
 		State.MOVE:
@@ -101,16 +103,22 @@ func fsm_step(dt: float) -> void:
 			_do_swim(dt)
 		State.TALK:
 			_do_talk(dt)
-		State.SIT:
-			_do_sit(dt)
-	_fsm_tick_ran = true
+                State.SIT:
+                        _do_sit(dt)
 
 func physics_tick(dt: float) -> void:
-	if not _fsm_tick_ran:
-		fsm_step(dt)
-	move_and_slide()
-	_track_stamina_cycle(dt)
-	_fsm_tick_ran = false
+        if OS.is_debug_build():
+                assert(!_moved_this_tick, "Ally movido dos veces en el mismo tick")
+        if not _fsm_tick_ran and has_method("fsm_step"):
+                fsm_step(dt)
+        _fsm_tick_ran = false
+
+        _ally_physics_update(dt)
+        move_and_slide()
+        if OS.is_debug_build():
+                _moved_this_tick = true
+                await get_tree().process_frame
+                _moved_this_tick = false
 
 func _do_idle(_dt: float) -> void:
 	velocity.x = 0.0
@@ -339,7 +347,7 @@ func _snap_to_seat() -> void:
 	global_transform = seat_transform * inverse_anchor
 
 func _track_stamina_cycle(dt: float) -> void:
-	_t_stamina_window += dt
+        _t_stamina_window += dt
 	var ratio := 0.9
 	if _is_sprinting and sprint_enabled:
 		ratio = 0.5
@@ -377,7 +385,10 @@ func _on_state_changed(_previous: State, current: State) -> void:
 		State.TALK:
 			velocity = Vector3.ZERO
 	if current != State.COMBAT_MELEE:
-		_combat_target = null
+                _combat_target = null
+
+func _ally_physics_update(dt: float) -> void:
+        _track_stamina_cycle(dt)
 
 # R3→R4 MIGRATION: Utilidad de logging para FSM Ally.
 func _state_enum_name(value: State) -> String:
