@@ -71,7 +71,11 @@ func _ready() -> void:
 			_bind_anim_player_from(self)
 	else:
 		_bind_anim_player_from(self)
-	SimClock.register_module(self, sim_group, priority)
+	var clock := _get_simclock()
+	if clock:
+		clock.register_module(self, sim_group, priority)
+	else:
+		push_warning("SimClock autoload no disponible; Ally no se registró en el scheduler.")
 
 func _on_clock_tick(group: StringName, dt: float) -> void:
 	if group == sim_group:
@@ -572,3 +576,12 @@ func _find_skeleton(root: Node) -> Skeleton3D:
 # ally.stop_talking()
 # ally.player_visual_preset = load("res://scenes/entities/PlayerModel.tscn")
 # jump_module.jump_started.connect(ally.notify_jump_started)
+
+func _get_simclock() -> SimClock:
+	var tree := get_tree()
+	if tree == null:
+		return null
+	var autoload := tree.get_root().get_node_or_null("/root/SimClock")
+	if autoload == null:
+		return null
+	return autoload as SimClock

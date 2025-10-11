@@ -35,6 +35,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - `scenes/world/test_clock_benchmark.gd` quedó fijo en modo SimClock y sólo controla pausa de grupo; se añadió `tests/TestClock.tscn` para validar el orden de ejecución (A→B) en ticks locales.
 - `scripts/core/Flags.gd` conserva únicamente `ALLY_TICK_GROUP`, retirando toggles heredados como `USE_SIMCLOCK_ALLY`.
 - Normalizada la indentación con tabs en `scenes/entities/Ally.gd` para que Godot 4.4 procese correctamente `fsm_step` y el ciclo físico.
+- Corregido el acceso al autoload `SimClock` en `Modules/ModuleBase.gd`, `scenes/entities/player.gd` y `scenes/entities/Ally.gd`, resolviendo el choque `class_name` vs singleton de Godot 4.4 antes de registrar módulos.
 
 ---
 
@@ -138,7 +139,7 @@ Scheduler determinista con acumuladores por grupo (`local`, `regional`, `global`
 
 ### Loop de Simulación
 - **Emisión de ticks:** `Singletons/SimClock.gd` procesa acumuladores por grupo (`local`, `regional`, `global`), ordena los módulos por prioridad y llama a `_on_clock_tick(group, dt)` de forma determinista; `get_group_stats()` expone contadores y simulación acumulada.
-- **Módulos suscritos:** Cualquier nodo puede registrar `SimClock.register_module(self, group, priority)`. `ModuleBase` automatiza la suscripción para `Modules/*`, mientras que `player.gd` y `Ally.gd` reciben ticks locales directos vía `physics_tick(dt)` sin señales intermedias.
+- **Módulos suscritos:** Cualquier nodo puede registrarse en la instancia autoload `SimClock` (vía `/root/SimClock`) y llamar `register_module(self, group, priority)`. `ModuleBase` automatiza la búsqueda del autoload para `Modules/*`, mientras que `player.gd` y `Ally.gd` reciben ticks locales directos vía `physics_tick(dt)` sin señales intermedias.
 - **Pausa por grupo:** `Singletons/GameState.gd` pausa o reanuda grupos con `SimClock.pause_group(StringName, bool)`; el `StringName` por defecto vive en `Flags.ALLY_TICK_GROUP` para escenas que necesiten reconfigurar el grupo de aliados.
 - **Orden de actualización:** El `SimClock` ordena suscripción de módulos según la prioridad registrada (por defecto FIFO) antes de emitir `ticked`. Primero se resuelven los módulos locales (jugador, aliados, HUD reactivo), luego los regionales (sistemas de zona) y al final los globales (economía, telemetría). La migración R3→R4 mantiene el orden determinista al reutilizar la misma cola para AllyFSMModule y Player.
 
