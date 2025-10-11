@@ -67,6 +67,10 @@ func get_group_stats() -> Dictionary:
 		}
 	return result
 
+func get_group_tick_counter(group: StringName) -> int:
+	_ensure_group_entry(group)
+	return int(_tick_counters.get(group, 0))
+
 func _compare_entries(a: Dictionary, b: Dictionary) -> bool:
 	return int(a.get("prio", 0)) < int(b.get("prio", 0))
 
