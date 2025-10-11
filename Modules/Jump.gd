@@ -76,6 +76,9 @@ func execute_jump() -> void:
 	if player and player.has_method("apply_perfect_jump_combo"):
 		final_jump_velocity = player.apply_perfect_jump_combo(jump_velocity)
 	player.velocity.y = final_jump_velocity
+	var state_mod := player.m_state if "m_state" in player else null
+	if state_mod and is_instance_valid(state_mod) and state_mod.has_signal("jumped"):
+		state_mod.emit_signal("jumped")
 	_coyote_timer = 0.0
 	_jump_buffer_timer = 0.0
 	trigger_jump_animation()

@@ -102,9 +102,9 @@ Gestiona el ciclo físico del jugador, cachea el input y propaga el contexto a l
 ### Módulos del jugador (`Modules/`)
 - **MovementModule (`Movement.gd`)**: recibe la dirección normalizada y el flag de sprint desde el Player, calcula la velocidad horizontal objetivo y aplica aceleración/decadencia separada para suelo/aire.
 - **JumpModule (`Jump.gd`)**: administra coyote time, jump buffer, salto variable y disparo de animaciones/audio; emite efectos de cámara cuando procede.
-- **StateModule (`State.gd`)**: centraliza la gravedad (con multiplicador de caída), configura `floor_max_angle`/`floor_snap_length` y emite la señal `landed` tras detectar impactos.
+- **StateModule (`State.gd`)**: centraliza la gravedad (con multiplicador de caída), configura `floor_max_angle`/`floor_snap_length` y emite las señales `jumped`, `left_ground` y `landed` al detectar transiciones aéreas.
 - **OrientationModule (`Orientation.gd`)**: interpola la rotación del modelo hacia el input de locomoción respetando la corrección de forward.
-- **AnimationCtrlModule (`AnimationCtrl.gd`)**: actualiza el `AnimationTree` (`PARAM_LOC`, `PARAM_AIRBLEND`, `PARAM_SPRINTSCL`) y controla el blend de caída.
+- **AnimationCtrlModule (`AnimationCtrl.gd`)**: actualiza el `AnimationTree` (`PARAM_LOC`, `PARAM_AIRBLEND`, `PARAM_SPRINTSCL`) y bloquea locomoción en aire mientras gobierna un StateMachine `Jump → Fall → Land/Locomotion`.
 - **AudioCtrlModule (`AudioCtrl.gd`)**: toca SFX de salto, aterrizaje y pasos con random pitch; admite modo automático por timer para footfalls.
 - **PerfectJumpCombo (`Modules/PerfectJumpCombo.gd`)**: gestiona coyote time, jump buffer y la ventana de aterrizaje perfecta para escalar un combo que aumenta velocidad horizontal y potencia de salto; expone señales para UI/FX.
 

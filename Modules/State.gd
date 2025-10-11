@@ -11,6 +11,8 @@ var gravity: float
 var _was_on_floor := true
 
 signal landed(is_hard: bool)
+signal jumped
+signal left_ground
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
@@ -34,15 +36,17 @@ func physics_tick(delta: float) -> void:
 		return
 	if player.has_method("should_skip_module_updates") and player.should_skip_module_updates():
 		return
+	var now_on_floor := player.is_on_floor()
 	# Gravedad base + fast-fall, sin depender del botón
-	if not player.is_on_floor():
+	if not now_on_floor:
 		var g := gravity * gravity_scale
 		if use_fall_multiplier and player.velocity.y < 0.0:
 			g *= fall_gravity_multiplier
 		player.velocity.y -= g * delta
+		if _was_on_floor:
+			emit_signal("left_ground")
 
 	# Aterrizaje (edge aire→suelo)
-	var now_on_floor := player.is_on_floor()
 	if now_on_floor and not _was_on_floor:
 		var impact_velocity: float = abs(player.velocity.y)
 		var is_hard := impact_velocity > 10.0
