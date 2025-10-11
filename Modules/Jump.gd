@@ -5,6 +5,7 @@ class_name JumpModule
 @export var coyote_time: float = 0.12
 @export var max_hold_time: float = 0.15
 @export_range(0.0, 1.0, 0.01) var hold_gravity_scale: float = 0.45
+@export_range(0.0, 1.0, 0.01) var release_velocity_scale: float = 0.35
 
 var player: CharacterBody3D
 var anim_tree: AnimationTree
@@ -22,6 +23,7 @@ var _hold_timer_s: float = 0.0
 var _last_on_floor_time_s: float = -1.0
 var _last_jump_time_s: float = -1.0
 var _air_time: float = 0.0
+var _last_jump_velocity: float = 0.0
 
 func _ready() -> void:
 	pass
@@ -63,6 +65,11 @@ func physics_tick(dt: float) -> void:
 	else:
 		_air_time += dt
 	var last_floor_time := _get_last_on_floor_time()
+	var still_holding := false
+	if _input != null:
+		still_holding = _input.jump_is_held
+	else:
+		still_holding = Input.is_action_pressed("jump")
 	var buffered_jump := _input != null and _input.is_jump_buffered(now_s)
 	var wants_jump := buffered_jump
 	if _input == null and Input.is_action_just_pressed("jump"):
@@ -71,11 +78,6 @@ func physics_tick(dt: float) -> void:
 		_do_jump(now_s)
 		if buffered_jump:
 			_input.consume_jump_buffer()
-	var still_holding := false
-	if _input != null:
-		still_holding = _input.jump_is_held
-	else:
-		still_holding = Input.is_action_pressed("jump")
 	if _jumping:
 		if still_holding and _hold_timer_s < max_hold_time and _owner_body.velocity.y > 0.0:
 			var hold_scale := clampf(hold_gravity_scale, 0.0, 1.0)
@@ -84,7 +86,17 @@ func physics_tick(dt: float) -> void:
 			_owner_body.velocity.y -= reduction * dt
 			_hold_timer_s += dt
 		else:
+			if not still_holding and _hold_timer_s < max_hold_time and _owner_body.velocity.y > 0.0:
+				var release_scale := clampf(release_velocity_scale, 0.0, 1.0)
+				if release_scale < 1.0:
+					var base_jump_speed := _last_jump_velocity if _last_jump_velocity > 0.0 else jump_speed
+					var capped_velocity := base_jump_speed * release_scale
+					if release_scale <= 0.0:
+						capped_velocity = 0.0
+					if _owner_body.velocity.y > capped_velocity:
+						_owner_body.velocity.y = capped_velocity
 			_jumping = false
+
 
 func get_air_time() -> float:
 	return _air_time
@@ -108,6 +120,7 @@ func _do_jump(now_s: float) -> void:
 	_owner_body.velocity.y = max(_owner_body.velocity.y, final_speed)
 	_jumping = true
 	_hold_timer_s = 0.0
+	_last_jump_velocity = final_speed
 	_last_jump_time_s = now_s
 	_last_on_floor_time_s = -1.0
 	_air_time = 0.0
