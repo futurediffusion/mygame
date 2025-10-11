@@ -256,8 +256,10 @@ func _tree_has_param(param: StringName) -> bool:
 		return anim_tree.call("has_parameter", NodePath(param_string))
 	for entry in anim_tree.get_parameter_list():
 		if typeof(entry) == TYPE_DICTIONARY and entry.has("name"):
-			var entry_name := entry["name"]
-			var entry_string := entry_name if typeof(entry_name) == TYPE_STRING else String(entry_name)
+			var entry_name_value: Variant = entry.get("name", null)
+			if entry_name_value == null:
+				continue
+			var entry_string := entry_name_value if typeof(entry_name_value) == TYPE_STRING else String(entry_name_value)
 			if entry_string == param_string:
 				return true
 	return false
