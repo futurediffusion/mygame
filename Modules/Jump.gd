@@ -72,7 +72,10 @@ func handle_jump_input() -> void:
 		execute_jump()
 
 func execute_jump() -> void:
-	player.velocity.y = jump_velocity
+	var final_jump_velocity := jump_velocity
+	if player and player.has_method("apply_perfect_jump_combo"):
+		final_jump_velocity = player.apply_perfect_jump_combo(jump_velocity)
+	player.velocity.y = final_jump_velocity
 	_coyote_timer = 0.0
 	_jump_buffer_timer = 0.0
 	trigger_jump_animation()

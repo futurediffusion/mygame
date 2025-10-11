@@ -97,7 +97,7 @@ Los autoloads (`EventBus`, `Data`, `SimClock`, `GameState`, `Save`) se comunican
 ## Sistemas implementados
 
 ### Player Orchestrator (`scenes/entities/player.gd`)
-Gestiona el ciclo físico del jugador, cachea el input y propaga el contexto a los módulos. Expone señales (`context_state_changed`, `talk_requested`, `sit_toggled`, `interact_requested`, `combat_mode_switched`, `build_mode_toggled`) que permiten a otros sistemas reaccionar sin acceder al input bruto. Al finalizar cada tick, decide si ejecutar `_manual_tick_modules` o esperar a `SimClock.ticked`, aplica `move_and_slide`, sincroniza stamina y reporta ciclos a `AllyStats` mediante `note_stamina_cycle`. También detecta contacto con áreas de agua y cambia `ContextState` para el HUD o IA.
+Gestiona el ciclo físico del jugador, cachea el input y propaga el contexto a los módulos. Expone señales (`context_state_changed`, `talk_requested`, `sit_toggled`, `interact_requested`, `combat_mode_switched`, `build_mode_toggled`) que permiten a otros sistemas reaccionar sin acceder al input bruto. Al finalizar cada tick, decide si ejecutar `_manual_tick_modules` o esperar a `SimClock.ticked`, aplica `move_and_slide`, sincroniza stamina y reporta ciclos a `AllyStats` mediante `note_stamina_cycle`. Además actualiza `PerfectJumpCombo` para coordinar coyote, buffer y multiplicadores de salto/velocidad tanto en modo SimClock como en `_physics_process`. También detecta contacto con áreas de agua y cambia `ContextState` para el HUD o IA.
 
 ### Módulos del jugador (`Modules/`)
 - **MovementModule (`Movement.gd`)**: recibe la dirección normalizada y el flag de sprint desde el Player, calcula la velocidad horizontal objetivo y aplica aceleración/decadencia separada para suelo/aire.
@@ -106,6 +106,7 @@ Gestiona el ciclo físico del jugador, cachea el input y propaga el contexto a l
 - **OrientationModule (`Orientation.gd`)**: interpola la rotación del modelo hacia el input de locomoción respetando la corrección de forward.
 - **AnimationCtrlModule (`AnimationCtrl.gd`)**: actualiza el `AnimationTree` (`PARAM_LOC`, `PARAM_AIRBLEND`, `PARAM_SPRINTSCL`) y controla el blend de caída.
 - **AudioCtrlModule (`AudioCtrl.gd`)**: toca SFX de salto, aterrizaje y pasos con random pitch; admite modo automático por timer para footfalls.
+- **PerfectJumpCombo (`Modules/PerfectJumpCombo.gd`)**: gestiona coyote time, jump buffer y la ventana de aterrizaje perfecta para escalar un combo que aumenta velocidad horizontal y potencia de salto; expone señales para UI/FX.
 
 Todos heredan de `ModuleBase`, que resuelve el registro en `SimClock` y permite pausar ticks por grupo o módulo.
 
