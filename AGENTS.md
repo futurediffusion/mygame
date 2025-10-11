@@ -60,5 +60,6 @@ func physics_tick(dt: float) -> void:
 
 ## 6. Notas recientes
 - Godot 4.4 falla con "Unexpected indent" si se cuelan espacios en `scenes/entities/player.gd`; mantén tabs estrictos al ajustar `_update_module_stats()` o cualquier bloque que sincronice exports con módulos.
-- Evita retirar `class_name` de los autoloads (`SimClockAutoload`, `GameState`): Godot 4.4 deja de exponerlos y los casts tipados en escenas (`player.gd`, módulos) empiezan a marcar errores de parseo.
+- Evita retirar `class_name` de los autoloads (`SimClockAutoload`, `GameStateAutoload`): Godot 4.4 deja de exponerlos y los casts tipados en escenas (`player.gd`, módulos) empiezan a marcar errores de parseo.
 - Cuando un script tipado necesita castear `SimClockAutoload`, precarga `res://Singletons/SimClock.gd` (`const SIMCLOCK_SCRIPT := preload(...)`) y valida `autoload is SIMCLOCK_SCRIPT` antes de usar `as`; así Godot 4.4 registra la clase global incluso en escenas que cargan antes del autoload.
+- No reutilices un `class_name` idéntico al nombre del autoload (ej. `GameState` → `/root/GameState`); Godot 4.4 reporta "Class <name> hides an autoload singleton". Usa un sufijo como `Autoload` y actualiza los type hints en nodos consumidores.

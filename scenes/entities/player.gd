@@ -84,7 +84,7 @@ const SIMCLOCK_SCRIPT := preload("res://Singletons/SimClock.gd")
 @onready var anim_player: AnimationPlayer = get_node_or_null(^"Pivot/Model/AnimationPlayer") as AnimationPlayer
 @onready var stamina: Stamina = $Stamina
 @onready var camera_rig: Node = get_node_or_null(^"CameraRig")
-@onready var game_state: GameState = get_node_or_null(^"/root/GameState")
+@onready var game_state: GameStateAutoload = get_node_or_null(^"/root/GameState")
 @onready var trigger_area: Area3D = get_node_or_null(^"TriggerArea")
 @onready var combo: PerfectJumpCombo = $PerfectJumpCombo
 

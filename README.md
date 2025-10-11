@@ -26,6 +26,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Log rápido (último cambio)
+- `Singletons/GameState.gd` renombra su `class_name` a `GameStateAutoload` para evitar la colisión "Class hides an autoload singleton" en Godot 4.4 y `scenes/entities/player.gd` actualiza el tipado del autoload.
 - `Singletons/GameState.gd`, `Modules/ModuleBase.gd`, `scenes/entities/player.gd`, `scenes/entities/Ally.gd` y `scenes/world/test_clock_benchmark.gd`: ahora precargan `SimClock.gd` antes de castear y validan el tipo del autoload para que Godot 4.4 registre `SimClockAutoload` sin advertencias ni errores de parseo.
 - `Singletons/GameState.gd` y `Singletons/SimClock.gd`: se restauró el `class_name` y la indentación en tabs para que Godot 4.4 vuelva a exponer los autoloads `GameState` y `SimClockAutoload` sin errores de parseo ni advertencias de tipado al castear en el Player.
 - `scenes/entities/player.gd`: se restauró la indentación en tabs de `_update_module_stats()` para que Godot 4.4 deje de marcar "Unexpected indent" al sincronizar exports de salto y movimiento durante la carga.
