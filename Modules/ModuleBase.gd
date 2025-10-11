@@ -1,7 +1,8 @@
 extends Node
 class_name ModuleBase
 
-@export_enum("local", "regional", "global") var tick_group: String = "local"
+# R3→R4 MIGRATION: Exponer tick group como StringName editable.
+@export var tick_group: StringName = &"local"
 var _is_registered := false
 var _sim_clock_ref: SimClockScheduler
 
@@ -23,13 +24,14 @@ func _exit_tree() -> void:
 		return
 	var sim_clock := _sim_clock_ref if _sim_clock_ref != null else _fetch_sim_clock()
 	if sim_clock != null:
-		sim_clock.unregister(self, tick_group)
+		sim_clock.unregister(self)
 	_is_registered = false
 	_sim_clock_ref = null
 
 func physics_tick(_dt: float) -> void:
 	pass
 
+# R3→R4 MIGRATION: Resolver autoload sin asumir nombre de singleton.
 func _fetch_sim_clock() -> SimClockScheduler:
 	if typeof(SimClock) != TYPE_NIL:
 		return SimClock as SimClockScheduler

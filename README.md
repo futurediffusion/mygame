@@ -14,7 +14,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Stamina jugable y seguimiento de ciclos de uso (`scripts/player/Stamina.gd`, `scenes/entities/player.gd`).
 - FSM completa de aliados con progresión de habilidades, animaciones y personalización visual (`scenes/entities/Ally.gd`).
 - Progresión basada en `AllyStats` y arquetipos data-driven (`Resources/AllyStats.gd`, `data/ally_archetypes.json`, `Singletons/Data.gd`).
-- Autoloads de servicios (`SimClock`, `EventBus`, `GameState`, `Save`) configurados en `project.godot`.
+- Autoloads de servicios (`SimClock`, `EventBus`, `GameState`, `Save`, `Flags`) configurados en `project.godot`.
 - HUD reactivo basado en eventos (`scenes/ui/HUD.gd`).
 
 ### ¿Qué queda en prototipo o backlog para R4?
@@ -26,6 +26,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Registro de mantenimiento reciente
+- Formalizada la migración R3→R4 inicial: `SimClock` ahora tipa grupos con `StringName`, expone pausa por grupo y se apoya en `scripts/core/Flags.gd` para banderas de compatibilidad sin alterar el loop del Player.
 - Ajustado `Modules/AnimationCtrl.gd` para que verifique la existencia de parámetros del `AnimationTree` con `get_parameter_list` cuando `has_parameter` no está disponible en Godot 4.4, evitando llamadas inválidas en runtime.
 - Tipado explícito y sanitización de `entry_name` en `Modules/AnimationCtrl.gd` para evitar errores de inferencia en Godot 4.4 cuando el parámetro viene como `Variant` o `null`.
 - Normalizada la indentación de `Modules/Jump.gd` a tabs consistentes para Godot 4.4, eliminando los errores de análisis por mezcla de espacios y preservando la lógica de salto.
@@ -84,7 +85,9 @@ res://
  │       └─ *.tmp (copias temporales generadas por el editor)
  └─ scripts/
      ├─ bootstrap/InputSetup.gd (crea bindings de input one-shot)
-     ├─ core/PhysicsLayers.gd (constantes de colisión)
+     ├─ core/
+     │   ├─ PhysicsLayers.gd (constantes de colisión)
+     │   └─ Flags.gd (feature flags R3→R4)
      └─ player/
          ├─ CameraOrbit.gd (rig orbital y efectos de cámara)
          └─ Stamina.gd (recurso de resistencia del jugador)
@@ -97,7 +100,7 @@ La simulación gira alrededor del `SimClock` (`Singletons/SimClock.gd`), un sche
 
 Los aliados (`scenes/entities/Ally.gd`) usan un FSM explícito con estados `IDLE`, `MOVE`, `COMBAT_*`, `BUILD`, `SNEAK`, `SWIM`, `TALK`, `SIT`. Cada estado aplica animaciones y actualiza estadísticas mediante `AllyStats`, el Resource que encapsula atributos base, skills y reglas de progresión (`Resources/AllyStats.gd`). Las estadísticas se generan desde la singleton `Data.gd`, que parsea `data/ally_archetypes.json`, fusiona defaults, crecimiento y configuración visual; ese mismo diccionario controla presets de materiales y gear en tiempo de ejecución.
 
-Los autoloads (`EventBus`, `Data`, `SimClock`, `GameState`, `Save`) se comunican vía señales: `EventBus` difunde mensajes de HUD y eventos de gameplay; `GameState` expone flags globales de pausa/cinemática para que Player module el input; `Save` aporta utilidades de persistencia; `Data` abastece instancias `AllyStats` y presets visuales. El HUD (`scenes/ui/HUD.gd`) sólo escucha `EventBus.hud_message`, manteniendo la UI desacoplada de la lógica. El bootstrap de input (`scripts/bootstrap/InputSetup.gd`) ejecuta una sola vez al inicio y garantiza que todas las acciones (movimiento, combate, construcción) estén registradas incluso en proyectos clonados.
+Los autoloads (`EventBus`, `Data`, `SimClock`, `GameState`, `Save`, `Flags`) se comunican vía señales: `EventBus` difunde mensajes de HUD y eventos de gameplay; `GameState` expone flags globales de pausa/cinemática para que Player module el input; `Save` aporta utilidades de persistencia; `Data` abastece instancias `AllyStats` y presets visuales; `Flags` concentra toggles de migración (por ejemplo `USE_SIMCLOCK_ALLY`). El HUD (`scenes/ui/HUD.gd`) sólo escucha `EventBus.hud_message`, manteniendo la UI desacoplada de la lógica. El bootstrap de input (`scripts/bootstrap/InputSetup.gd`) ejecuta una sola vez al inicio y garantiza que todas las acciones (movimiento, combate, construcción) estén registradas incluso en proyectos clonados.
 
 ---
 
@@ -115,7 +118,7 @@ Gestiona el ciclo físico del jugador, cachea el input y propaga el contexto a l
 - **AudioCtrlModule (`AudioCtrl.gd`)**: toca SFX de salto, aterrizaje y pasos con random pitch; admite modo automático por timer para footfalls.
 - **PerfectJumpCombo (`Modules/PerfectJumpCombo.gd`)**: gestiona coyote time, jump buffer y la ventana de aterrizaje perfecta para escalar un combo que aumenta velocidad horizontal y potencia de salto; expone señales para UI/FX.
 
-Todos heredan de `ModuleBase`, que resuelve el registro en `SimClock` y permite pausar ticks por grupo o módulo.
+Todos heredan de `ModuleBase`, que resuelve el registro en `SimClock` usando `StringName` y permite pausar ticks por grupo o módulo respetando los toggles de migración.
 
 ### Ally FSM (`scenes/entities/Ally.gd`)
 Un `CharacterBody3D` configurable vía inspector. Cada estado del enum ejecuta un método `_do_*` que actualiza `velocity`, reproduce animaciones (`AnimationPlayer` autocargado) y gana habilidades según la actividad (`gain_skill`, `gain_base_stat`). Ofrece API pública para control externo: `set_move_dir`, `set_crouched`, `set_sprinting`, `set_in_water`, `start_talking`, `sit_on`, `stand_up`, `engage_melee`, `register_ranged_attack`. También gestiona anclajes de asiento, temporizadores de diálogo, personalización visual (`apply_visual_from_archetype`) y seguimiento de ciclos de stamina.
