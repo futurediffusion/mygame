@@ -27,6 +27,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 
 ### Registro de mantenimiento reciente
 - Orden de tick determinista en `Singletons/SimClock.gd`: nuevo export `order_strategy`, API `set_priority` y limpieza automática de módulos inválidos aseguran emisión estable antes de pausar por grupo.
+- Actualizados los comparadores de orden en `Singletons/SimClock.gd` para usar `Callable` con `sort_custom` en Godot 4.4, eliminando los errores de análisis por firma de función.
 - `Singletons/GameState.gd` ahora coordina las pausas del `SimClock` local durante `set_paused` y `set_cinematic`, evitando consumo de stamina o transiciones de FSM mientras dure la pausa.
 - Formalizada la migración R3→R4 inicial: `SimClock` ahora tipa grupos con `StringName`, expone pausa por grupo y se apoya en `scripts/core/Flags.gd` para banderas de compatibilidad sin alterar el loop del Player.
 - Ajustado `Modules/AnimationCtrl.gd` para que verifique la existencia de parámetros del `AnimationTree` con `get_parameter_list` cuando `has_parameter` no está disponible en Godot 4.4, evitando llamadas inválidas en runtime.

@@ -220,9 +220,9 @@ func _get_ordered_modules(group_name: StringName) -> Array:
 		cleaned.append(n)
 	match order_strategy:
 		"priority":
-			cleaned.sort_custom(self, "_compare_by_priority")
+			cleaned.sort_custom(Callable(self, "_compare_by_priority"))
 		"path":
-			cleaned.sort_custom(self, "_compare_by_path")
+			cleaned.sort_custom(Callable(self, "_compare_by_path"))
 		_:
 			pass
 	return cleaned
