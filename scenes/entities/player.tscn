@@ -69,6 +69,8 @@ node_connections = [&"AirBlend", 0, &"SprintScale", &"AirBlend", 1, &"FallAnim",
 
 [node name="Player" type="CharacterBody3D" groups=["player"]]
 script = ExtResource("1_08t41")
+collision_layer = 1
+collision_mask = 30
 
 [node name="Modules" type="Node" parent="."]
 

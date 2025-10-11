@@ -14,6 +14,8 @@ size = Vector3(50, 0.2, 50)
 mesh = SubResource("PlaneMesh_jenuu")
 
 [node name="StaticBody3D" type="StaticBody3D" parent="MeshInstance3D"]
+collision_layer = 8
+collision_mask = 7
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="MeshInstance3D/StaticBody3D"]
 shape = SubResource("BoxShape3D_b5usy")
