@@ -6,6 +6,8 @@ class_name SimClockScheduler
 @export_range(0.05, 2.0, 0.01) var regional_interval: float = 0.25
 @export_range(0.5, 300.0, 0.5) var global_interval: float = 5.0
 
+const _GROUP_NAMES := ["local", "regional", "global"]
+
 var _acc: Dictionary[String, float] = {
 	"local": 0.0,
 	"regional": 0.0,
@@ -33,43 +35,46 @@ signal ticked(group_name: String, dt: float)
 func set_paused(p: bool) -> void:
 	_paused = p
 
-func register(node: Object, group_name: String) -> void:
-	if not _registry.has(group_name):
-		push_error("Tick group inválido: %s" % group_name)
-		return
-	if node in _registry[group_name]:
-		return
-	_registry[group_name].append(node)
+func register(node: Object, group_name: Variant) -> void:
+        var normalized := _normalize_group_name(group_name)
+        if normalized == "" or not _registry.has(normalized):
+                push_error("Tick group inválido: %s" % group_name)
+                return
+        if node in _registry[normalized]:
+                return
+        _registry[normalized].append(node)
 
-func unregister(node: Object, group_name: String) -> void:
-	if not _registry.has(group_name):
-		return
-	_registry[group_name].erase(node)
-	_module_paused.erase(node)
+func unregister(node: Object, group_name: Variant) -> void:
+        var normalized := _normalize_group_name(group_name)
+        if normalized == "" or not _registry.has(normalized):
+                return
+        _registry[normalized].erase(node)
+        _module_paused.erase(node)
 
-func set_group_interval(group_name: StringName, seconds: float) -> void:
-	var value: float = maxf(seconds, 0.0)
-	match String(group_name):
-		"local":
-			local_interval = value
-		"regional":
+func set_group_interval(group_name: Variant, seconds: float) -> void:
+        var value: float = maxf(seconds, 0.0)
+        match _normalize_group_name(group_name):
+                "local":
+                        local_interval = value
+                "regional":
 			regional_interval = value
 		"global":
 			global_interval = value
 
-func get_group_interval(group_name: StringName) -> float:
-	match String(group_name):
-		"local":
-			return local_interval
-		"regional":
-			return regional_interval
-		"global":
-			return global_interval
-	return 0.0
+func get_group_interval(group_name: Variant) -> float:
+        match _normalize_group_name(group_name):
+                "local":
+                        return local_interval
+                "regional":
+                        return regional_interval
+                "global":
+                        return global_interval
+        return 0.0
 
-func set_group_paused(group_name: StringName, paused: bool) -> void:
-	if _group_paused.has(group_name):
-		_group_paused[group_name] = paused
+func set_group_paused(group_name: Variant, paused: bool) -> void:
+        var normalized := _normalize_group_name(group_name)
+        if normalized != "" and _group_paused.has(normalized):
+                _group_paused[normalized] = paused
 
 func set_module_paused(node: Object, paused: bool) -> void:
 	if node == null or not is_instance_valid(node):
@@ -80,9 +85,10 @@ func set_module_paused(node: Object, paused: bool) -> void:
 func reset_module(node: Object) -> void:
 	_module_paused.erase(node)
 
-func reset_group(group_name: StringName) -> void:
-	if _group_paused.has(group_name):
-		_group_paused[group_name] = false
+func reset_group(group_name: Variant) -> void:
+        var normalized := _normalize_group_name(group_name)
+        if normalized != "" and _group_paused.has(normalized):
+                _group_paused[normalized] = false
 
 func process_module_tick(module: Object, dt: float) -> void:
 	if module == null or not is_instance_valid(module):
@@ -118,9 +124,9 @@ func _physics_process(delta: float) -> void:
 
 
 func _tick_group(group_name: String, dt: float) -> void:
-	if _group_paused.get(group_name, false):
-		return
-	var list: Array = _registry[group_name]
+        if _group_paused.get(group_name, false):
+                return
+        var list: Array = _registry[group_name]
 	# Copia para evitar invalidación si alguien se desregistra en tick
 	for n in list.duplicate():
 		if not is_instance_valid(n):
@@ -134,11 +140,27 @@ func _tick_group(group_name: String, dt: float) -> void:
 	emit_signal("ticked", group_name, dt)
 
 func _resolve_group(module: Object) -> String:
-	var group: Variant = null
-	if module != null and is_instance_valid(module) and module.has_method("get"):
-		group = module.get("tick_group")
-	if typeof(group) == TYPE_STRING:
-		return group
-	if typeof(group) == TYPE_STRING_NAME:
-		return String(group)
-	return "local"
+        if module == null or not is_instance_valid(module):
+                return "local"
+        if module.has_method("get_tick_group_name"):
+                var named := _normalize_group_name(module.call("get_tick_group_name"))
+                if named != "":
+                        return named
+        if module.has_method("get"):
+                var group: Variant = module.get("tick_group")
+                var normalized := _normalize_group_name(group)
+                if normalized != "":
+                        return normalized
+        return "local"
+
+func _normalize_group_name(group: Variant) -> String:
+        match typeof(group):
+                TYPE_STRING, TYPE_STRING_NAME:
+                        return String(group)
+                TYPE_INT:
+                        if typeof(ModuleBase) != TYPE_NIL:
+                                return ModuleBase.tick_group_name_for(group)
+                        var idx := int(group)
+                        if idx >= 0 and idx < _GROUP_NAMES.size():
+                                return _GROUP_NAMES[idx]
+        return ""

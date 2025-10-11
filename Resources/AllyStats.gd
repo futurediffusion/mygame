@@ -33,6 +33,8 @@ const SKILL_TREE_DEFAULTS := {
 	}
 }
 
+const WEAPON_KIND_NAMES := ["sword", "unarmed", "ranged"]
+
 var _hp_store := 80.0
 @export_range(0, 100, 1) var hp_max := 80:
 	get:
@@ -244,17 +246,18 @@ func note_low_hp_and_bed_recovery(went_below_15_percent: bool, recovered_in_bed:
 	else:
 		_vitality_recovery_factor = min(1.0, _vitality_recovery_factor + 0.05)
 
-func attack_power_for(weapon_kind: String, weapon_bonus: float = 0.0, situational_bonus: float = 0.0) -> float:
-	var domain := 0.0
-	match weapon_kind:
-		"sword":
-			domain = war.get("swords", 0.0)
-		"unarmed":
-			domain = war.get("unarmed", 0.0)
-		"ranged":
-			domain = war.get("ranged", 0.0)
-		_:
-			domain = 0.0
+func attack_power_for(weapon_kind: Variant, weapon_bonus: float = 0.0, situational_bonus: float = 0.0) -> float:
+        var kind_name := _normalize_weapon_kind(weapon_kind)
+        var domain := 0.0
+        match kind_name:
+                "sword":
+                        domain = war.get("swords", 0.0)
+                "unarmed":
+                        domain = war.get("unarmed", 0.0)
+                "ranged":
+                        domain = war.get("ranged", 0.0)
+                _:
+                        domain = 0.0
 	var power := (_strength_store * 0.5) + (domain * 0.7) + weapon_bonus + situational_bonus
 	return max(power, 0.0)
 
@@ -274,9 +277,19 @@ func sprint_speed(base_speed: float) -> float:
 	return base_speed * (1.0 + (_athletics_store / 200.0))
 
 func sprint_stamina_cost(base_cost: float) -> float:
-	var modifier := 1.0 - (_athletics_store / 250.0)
-	modifier = clampf(modifier, 0.2, 1.0)
-	return base_cost * modifier
+        var modifier := 1.0 - (_athletics_store / 250.0)
+        modifier = clampf(modifier, 0.2, 1.0)
+        return base_cost * modifier
+
+func _normalize_weapon_kind(kind: Variant) -> String:
+        match typeof(kind):
+                TYPE_STRING, TYPE_STRING_NAME:
+                        return String(kind)
+                TYPE_INT:
+                        var idx := int(kind)
+                        if idx >= 0 and idx < WEAPON_KIND_NAMES.size():
+                                return WEAPON_KIND_NAMES[idx]
+        return ""
 
 func _reset_skill_tree_defaults() -> void:
 	for tree_name in SKILL_TREE_DEFAULTS.keys():

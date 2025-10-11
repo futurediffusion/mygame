@@ -12,12 +12,30 @@ enum State {
 	SIT
 }
 
+enum WeaponKind {
+	SWORD,
+	UNARMED,
+	RANGED,
+}
+
+const _WEAPON_KIND_NAMES := {
+	WeaponKind.SWORD: "sword",
+	WeaponKind.UNARMED: "unarmed",
+	WeaponKind.RANGED: "ranged",
+}
+
+var _weapon_kind: int = WeaponKind.SWORD
+@export var weapon_kind: WeaponKind = WeaponKind.SWORD:
+	set(value):
+		_weapon_kind = _coerce_weapon_kind(value)
+	get:
+		return _weapon_kind
+
 @export var state: State = State.IDLE
 @export var stats: AllyStats
 @export var move_speed_base: float = 5.0
 @export var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 @export var sprint_enabled: bool = true
-@export_enum("sword", "unarmed", "ranged") var weapon_kind: String = "sword"
 @export var player_visual_preset: PackedScene
 
 @export var anim_idle: String = "idle"
@@ -142,11 +160,11 @@ func _do_combat_melee(delta: float) -> void:
 	velocity.x = flat.x * speed
 	velocity.z = flat.z * speed
 	_play_anim(anim_attack_melee)
-	if stats:
-		if weapon_kind == "unarmed":
-			stats.gain_skill("war", "unarmed", 1.0, {"action_hash": "melee_unarmed"})
-		else:
-			stats.gain_skill("war", "swords", 1.0, {"action_hash": "melee_sword"})
+        if stats:
+                if weapon_kind == WeaponKind.UNARMED:
+                        stats.gain_skill("war", "unarmed", 1.0, {"action_hash": "melee_unarmed"})
+                else:
+                        stats.gain_skill("war", "swords", 1.0, {"action_hash": "melee_sword"})
 
 func _do_combat_ranged(delta: float) -> void:
 	velocity.x = 0.0
@@ -154,9 +172,30 @@ func _do_combat_ranged(delta: float) -> void:
 	_play_anim(anim_aim_ranged)
 
 func register_ranged_attack() -> void:
-	if not stats:
-		return
-	stats.gain_skill("war", "ranged", 1.0, {"action_hash": "ranged_shot"})
+        if not stats:
+                return
+        stats.gain_skill("war", "ranged", 1.0, {"action_hash": "ranged_shot"})
+
+func get_weapon_kind_name() -> String:
+        return _WEAPON_KIND_NAMES.get(_weapon_kind, "sword")
+
+static func _coerce_weapon_kind(value: Variant) -> int:
+        match typeof(value):
+                TYPE_INT:
+                        return _clamp_weapon_index(int(value))
+                TYPE_STRING, TYPE_STRING_NAME:
+                        for kind in _WEAPON_KIND_NAMES.keys():
+                                if _WEAPON_KIND_NAMES[kind] == String(value):
+                                        return kind
+        return WeaponKind.SWORD
+
+static func _clamp_weapon_index(value: int) -> int:
+        if value < 0:
+                return 0
+        var max_index := _WEAPON_KIND_NAMES.size() - 1
+        if value > max_index:
+                return max_index
+        return value
 
 func notify_jump_started() -> void:
 	_play_anim("jump")
