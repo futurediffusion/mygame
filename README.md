@@ -29,6 +29,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Ajustado `Modules/AnimationCtrl.gd` para que verifique la existencia de parámetros del `AnimationTree` con `get_parameter_list` cuando `has_parameter` no está disponible en Godot 4.4, evitando llamadas inválidas en runtime.
 - Tipado explícito y sanitización de `entry_name` en `Modules/AnimationCtrl.gd` para evitar errores de inferencia en Godot 4.4 cuando el parámetro viene como `Variant` o `null`.
 - Normalizada la indentación de `Modules/Jump.gd` a tabs consistentes para Godot 4.4, eliminando los errores de análisis por mezcla de espacios y preservando la lógica de salto.
+- Restaurada la indentación por tabs en `scenes/entities/player.gd` para Godot 4.4, resolviendo los errores de parsing que aparecían alrededor de `_update_module_stats()` y reactivando el script principal.
 
 ---
 
