@@ -1,41 +1,28 @@
 extends Node
 class_name ModuleBase
 
-# R3→R4 MIGRATION: Exponer tick group como StringName editable.
-@export var tick_group: StringName = &"local"
-var _is_registered := false
-var _sim_clock_ref: SimClockScheduler
+@export var sim_group: StringName = &"local"
+@export var priority: int = 0
+var _subscribed: bool = false
 
 func _ready() -> void:
-	call_deferred("_register_self")
-
-func _register_self() -> void:
-	if _is_registered or not is_inside_tree():
-		return
-	var sim_clock := _fetch_sim_clock()
-	if sim_clock == null:
-		return
-	sim_clock.register(self, tick_group)
-	_sim_clock_ref = sim_clock
-	_is_registered = true
+	_subscribe_clock()
 
 func _exit_tree() -> void:
-	if not _is_registered:
+	_unsubscribe_clock()
+
+func _subscribe_clock() -> void:
+	if _subscribed:
 		return
-	var sim_clock := _sim_clock_ref if _sim_clock_ref != null else _fetch_sim_clock()
-	if sim_clock != null:
-		sim_clock.unregister(self)
-	_is_registered = false
-	_sim_clock_ref = null
+	SimClock.register_module(self, sim_group, priority)
+	_subscribed = true
+
+func _unsubscribe_clock() -> void:
+	_subscribed = false
+
+func _on_clock_tick(group: StringName, dt: float) -> void:
+	if group == sim_group:
+		physics_tick(dt)
 
 func physics_tick(_dt: float) -> void:
 	pass
-
-# R3→R4 MIGRATION: Resolver autoload sin asumir nombre de singleton.
-func _fetch_sim_clock() -> SimClockScheduler:
-	if typeof(SimClock) != TYPE_NIL:
-		return SimClock as SimClockScheduler
-	var tree := get_tree()
-	if tree == null:
-		return null
-	return tree.get_root().get_node_or_null(^"/root/SimClock") as SimClockScheduler

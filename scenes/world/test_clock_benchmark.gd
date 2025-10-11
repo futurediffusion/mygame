@@ -19,14 +19,13 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	_update_ticks_label()
 
-# R3→R4 MIGRATION: Wiring de botones del benchmark.
 func _connect_controls() -> void:
 	if _toggle_sim_clock_button != null:
-		_toggle_sim_clock_button.pressed.connect(_on_toggle_sim_clock_pressed)
+		_toggle_sim_clock_button.disabled = true
+		_toggle_sim_clock_button.text = "Modo Ally: SimClock"
 	if _toggle_pause_button != null:
 		_toggle_pause_button.pressed.connect(_on_toggle_pause_pressed)
 
-# R3→R4 MIGRATION: Generación masiva de aliados para pruebas.
 func _spawn_allies() -> void:
 	if ally_scene == null or _ally_container == null:
 		return
@@ -44,21 +43,6 @@ func _spawn_allies() -> void:
 		var offset := Vector3(float(col) * spawn_spacing, 0.0, float(row) * spawn_spacing)
 		ally.global_position = offset
 
-# R3→R4 MIGRATION: Aplicar cambios de flags a los aliados activos.
-func _refresh_allies_binding() -> void:
-	if _ally_container == null:
-		return
-	for ally in _ally_container.get_children():
-		if ally != null and ally.has_method("refresh_sim_clock_binding"):
-			ally.refresh_sim_clock_binding()
-
-# R3→R4 MIGRATION: Toggle para activar SimClock en runtime.
-func _on_toggle_sim_clock_pressed() -> void:
-	Flags.USE_SIMCLOCK_ALLY = not Flags.USE_SIMCLOCK_ALLY
-	_refresh_allies_binding()
-	_update_controls()
-
-# R3→R4 MIGRATION: Toggle de pausa para el grupo local.
 func _on_toggle_pause_pressed() -> void:
 	var sim_clock := _get_sim_clock()
 	if sim_clock == null:
@@ -67,26 +51,17 @@ func _on_toggle_pause_pressed() -> void:
 	sim_clock.pause_group(Flags.ALLY_TICK_GROUP, _is_group_paused)
 	_update_controls()
 
-# R3→R4 MIGRATION: Sincronizar textos de UI del benchmark.
 func _update_controls() -> void:
-	_update_sim_clock_button()
 	_update_pause_button()
+	if _toggle_sim_clock_button != null:
+		_toggle_sim_clock_button.text = "Modo Ally: SimClock"
 
-# R3→R4 MIGRATION: Reflejar flag USE_SIMCLOCK_ALLY en UI.
-func _update_sim_clock_button() -> void:
-	if _toggle_sim_clock_button == null:
-		return
-	var mode := "SimClock" if Flags.USE_SIMCLOCK_ALLY else "_physics_process"
-	_toggle_sim_clock_button.text = "Modo Ally: %s" % mode
-
-# R3→R4 MIGRATION: Mostrar estado de pausa del grupo local.
 func _update_pause_button() -> void:
 	if _toggle_pause_button == null:
 		return
 	var label := "Reanudar grupo local" if _is_group_paused else "Pausar grupo local"
 	_toggle_pause_button.text = label
 
-# R3→R4 MIGRATION: Mostrar telemetría agregada en pantalla.
 func _update_ticks_label() -> void:
 	if _ticks_label == null:
 		return
@@ -102,13 +77,12 @@ func _update_ticks_label() -> void:
 	var ticks_per_second := 0.0
 	if sim_time > 0.0:
 		ticks_per_second = float(tick_count) / sim_time
-	var mode := "SimClock" if Flags.USE_SIMCLOCK_ALLY else "_physics_process"
-	_ticks_label.text = "Grupo %s → ticks: %d | sim_time: %.2f | ticks/s: %.2f | modo: %s" % [String(group), tick_count, sim_time, ticks_per_second, mode]
+	_ticks_label.text = "Grupo %s → ticks: %d | sim_time: %.2f | ticks/s: %.2f | modo: SimClock" % [String(group), tick_count, sim_time, ticks_per_second]
 
-func _get_sim_clock() -> SimClockScheduler:
+func _get_sim_clock() -> SimClock:
 	if typeof(SimClock) != TYPE_NIL:
-		return SimClock as SimClockScheduler
+		return SimClock
 	var tree := get_tree()
 	if tree == null:
 		return null
-	return tree.get_root().get_node_or_null(^"/root/SimClock") as SimClockScheduler
+	return tree.get_root().get_node_or_null(^"/root/SimClock") as SimClock

@@ -19,29 +19,18 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 
 ### ¿Qué queda en prototipo o backlog para R4?
 - Integrar AnimationTree avanzado compartido para Player y Ally (blendspaces contextuales).
-- Migrar todos los módulos y aliados al tick del `SimClock` (algunos aún dependen de `_physics_process`).
+- Instrumentar métricas editoriales para `SimClock` (contadores, tiempos promedio) y exponer cadencias en Project Settings.
 - Implementar IA enemiga, reputación y economía sistémica.
 - Sistema de guardado/carga integral (actualmente sólo persiste diccionarios sueltos).
 - Modularidad visual de NPCs (materiales, gear y tintado todavía dependen de rutas estáticas).
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Registro de mantenimiento reciente
-- Corregida la indentación del bucle global en `Singletons/SimClock.gd` para restaurar el parseo en Godot 4.4.
-- Ajustada la indentación por tabs de los bloques `else` en `scenes/entities/Ally.gd`, resolviendo los errores de análisis en Godot 4.4.
-- Orden de tick determinista en `Singletons/SimClock.gd`: nuevo export `order_strategy`, API `set_priority` y limpieza automática de módulos inválidos aseguran emisión estable antes de pausar por grupo.
-- Actualizados los comparadores de orden en `Singletons/SimClock.gd` para usar `Callable` con `sort_custom` en Godot 4.4, eliminando los errores de análisis por firma de función.
-- `Singletons/GameState.gd` ahora coordina las pausas del `SimClock` local durante `set_paused` y `set_cinematic`, evitando consumo de stamina o transiciones de FSM mientras dure la pausa.
-- Telemetría R3→R4: `Singletons/SimClock.gd` suma contadores de ticks/tiempo y expone `print_clock_stats()`/`get_group_stats()`, mientras `scenes/entities/Ally.gd` registra transiciones de estados con `print_verbose` y `Modules/AllyFSMModule.gd` limpia registros al cambiar `USE_SIMCLOCK_ALLY` en runtime.
-- Nuevo banco de pruebas `scenes/world/test_clock_benchmark.tscn` con script dedicado para instanciar aliados masivamente, alternar `Flags.USE_SIMCLOCK_ALLY`, pausar `Flags.ALLY_TICK_GROUP` y mostrar métricas de ticks/s en pantalla.
-- Formalizada la migración R3→R4 inicial: `SimClock` ahora tipa grupos con `StringName`, expone pausa por grupo y se apoya en `scripts/core/Flags.gd` para banderas de compatibilidad sin alterar el loop del Player.
-- Ajustado `Modules/AnimationCtrl.gd` para que verifique la existencia de parámetros del `AnimationTree` con `get_parameter_list` cuando `has_parameter` no está disponible en Godot 4.4, evitando llamadas inválidas en runtime.
-- Tipado explícito y sanitización de `entry_name` en `Modules/AnimationCtrl.gd` para evitar errores de inferencia en Godot 4.4 cuando el parámetro viene como `Variant` o `null`.
-- Normalizada la indentación de `Modules/Jump.gd` a tabs consistentes para Godot 4.4, eliminando los errores de análisis por mezcla de espacios y preservando la lógica de salto.
-- Restaurada la indentación por tabs en `scenes/entities/player.gd` para Godot 4.4, resolviendo los errores de parsing que aparecían alrededor de `_update_module_stats()` y reactivando el script principal.
-- Eliminadas las advertencias del depurador al prefijar parámetros opcionales en `scenes/entities/Ally.gd`, silenciar la señal `jumped` en `Modules/State.gd` y autoasignar `animation_tree_path` en `Modules/AnimationCtrl.gd` cuando falta en el inspector.
-- Tipado explícito de `group_variant` en `Singletons/SimClock.gd` para eliminar el error de inferencia de `Variant` que bloqueaba el parseo en Godot 4.4.
-- Unificado el consumo de `delta` de la FSM de `scenes/entities/Ally.gd` para que dependa del `dt` entregado por `_ally_physics_update` durante la migración a `SimClock`, manteniendo consistencia con `USE_SIMCLOCK_ALLY`.
-- Añadido `Modules/AllyFSMModule.gd` para registrar la FSM de `scenes/entities/Ally.tscn` como módulo de `SimClock`, respetando `Flags.ALLY_TICK_GROUP` y preservando el fallback por `_physics_process` cuando `USE_SIMCLOCK_ALLY` está desactivado o falta el autoload.
+- Cierre R3 duro: `Singletons/SimClock.gd` queda como scheduler determinista con prioridades, contadores de ticks y limpieza automática en `tree_exited` para todos los grupos (`local`, `regional`, `global`).
+- Player y Allies migrados al `SimClock.register_module` con prioridades configurables; se eliminó `_physics_process` en aliados y módulos, consolidando el tick físico en `physics_tick(dt)`.
+- `Modules/ModuleBase.gd` se redujo a suscripción automática y `Modules/AllyFSMModule.gd` ahora reinyecta `physics_tick` directo sobre el Ally dueño.
+- `scenes/world/test_clock_benchmark.gd` quedó fijo en modo SimClock y sólo controla pausa de grupo; se añadió `tests/TestClock.tscn` para validar el orden de ejecución (A→B) en ticks locales.
+- `scripts/core/Flags.gd` conserva únicamente `ALLY_TICK_GROUP`, retirando toggles heredados como `USE_SIMCLOCK_ALLY`.
 
 ---
 
@@ -107,18 +96,18 @@ res://
 ---
 
 ## Arquitectura general
-La simulación gira alrededor del `SimClock` (`Singletons/SimClock.gd`), un scheduler que agrupa nodos por cadencias (`local`, `regional`, `global`). Cada módulo (`Modules/ModuleBase.gd`) se registra automáticamente en el clock y expone `physics_tick(dt)`. El jugador (`scenes/entities/player.gd`) decide si delega el loop en el clock o si ejecuta una ruta manual cuando éste no está disponible (modo fallback editor). En cada tick se cachea el input relativo a cámara, se propagan los datos a los módulos (movimiento, orientación, salto, animación, audio) y se finaliza la integración con `move_and_slide` antes de evaluar consumo de stamina y ciclos de aprendizaje.
+La simulación gira alrededor del `SimClock` (`Singletons/SimClock.gd`), un scheduler que agrupa nodos por cadencias (`local`, `regional`, `global`). Cada módulo (`Modules/ModuleBase.gd`) se registra automáticamente y recibe `physics_tick(dt)` directo. El jugador (`scenes/entities/player.gd`) y los aliados (`scenes/entities/Ally.gd`) consumen el mismo tick local, cachean input/estado y finalizan con `move_and_slide` antes de evaluar stamina y progresión.
 
 Los aliados (`scenes/entities/Ally.gd`) usan un FSM explícito con estados `IDLE`, `MOVE`, `COMBAT_*`, `BUILD`, `SNEAK`, `SWIM`, `TALK`, `SIT`. Cada estado aplica animaciones y actualiza estadísticas mediante `AllyStats`, el Resource que encapsula atributos base, skills y reglas de progresión (`Resources/AllyStats.gd`). Las estadísticas se generan desde la singleton `Data.gd`, que parsea `data/ally_archetypes.json`, fusiona defaults, crecimiento y configuración visual; ese mismo diccionario controla presets de materiales y gear en tiempo de ejecución.
 
-Los autoloads (`EventBus`, `Data`, `SimClock`, `GameState`, `Save`, `Flags`) se comunican vía señales: `EventBus` difunde mensajes de HUD y eventos de gameplay; `GameState` expone flags globales de pausa/cinemática para que Player module el input; `Save` aporta utilidades de persistencia; `Data` abastece instancias `AllyStats` y presets visuales; `Flags` concentra toggles de migración (por ejemplo `USE_SIMCLOCK_ALLY`). El HUD (`scenes/ui/HUD.gd`) sólo escucha `EventBus.hud_message`, manteniendo la UI desacoplada de la lógica. El bootstrap de input (`scripts/bootstrap/InputSetup.gd`) ejecuta una sola vez al inicio y garantiza que todas las acciones (movimiento, combate, construcción) estén registradas incluso en proyectos clonados.
+Los autoloads (`EventBus`, `Data`, `SimClock`, `GameState`, `Save`, `Flags`) se comunican vía señales: `EventBus` difunde mensajes de HUD y eventos de gameplay; `GameState` expone flags globales de pausa/cinemática para que Player module el input; `Save` aporta utilidades de persistencia; `Data` abastece instancias `AllyStats` y presets visuales; `Flags` centraliza constantes ligeras como `ALLY_TICK_GROUP` para no duplicar `StringName` en escenas. El HUD (`scenes/ui/HUD.gd`) sólo escucha `EventBus.hud_message`, manteniendo la UI desacoplada de la lógica. El bootstrap de input (`scripts/bootstrap/InputSetup.gd`) ejecuta una sola vez al inicio y garantiza que todas las acciones (movimiento, combate, construcción) estén registradas incluso en proyectos clonados.
 
 ---
 
 ## Sistemas implementados
 
 ### Player Orchestrator (`scenes/entities/player.gd`)
-Gestiona el ciclo físico del jugador, cachea el input y propaga el contexto a los módulos. Expone señales (`context_state_changed`, `talk_requested`, `sit_toggled`, `interact_requested`, `combat_mode_switched`, `build_mode_toggled`) que permiten a otros sistemas reaccionar sin acceder al input bruto. Al finalizar cada tick, decide si ejecutar `_manual_tick_modules` o esperar a `SimClock.ticked`, aplica `move_and_slide`, sincroniza stamina y reporta ciclos a `AllyStats` mediante `note_stamina_cycle`. Además actualiza `PerfectJumpCombo` para coordinar coyote, buffer y multiplicadores de salto/velocidad tanto en modo SimClock como en `_physics_process`. También detecta contacto con áreas de agua y cambia `ContextState` para el HUD o IA.
+Gestiona el ciclo físico del jugador, cachea el input y propaga el contexto a los módulos. Expone señales (`context_state_changed`, `talk_requested`, `sit_toggled`, `interact_requested`, `combat_mode_switched`, `build_mode_toggled`) que permiten a otros sistemas reaccionar sin acceder al input bruto. En cada tick llama a `_manual_tick_modules` y `_finish_physics_step`, aplica `move_and_slide`, sincroniza stamina y reporta ciclos a `AllyStats` mediante `note_stamina_cycle`. Además actualiza `PerfectJumpCombo` para coordinar coyote, buffer y multiplicadores de salto/velocidad mientras detecta contacto con áreas de agua y cambia `ContextState` para el HUD o IA.
 
 ### Módulos del jugador (`Modules/`)
 - **MovementModule (`Movement.gd`)**: recibe la dirección normalizada y el flag de sprint desde el Player, calcula la velocidad horizontal objetivo y aplica aceleración/decadencia separada para suelo/aire.
@@ -141,12 +130,12 @@ Resource con propiedades exportadas para HP, stamina, vitalidad, fuerza, atletis
 Carga el JSON al iniciarse, guarda defaults y entradas individuales, y expone consultas (`archetype_exists`, `get_archetype_entry`, `get_capabilities`, `get_archetype_visual`). `make_stats_from_archetype` instancia `AllyStats` aplicando mapeo de propiedades base, merge profundo de skill trees y crecimiento (multiplicadores y soft caps). También preserva el diccionario en `allies` para compatibilidad con código heredado.
 
 ### SimClock (`Singletons/SimClock.gd`)
-Scheduler autoritativo con acumuladores por grupo (`local`, `regional`, `global`). Permite pausar grupos o módulos, ajustar intervalos y emitir la señal `ticked(group_name, dt)`. Los módulos inscritos reciben `physics_tick` según la cadencia seleccionada. Player detecta si el clock está presente y sincroniza `_finish_physics_step` tras cada tick local.
+Scheduler determinista con acumuladores por grupo (`local`, `regional`, `global`). Ordena por prioridad, invoca `_on_clock_tick(group, dt)` en cada módulo y actualiza contadores expuestos por `get_group_stats()`. Admite pausa por grupo, cadencias exportadas (`fixed_dt_*`) y emite la señal `ticked` para debugging opcional.
 
 ### Loop de Simulación
-- **Emisión de ticks:** `Singletons/SimClock.gd` es un autoload único que procesa los acumuladores por grupo y emite `ticked(group_name, dt)` cada frame físico. La bandera `Flags.USE_SIMCLOCK_ALLY` controla si los aliados se registran para escuchar estos ticks o se quedan en `_physics_process` de compatibilidad.
-- **Módulos suscritos:** Los módulos derivados de `Modules/ModuleBase.gd` se registran automáticamente en el grupo que especifiquen y reciben `physics_tick(dt)`. El orquestador del jugador (`scenes/entities/player.gd`) ya opera mediante SimClock local, y los aliados delegan su FSM a `Modules/AllyFSMModule.gd`, que reinyecta el tick en `scenes/entities/Ally.gd` cuando `Flags.USE_SIMCLOCK_ALLY` está activo.
-- **Pausa por grupo:** `Singletons/GameState.gd` coordina las pausas llamando a `SimClock.set_group_paused(StringName, bool)` para suspender `local`, `regional` o `global`. Los helpers en `scripts/core/Flags.gd` encapsulan `USE_SIMCLOCK_ALLY` y `ALLY_TICK_GROUP` (por defecto `"local"`) para mantener compatibilidad con escenas que aún dependen de `_physics_process`.
+- **Emisión de ticks:** `Singletons/SimClock.gd` procesa acumuladores por grupo (`local`, `regional`, `global`), ordena los módulos por prioridad y llama a `_on_clock_tick(group, dt)` de forma determinista; `get_group_stats()` expone contadores y simulación acumulada.
+- **Módulos suscritos:** Cualquier nodo puede registrar `SimClock.register_module(self, group, priority)`. `ModuleBase` automatiza la suscripción para `Modules/*`, mientras que `player.gd` y `Ally.gd` reciben ticks locales directos vía `physics_tick(dt)` sin señales intermedias.
+- **Pausa por grupo:** `Singletons/GameState.gd` pausa o reanuda grupos con `SimClock.pause_group(StringName, bool)`; el `StringName` por defecto vive en `Flags.ALLY_TICK_GROUP` para escenas que necesiten reconfigurar el grupo de aliados.
 - **Orden de actualización:** El `SimClock` ordena suscripción de módulos según la prioridad registrada (por defecto FIFO) antes de emitir `ticked`. Primero se resuelven los módulos locales (jugador, aliados, HUD reactivo), luego los regionales (sistemas de zona) y al final los globales (economía, telemetría). La migración R3→R4 mantiene el orden determinista al reutilizar la misma cola para AllyFSMModule y Player.
 
 ### EventBus + HUD (`Singletons/EventBus.gd`, `scenes/ui/HUD.gd`)

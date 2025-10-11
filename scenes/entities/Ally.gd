@@ -20,6 +20,9 @@ enum State {
 @export_enum("sword", "unarmed", "ranged") var weapon_kind: String = "sword"
 @export var player_visual_preset: PackedScene
 
+@export var sim_group: StringName = Flags.ALLY_TICK_GROUP
+@export var priority: int = 20
+
 @export var anim_idle: String = "idle"
 @export var anim_walk: String = "walk"
 @export var anim_run: String = "run"
@@ -38,8 +41,6 @@ enum State {
 @onready var anim_player: AnimationPlayer = null
 @onready var seat_anchor: Node3D = $SeatAnchor
 @onready var _model_root: Node3D = $Model
-# R3→R4 MIGRATION: Referencia al módulo FSM para ticks SimClock.
-@onready var _fsm_module: AllyFSMModule = get_node_or_null(^"FSMModule") as AllyFSMModule
 
 var _target_dir: Vector3 = Vector3.ZERO
 var _combat_target: Node3D
@@ -68,43 +69,11 @@ func _ready() -> void:
 			_bind_anim_player_from(self)
 	else:
 		_bind_anim_player_from(self)
-	# var sim_clock: Node = get_node_or_null(^"/root/SimClock")
-	# if sim_clock:
-	# 	sim_clock.register(self, "local")
-	refresh_sim_clock_binding()
+	SimClock.register_module(self, sim_group, priority)
 
-# R3→R4 MIGRATION: Deprecated; usar AllyFSMModule.
-func _physics_process(delta: float) -> void:
-	_ally_physics_update(delta)
-
-# R3→R4 MIGRATION: Punto único de entrada para updates de Ally.
-func _ally_physics_update(dt: float) -> void:
-	physics_tick(dt)
-
-# R3→R4 MIGRATION: Callback de tick filtrado para Ally.
-func _on_sim_clock_ticked(group_name: StringName, dt: float) -> void:
-	if group_name == Flags.ALLY_TICK_GROUP:
-		_on_local_tick(dt)
-
-# R3→R4 MIGRATION: Handler específico del grupo local.
-func _on_local_tick(dt: float) -> void:
-	_ally_physics_update(dt)
-
-# R3→R4 MIGRATION: Reconfigurar binding con SimClock/FSM.
-func refresh_sim_clock_binding() -> void:
-	var sim_clock: SimClockScheduler = get_node_or_null(^"/root/SimClock") as SimClockScheduler
-	var use_sim_clock := Flags.USE_SIMCLOCK_ALLY and sim_clock != null and is_instance_valid(sim_clock)
-	if _fsm_module != null:
-		_fsm_module.tick_group = Flags.ALLY_TICK_GROUP
-		_fsm_module.set_runtime_enabled(use_sim_clock)
-	if use_sim_clock:
-		set_physics_process(false)
-		if Engine.is_editor_hint():
-			print_verbose("R3→R4 MIGRATION: Ally usando SimClock (%s)" % Flags.ALLY_TICK_GROUP)
-	else:
-		set_physics_process(true)
-		if Engine.is_editor_hint():
-			print_verbose("R3→R4 MIGRATION: Ally usando _physics_process fallback")
+func _on_clock_tick(group: StringName, dt: float) -> void:
+	if group == sim_group:
+		physics_tick(dt)
 
 func physics_tick(dt: float) -> void:
 	if state != _last_state:

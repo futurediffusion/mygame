@@ -6,7 +6,7 @@ signal cinematic_changed(in_cinematic: bool)
 var is_paused := false
 var is_in_cinematic := false
 
-const LOCAL_GROUP: StringName = SimClockScheduler.GROUP_LOCAL # R3→R4 MIGRATION
+const LOCAL_GROUP: StringName = SimClock.GROUP_LOCAL
 
 func set_paused(paused: bool) -> void:
 	if is_paused == paused:
@@ -31,11 +31,11 @@ func _update_sim_clock_pause() -> void:
 	if Engine.is_editor_hint():
 		print_verbose("GameState -> SimClock.pause_group(%s)" % should_pause) # R3→R4 MIGRATION
 
-func _get_sim_clock() -> SimClockScheduler:
+func _get_sim_clock() -> SimClock:
 	var root := get_tree()
 	if root == null:
 		return null
 	var autoload := root.get_root().get_node_or_null("/root/SimClock")
 	if autoload == null:
 		return null
-	return autoload as SimClockScheduler
+	return autoload as SimClock
