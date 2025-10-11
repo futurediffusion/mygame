@@ -34,6 +34,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - `Modules/ModuleBase.gd` se redujo a suscripción automática y `Modules/AllyFSMModule.gd` ahora reinyecta `physics_tick` directo sobre el Ally dueño.
 - `scenes/world/test_clock_benchmark.gd` quedó fijo en modo SimClock y sólo controla pausa de grupo; se añadió `tests/TestClock.tscn` para validar el orden de ejecución (A→B) en ticks locales.
 - `scripts/core/Flags.gd` conserva únicamente `ALLY_TICK_GROUP`, retirando toggles heredados como `USE_SIMCLOCK_ALLY`.
+- Normalizada la indentación con tabs en `scenes/entities/Ally.gd` para que Godot 4.4 procese correctamente `fsm_step` y el ciclo físico.
 
 ---
 
