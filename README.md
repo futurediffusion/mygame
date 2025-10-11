@@ -26,6 +26,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Log rápido (último cambio)
+- `Modules/Movement.gd` + `scenes/entities/player.gd`: el fast fall del jugador ahora aplica un multiplicador de 1.5× tanto a la velocidad aérea como a la gravedad en caída, garantizando que descender sea un 50% más rápido y responda al combo perfecto.
 - `Modules/PerfectJumpCombo.gd` + `Modules/Jump.gd`: se restauró la ventana `perfect` sin decaimiento temporal, aplicando multiplicadores curvos y reiniciando el combo inmediatamente cuando fallas el timing.
 - `Modules/Jump.gd`: el salto variable ahora recorta la velocidad vertical con `release_velocity_scale` cuando sueltas antes del umbral, logrando saltos cortos consistentes sin romper el combo perfecto ni la ventana de coyote.
 - `Singletons/GameState.gd` renombra su `class_name` a `GameStateAutoload` para evitar la colisión "Class hides an autoload singleton" en Godot 4.4 y `scenes/entities/player.gd` actualiza el tipado del autoload.
@@ -34,6 +35,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - `scenes/entities/player.gd`: se restauró la indentación en tabs de `_update_module_stats()` para que Godot 4.4 deje de marcar "Unexpected indent" al sincronizar exports de salto y movimiento durante la carga.
 
 ### Registro de mantenimiento reciente
+- Ajustado el fast fall del jugador: Player exporta `fall_gravity_multiplier` y `fast_fall_speed_multiplier`, sincronizados con `Movement.gd` y `State.gd` para mantener la caída un 50% más rápida en aire sin romper el buffer de salto.
 - `Modules/Jump.gd` introduce `release_velocity_scale` como export para sintonizar la altura del salto corto y corta la velocidad ascendente cuando el botón se suelta antes de agotar `max_hold_time`, manteniendo tabs para Godot 4.4.
 - `_update_module_stats()` en `scenes/entities/player.gd` vuelve a usar tabs y repropaga `jump_speed`/`coyote_time` al módulo de salto y velocidades/aceleraciones al módulo de movimiento, eliminando los errores de parseo reportados en Godot 4.4.
 - Reordenado el ciclo de salto: `InputBuffer.gd` guarda press/release con reloj compartido, `State.gd` aplica gravedad en `pre_move_update`/`post_move_update` y `Jump.gd` consume buffer + coyote + hold reduciendo gravedad antes de `move_and_slide()`.

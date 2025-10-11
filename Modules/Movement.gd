@@ -6,6 +6,7 @@ class_name MovementModule
 @export var accel_ground: float = 26.0
 @export var accel_air: float = 9.5
 @export var ground_friction: float = 10.0
+@export_range(1.0, 3.0, 0.05) var fast_fall_speed_multiplier: float = 1.5
 
 var sprint_speed: float = 9.5
 var speed_multiplier: float = 1.0
@@ -29,6 +30,8 @@ func setup(p: CharacterBody3D) -> void:
 		ground_friction = max(player.decel, ground_friction)
 	if "speed_multiplier" in player:
 		speed_multiplier = max(player.speed_multiplier, 0.0)
+	if "fast_fall_speed_multiplier" in player:
+		fast_fall_speed_multiplier = max(player.fast_fall_speed_multiplier, 1.0)
 
 func set_frame_input(input_dir: Vector3, is_sprinting: bool) -> void:
 	_move_dir = input_dir
@@ -47,6 +50,8 @@ func physics_tick(delta: float) -> void:
 func _update_horizontal_velocity(delta: float) -> void:
 	var on_floor := player.is_on_floor()
 	var target_speed := max_speed_ground if on_floor else max_speed_air
+	if not on_floor and player.velocity.y < 0.0:
+		target_speed *= max(fast_fall_speed_multiplier, 1.0)
 	if _is_sprinting and on_floor:
 		target_speed = sprint_speed
 	var combo_speed_mul: float = 1.0
