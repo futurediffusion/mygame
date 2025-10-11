@@ -83,6 +83,7 @@ const INPUT_ACTIONS := {
 @onready var game_state: GameState = get_node_or_null(^"/root/GameState")
 @onready var sim_clock: SimClockScheduler = get_node_or_null(^"/root/SimClock")
 @onready var trigger_area: Area3D = $TriggerArea  # <-- tu hijo Area3D
+@onready var combo: PerfectJumpCombo = $PerfectJumpCombo
 
 # --- MÓDULOS (nuevos onready) ---
 @onready var m_movement: MovementModule = $Modules/Movement
@@ -102,6 +103,7 @@ var _block_animation_updates := false
 var _pending_move_delta := 0.0
 var _pending_move_is_sprinting := false
 var _pending_move_ready := false
+var _combo_floor_state := false
 var _input_cache: Dictionary = {}
 var _context_state := ContextState.DEFAULT
 var _is_in_water := false
@@ -125,6 +127,11 @@ func _ready() -> void:
 	_sprint_threshold = run_speed * 0.4
 	for m in [m_movement, m_jump, m_state, m_orientation, m_anim, m_audio]:
 		m.setup(self)
+
+	if combo and is_instance_valid(combo):
+		combo.base_jump_velocity = jump_velocity
+		combo.coyote_time = coyote_time
+		combo.jump_buffer = jump_buffer
 
 	_use_sim_clock = sim_clock != null and is_instance_valid(sim_clock)
 	if _use_sim_clock:
@@ -163,6 +170,10 @@ func _exit_tree() -> void:
 # MAIN PHYSICS LOOP
 # ============================================================================
 func physics_tick(delta: float) -> void:
+	var on_floor_now := is_on_floor()
+	_combo_floor_state = on_floor_now
+	if combo and is_instance_valid(combo):
+		combo.on_physics_step(delta, on_floor_now)
 	var is_paused := false
 	var in_cinematic := false
 	if game_state:
@@ -178,6 +189,12 @@ func physics_tick(delta: float) -> void:
 	if allow_input:
 		is_sprinting = _update_sprint_state(delta, input_dir)
 	m_movement.set_frame_input(input_dir, is_sprinting)
+	var speed_multiplier := 1.0
+	if combo and is_instance_valid(combo):
+		speed_multiplier = combo.get_speed_multiplier()
+	if m_movement and m_movement.has_method("set_speed_multiplier"):
+		m_movement.set_speed_multiplier(speed_multiplier)
+	_sprint_threshold = run_speed * 0.4 * speed_multiplier
 	m_orientation.set_frame_input(input_dir)
 	var air_time := 0.0
 	if m_jump and m_jump.has_method("get_air_time"):
@@ -271,6 +288,8 @@ func _cache_input_states(allow_input: bool, move_dir: Vector3) -> void:
 	var sprint_record := _update_action_cache("sprint", INPUT_ACTIONS.get("sprint", []), allow_input)
 	var crouch_record := _update_action_cache("crouch", INPUT_ACTIONS.get("crouch", []), allow_input)
 	var jump_record := _update_action_cache("jump", INPUT_ACTIONS.get("jump", []), allow_input)
+	if allow_input and combo and is_instance_valid(combo) and jump_record.get("just_pressed", false):
+		combo.on_jump_input_pressed()
 	var talk_record := _update_action_cache("talk", INPUT_ACTIONS.get("talk", []), allow_input)
 	var sit_record := _update_action_cache("sit", INPUT_ACTIONS.get("sit", []), allow_input)
 	var interact_record := _update_action_cache("interact", INPUT_ACTIONS.get("interact", []), allow_input)
@@ -399,6 +418,17 @@ func _get_camera_relative_input() -> Vector3:
 	return direction
 
 func _update_module_stats() -> void:
+	if combo and is_instance_valid(combo):
+		combo.base_jump_velocity = jump_velocity
+		combo.coyote_time = coyote_time
+		combo.jump_buffer = jump_buffer
+	if m_jump:
+		m_jump.jump_velocity = jump_velocity
+	var speed_multiplier := 1.0
+	if combo and is_instance_valid(combo):
+		speed_multiplier = combo.get_speed_multiplier()
+	if m_movement and m_movement.has_method("set_speed_multiplier"):
+		m_movement.set_speed_multiplier(speed_multiplier)
 	if stats:
 		var effective_sprint := sprint_speed
 		effective_sprint = stats.sprint_speed(effective_sprint)
@@ -418,6 +448,17 @@ func _update_sprint_state(delta: float, input_dir: Vector3) -> bool:
 	if input_dir.length_squared() <= 0.0001:
 		return false
 	return stamina.can_sprint()
+
+func apply_perfect_jump_combo(base_impulse: float) -> float:
+	var final_impulse := base_impulse
+	if combo and is_instance_valid(combo):
+		combo.base_jump_velocity = base_impulse
+		var combo_impulse := combo.consume_jump_if_available(_combo_floor_state)
+		if combo_impulse > 0.0:
+			final_impulse = combo_impulse
+		else:
+			final_impulse = base_impulse * combo.get_jump_multiplier()
+	return final_impulse
 
 func _consume_sprint_stamina(delta: float, is_sprinting: bool) -> void:
 	if not is_sprinting:

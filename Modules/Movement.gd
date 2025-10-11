@@ -9,6 +9,7 @@ var accel_air := 8.0
 var decel := 18.0
 var run_speed := 6.0
 var sprint_speed := 9.5
+var speed_multiplier := 1.0
 
 # input cacheado por frame (inyectado desde Player)
 var _input_dir := Vector3.ZERO
@@ -26,6 +27,9 @@ func setup(p: CharacterBody3D) -> void:
 func set_frame_input(input_dir: Vector3, is_sprinting: bool) -> void:
 	_input_dir = input_dir
 	_is_sprinting = is_sprinting
+
+func set_speed_multiplier(multiplier: float) -> void:
+	speed_multiplier = max(multiplier, 0.0)
 
 func h_vec() -> Vector2:
 	return Vector2(player.velocity.x, player.velocity.z)
@@ -47,6 +51,7 @@ func physics_tick(delta: float) -> void:
 # ---- Funciones 1:1 con el Player original ----
 func update_horizontal_velocity(delta: float, input_dir: Vector3, is_sprinting: bool) -> void:
 	var target_speed: float = sprint_speed if is_sprinting else run_speed
+	target_speed *= speed_multiplier
 	var current_horiz: Vector2 = h_vec()
 
 	if input_dir != Vector3.ZERO:
