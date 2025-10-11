@@ -33,6 +33,8 @@
 - Explicitly typed the JSON load result in the `Save` singleton so Godot 4.4 stops downgrading the dictionary to Variant during inference warnings.【F:Singletons/Save.gd†L31-L40】
 - Restored `AllyStats` property blocks with proper tab indentation so Godot 4.4 parses exported dictionaries without errors.【F:Resources/AllyStats.gd†L1-L252】
 - Hardened the `Data` singleton with explicit Variant-typed intermediates so Godot 4.4 no longer raises inference errors while preserving deep skill tree merges and growth copies.【F:Singletons/Data.gd†L31-L199】
+- Reworked the player orchestrator to cache per-frame inputs (movement, sprint, crouch, jump, talk, sit, interact, combat switch, build), gate motion during pause/cinematic states, emit context transitions (SWIM/SNEAK/TALK/SIT), and forward stamina cycles to `AllyStats` while keeping SimClock fallbacks intact for authoritative ticks.【F:scenes/entities/player.gd†L1-L377】
+- Extended the stamina component to accept stat-modulated sprint drain overrides so player growth can tune consumption without duplicating resource math.【F:scripts/player/Stamina.gd†L1-L27】
 
 
 ## Player Orchestration

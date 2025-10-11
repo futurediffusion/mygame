@@ -15,8 +15,11 @@ func _ready() -> void:
 func can_sprint() -> bool:
 	return value > max_stamina * 0.08
 
-func consume_for_sprint(delta: float) -> void:
-	value = max(0.0, value - sprint_drain_per_s * delta)
+func consume_for_sprint(delta: float, drain_per_second: float = -1.0) -> void:
+	var rate := sprint_drain_per_s
+	if drain_per_second > 0.0:
+		rate = drain_per_second
+	value = max(0.0, value - rate * delta)
 	_regen_block = regen_delay
 
 func tick(delta: float) -> void:

@@ -1,12 +1,40 @@
 extends CharacterBody3D
 class_name Player
 
+enum ContextState {
+	DEFAULT,
+	SNEAK,
+	SWIM,
+	TALK,
+	SIT
+}
+
+signal context_state_changed(new_state: int, previous_state: int)
+signal talk_requested(target: Node = null)
+signal sit_toggled(is_sitting: bool)
+signal interact_requested()
+signal combat_mode_switched(mode: String)
+signal build_mode_toggled(is_building: bool)
+
+const INPUT_ACTIONS := {
+	"sprint": ["sprint"],
+	"crouch": ["crouch", "sneak"],
+	"jump": ["jump", "roll"],
+	"talk": ["talk"],
+	"sit": ["sit", "sit_toggle", "sit_stand"],
+	"interact": ["interact", "use", "action"],
+	"combat_switch": ["switch_weapon", "toggle_weapon", "melee_ranged_switch"],
+	"build": ["build", "toggle_build", "build_mode"]
+}
+
 # ============================================================================
 # AUDIO SYSTEM
 # ============================================================================
 @onready var jump_sfx: AudioStreamPlayer3D = $JumpSFX
 @onready var land_sfx: AudioStreamPlayer3D = $LandSFX
 @onready var footstep_sfx: AudioStreamPlayer3D = $FootstepSFX
+
+@export var stats: AllyStats
 
 # ============================================================================
 # MOVEMENT CONFIGURATION
@@ -74,17 +102,29 @@ var _block_animation_updates := false
 var _pending_move_delta := 0.0
 var _pending_move_is_sprinting := false
 var _pending_move_ready := false
+var _input_cache: Dictionary = {}
+var _context_state := ContextState.DEFAULT
+var _is_in_water := false
+var _water_areas: Array = []
+var _talk_active := false
+var _is_sitting := false
+var _is_build_mode := false
+var _using_ranged := false
+var _stamina_ratio_min := 1.0
+var _stamina_ratio_max_since_min := 1.0
+var _stamina_cycle_window := 12.0
+var _t_stamina_window := 0.0
 
 # ============================================================================
 # INITIALIZATION
 # ============================================================================
 func _ready() -> void:
+	if stats == null:
+		stats = AllyStats.new()
+	_initialize_input_cache()
 	_sprint_threshold = run_speed * 0.4
-
-	# Setup de módulos (simple referencia al player)
 	for m in [m_movement, m_jump, m_state, m_orientation, m_anim, m_audio]:
 		m.setup(self)
-
 	_use_sim_clock = sim_clock != null and is_instance_valid(sim_clock)
 	if _use_sim_clock:
 		sim_clock.register(self, "local")
@@ -93,11 +133,20 @@ func _ready() -> void:
 		set_physics_process(false)
 	else:
 		set_physics_process(true)
+	if not area_entered.is_connected(_on_area_entered):
+		area_entered.connect(_on_area_entered)
+	if not area_exited.is_connected(_on_area_exited):
+		area_exited.connect(_on_area_exited)
+	_update_module_stats()
+	if stamina:
+		var ratio := 1.0
+		if stamina.max_stamina > 0.0:
+			ratio = clampf(stamina.value / stamina.max_stamina, 0.0, 1.0)
+		_stamina_ratio_min = ratio
+		_stamina_ratio_max_since_min = ratio
 
 func _exit_tree() -> void:
-	if not _use_sim_clock:
-		return
-	if sim_clock and is_instance_valid(sim_clock):
+	if _use_sim_clock and sim_clock and is_instance_valid(sim_clock):
 		if sim_clock.ticked.is_connected(_on_sim_clock_ticked):
 			sim_clock.ticked.disconnect(_on_sim_clock_ticked)
 		sim_clock.unregister(self, "local")
@@ -106,23 +155,32 @@ func _exit_tree() -> void:
 # MAIN PHYSICS LOOP
 # ============================================================================
 func physics_tick(delta: float) -> void:
-	var input_dir: Vector3 = _get_camera_relative_input()
-	var is_sprinting: bool = _update_sprint_state(delta, input_dir)
-
+	var is_paused := false
+	var in_cinematic := false
+	if game_state:
+		is_paused = game_state.is_paused
+		in_cinematic = game_state.is_in_cinematic
+	var allow_input := not is_paused and not in_cinematic
+	var input_dir := Vector3.ZERO
+	if allow_input:
+		input_dir = _get_camera_relative_input()
+	_cache_input_states(allow_input, input_dir)
+	_update_module_stats()
+	var is_sprinting := false
+	if allow_input:
+		is_sprinting = _update_sprint_state(delta, input_dir)
 	m_movement.set_frame_input(input_dir, is_sprinting)
 	m_orientation.set_frame_input(input_dir)
 	var air_time := 0.0
 	if m_jump and m_jump.has_method("get_air_time"):
 		air_time = m_jump.get_air_time()
 	m_anim.set_frame_anim_inputs(is_sprinting, air_time)
-
-	_skip_module_updates = (game_state and game_state.is_paused) or false
-	_block_animation_updates = (game_state and game_state.is_in_cinematic) or false
-
+	_skip_module_updates = is_paused or in_cinematic
+	_block_animation_updates = is_paused or in_cinematic
 	_pending_move_delta = delta
 	_pending_move_is_sprinting = is_sprinting
 	_pending_move_ready = true
-
+	_evaluate_context_state(input_dir)
 	if not _use_sim_clock:
 		_manual_tick_modules(delta)
 		_finish_physics_step(delta, is_sprinting)
@@ -149,8 +207,11 @@ func _manual_tick_modules(delta: float) -> void:
 		m_audio.physics_tick(delta)
 
 func _finish_physics_step(delta: float, is_sprinting: bool) -> void:
+	if _skip_module_updates:
+		velocity = Vector3.ZERO
 	move_and_slide()
 	_consume_sprint_stamina(delta, is_sprinting)
+	_track_stamina_cycle(delta, is_sprinting)
 
 func _on_sim_clock_ticked(group_name: String, _dt: float) -> void:
 	if group_name != "local":
@@ -166,39 +227,270 @@ func should_skip_module_updates() -> bool:
 func should_block_animation_update() -> bool:
 	return _block_animation_updates
 
+func get_input_cache() -> Dictionary:
+	return _input_cache.duplicate(true)
 
+func get_context_state() -> int:
+	return _context_state
+
+# ============================================================================
+# INPUT PROCESSING
+# ============================================================================
+func _initialize_input_cache() -> void:
+	_input_cache.clear()
+	var move_record := {
+		"raw": Vector2.ZERO,
+		"camera": Vector3.ZERO
+	}
+	_input_cache["move"] = move_record
+	for key in INPUT_ACTIONS.keys():
+		_input_cache[key] = {
+			"pressed": false,
+			"just_pressed": false,
+			"just_released": false
+		}
+	_input_cache["context_state"] = ContextState.DEFAULT
+
+func _cache_input_states(allow_input: bool, move_dir: Vector3) -> void:
+	var raw_axes := Vector2.ZERO
+	if allow_input:
+		raw_axes.x = Input.get_axis("move_left", "move_right")
+		raw_axes.y = Input.get_axis("move_back", "move_forward")
+	var move_record: Dictionary = _input_cache.get("move", {})
+	move_record["raw"] = raw_axes
+	move_record["camera"] = move_dir
+	_input_cache["move"] = move_record
+	var sprint_record := _update_action_cache("sprint", INPUT_ACTIONS.get("sprint", []), allow_input)
+	var crouch_record := _update_action_cache("crouch", INPUT_ACTIONS.get("crouch", []), allow_input)
+	var jump_record := _update_action_cache("jump", INPUT_ACTIONS.get("jump", []), allow_input)
+	var talk_record := _update_action_cache("talk", INPUT_ACTIONS.get("talk", []), allow_input)
+	var sit_record := _update_action_cache("sit", INPUT_ACTIONS.get("sit", []), allow_input)
+	var interact_record := _update_action_cache("interact", INPUT_ACTIONS.get("interact", []), allow_input)
+	var combat_record := _update_action_cache("combat_switch", INPUT_ACTIONS.get("combat_switch", []), allow_input)
+	var build_record := _update_action_cache("build", INPUT_ACTIONS.get("build", []), allow_input)
+	if allow_input:
+		if talk_record.get("just_pressed", false):
+			talk_requested.emit()
+		_talk_active = talk_record.get("pressed", false)
+	else:
+		_talk_active = false
+	talk_record["active"] = _talk_active
+	_input_cache["talk"] = talk_record
+	if allow_input and sit_record.get("just_pressed", false):
+		var previous := _is_sitting
+		_is_sitting = not _is_sitting
+		if previous != _is_sitting:
+			sit_toggled.emit(_is_sitting)
+	sit_record["active"] = _is_sitting
+	_input_cache["sit"] = sit_record
+	if allow_input and interact_record.get("just_pressed", false):
+		interact_requested.emit()
+	if allow_input and combat_record.get("just_pressed", false):
+		_using_ranged = not _using_ranged
+		var new_mode := "melee"
+		if _using_ranged:
+			new_mode = "ranged"
+		combat_mode_switched.emit(new_mode)
+	var combat_mode := "melee"
+	if _using_ranged:
+		combat_mode = "ranged"
+	combat_record["mode"] = combat_mode
+	_input_cache["combat_switch"] = combat_record
+	if allow_input and build_record.get("just_pressed", false):
+		var was_building := _is_build_mode
+		_is_build_mode = not _is_build_mode
+		if was_building != _is_build_mode:
+			build_mode_toggled.emit(_is_build_mode)
+	build_record["active"] = _is_build_mode
+	_input_cache["build"] = build_record
+	_input_cache["sprint"] = sprint_record
+	_input_cache["crouch"] = crouch_record
+	_input_cache["jump"] = jump_record
+	_input_cache["interact"] = interact_record
+
+func _update_action_cache(key: String, action_names: Array, allow_input: bool) -> Dictionary:
+	var record: Dictionary = _input_cache.get(key, {
+		"pressed": false,
+		"just_pressed": false,
+		"just_released": false
+	})
+	var pressed := false
+	var just_pressed := false
+	var just_released := false
+	if allow_input:
+		pressed = _action_pressed(action_names)
+		just_pressed = _action_just_pressed(action_names)
+		just_released = _action_just_released(action_names)
+	record["pressed"] = pressed
+	record["just_pressed"] = just_pressed
+	record["just_released"] = just_released
+	_input_cache[key] = record
+	return record
+
+func _action_pressed(action_names: Array) -> bool:
+	for name in action_names:
+		if typeof(name) == TYPE_STRING and InputMap.has_action(name):
+			if Input.is_action_pressed(name):
+				return true
+	return false
+
+func _action_just_pressed(action_names: Array) -> bool:
+	for name in action_names:
+		if typeof(name) == TYPE_STRING and InputMap.has_action(name):
+			if Input.is_action_just_pressed(name):
+				return true
+	return false
+
+func _action_just_released(action_names: Array) -> bool:
+	for name in action_names:
+		if typeof(name) == TYPE_STRING and InputMap.has_action(name):
+			if Input.is_action_just_released(name):
+				return true
+	return false
+
+func _evaluate_context_state(move_dir: Vector3) -> void:
+	var desired := ContextState.DEFAULT
+	if _is_sitting:
+		desired = ContextState.SIT
+	elif _talk_active:
+		desired = ContextState.TALK
+	elif _is_in_water:
+		desired = ContextState.SWIM
+	else:
+		var crouch_record: Dictionary = _input_cache.get("crouch", {})
+		var crouch_pressed := false
+		if crouch_record.has("pressed"):
+			crouch_pressed = crouch_record["pressed"]
+		var has_movement := move_dir.length_squared() > 0.0001
+		if crouch_pressed and has_movement:
+			desired = ContextState.SNEAK
+	_set_context_state(desired)
+
+func _set_context_state(state: int) -> void:
+	if _context_state == state:
+		return
+	var previous := _context_state
+	_context_state = state
+	_input_cache["context_state"] = _context_state
+	context_state_changed.emit(state, previous)
+
+# ============================================================================
+# MOVEMENT & SPRINT
+# ============================================================================
 func _get_camera_relative_input() -> Vector3:
-	var input_z: float = Input.get_axis("move_back", "move_forward")
-	var input_x: float = Input.get_axis("move_left", "move_right")
-
+	var input_z := Input.get_axis("move_back", "move_forward")
+	var input_x := Input.get_axis("move_left", "move_right")
 	if input_z == 0.0 and input_x == 0.0:
 		return Vector3.ZERO
+	var cam_basis := yaw.global_transform.basis
+	var forward := -cam_basis.z
+	var right := cam_basis.x
+	var direction := forward * input_z + right * input_x
+	if direction.length_squared() > 1.0:
+		return direction.normalized()
+	return direction
 
-	var cam_basis: Basis = yaw.global_transform.basis
-	var forward: Vector3 = -cam_basis.z
-	var right: Vector3 = cam_basis.x
+func _update_module_stats() -> void:
+	if stats:
+		var effective_sprint := sprint_speed
+		effective_sprint = stats.sprint_speed(effective_sprint)
+		if m_movement:
+			m_movement.sprint_speed = effective_sprint
 
-	var direction: Vector3 = (forward * input_z + right * input_x)
-	return direction.normalized() if direction.length_squared() > 1.0 else direction
-
-
-# ============================================================================
-# SPRINT & STAMINA
-# ============================================================================
 func _update_sprint_state(delta: float, input_dir: Vector3) -> bool:
+	if stamina == null:
+		return false
 	stamina.tick(delta)
-
-	var wants_sprint: bool = Input.is_action_pressed("sprint") and input_dir != Vector3.ZERO
-	return wants_sprint and stamina.can_sprint()
+	var sprint_record: Dictionary = _input_cache.get("sprint", {})
+	var wants_sprint := false
+	if sprint_record.has("pressed"):
+		wants_sprint = sprint_record["pressed"]
+	if not wants_sprint:
+		return false
+	if input_dir.length_squared() <= 0.0001:
+		return false
+	return stamina.can_sprint()
 
 func _consume_sprint_stamina(delta: float, is_sprinting: bool) -> void:
 	if not is_sprinting:
 		return
+	if stamina == null:
+		return
+	var horizontal_speed := Vector2(velocity.x, velocity.z).length()
+	if horizontal_speed <= _sprint_threshold:
+		return
+	var drain_rate := stamina.sprint_drain_per_s
+	if stats:
+		drain_rate = stats.sprint_stamina_cost(drain_rate)
+	stamina.consume_for_sprint(delta, drain_rate)
 
-	var horizontal_speed: float = Vector2(velocity.x, velocity.z).length()
-	if horizontal_speed > _sprint_threshold:
-		stamina.consume_for_sprint(delta)
+# ============================================================================
+# STAMINA CYCLE TRACKING
+# ============================================================================
+func _track_stamina_cycle(delta: float, is_sprinting: bool) -> void:
+	if stamina == null:
+		return
+	if stats == null:
+		return
+	if stamina.max_stamina <= 0.0:
+		return
+	_t_stamina_window += delta
+	var ratio := clampf(stamina.value / stamina.max_stamina, 0.0, 1.0)
+	if ratio < _stamina_ratio_min:
+		_stamina_ratio_min = ratio
+	if ratio > _stamina_ratio_max_since_min:
+		_stamina_ratio_max_since_min = ratio
+	if _t_stamina_window >= _stamina_cycle_window:
+		var consumed := 1.0 - _stamina_ratio_min
+		var recovered := _stamina_ratio_max_since_min
+		stats.note_stamina_cycle(consumed, recovered, _t_stamina_window)
+		_stamina_ratio_min = ratio
+		_stamina_ratio_max_since_min = ratio
+		_t_stamina_window = 0.0
+	elif not is_sprinting:
+		_stamina_ratio_max_since_min = max(_stamina_ratio_max_since_min, ratio)
 
+# ============================================================================
+# WATER STATE HANDLERS
+# ============================================================================
+func _on_area_entered(area: Area3D) -> void:
+	_mark_water_area(area, true)
+
+func _on_area_exited(area: Area3D) -> void:
+	_mark_water_area(area, false)
+
+func _mark_water_area(area: Area3D, entered: bool) -> void:
+	if area == null:
+		return
+	var is_water := false
+	if area.is_in_group("water"):
+		is_water = true
+	elif area.has_meta("is_water"):
+		var meta_value := area.get_meta("is_water")
+		if typeof(meta_value) == TYPE_BOOL:
+			is_water = meta_value
+		else:
+			is_water = bool(meta_value)
+	if not is_water:
+		return
+	if entered:
+		if not _water_areas.has(area):
+			_water_areas.append(area)
+	else:
+		_water_areas.erase(area)
+	var was_in_water := _is_in_water
+	_is_in_water = _water_areas.size() > 0
+	if was_in_water != _is_in_water:
+		var move_dir := Vector3.ZERO
+		if _input_cache.has("move"):
+			var move_record: Dictionary = _input_cache.get("move", {})
+			if move_record.has("camera"):
+				move_dir = move_record["camera"]
+		_evaluate_context_state(move_dir)
+
+# ============================================================================
+# AUDIO & CAMERA HOOKS
+# ============================================================================
 func _play_footstep_audio() -> void:
 	m_audio.play_footstep()
 
