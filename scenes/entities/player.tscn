@@ -14,8 +14,8 @@
 [ext_resource type="Script" uid="uid://d7166l6er61r" path="res://Modules/Orientation.gd" id="9_n5d2n"]
 [ext_resource type="Script" uid="uid://buk7idb8jq37n" path="res://Modules/AnimationCtrl.gd" id="9_qq92a"]
 [ext_resource type="Script" uid="uid://dnbmy77ibnv2s" path="res://Modules/AudioCtrl.gd" id="9_wa8qt"]
+[ext_resource type="Script" uid="uid://dpr2epmd50orb" path="res://Modules/PerfectJumpCombo.gd" id="9_zq1h7"]
 
-[ext_resource type="Script" uid="uid://dqw7x3m38m32k" path="res://Modules/PerfectJumpCombo.gd" id="9_zq1h7"]
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_ucweq"]
 
 [sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_1ie0h"]
@@ -69,9 +69,8 @@ node_connections = [&"AirBlend", 0, &"SprintScale", &"AirBlend", 1, &"FallAnim",
 [sub_resource type="SphereShape3D" id="SphereShape3D_ucweq"]
 
 [node name="Player" type="CharacterBody3D" groups=["player"]]
-script = ExtResource("1_08t41")
-collision_layer = 1
 collision_mask = 30
+script = ExtResource("1_08t41")
 
 [node name="PerfectJumpCombo" type="Node" parent="."]
 script = ExtResource("9_zq1h7")

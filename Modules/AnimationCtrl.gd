@@ -5,6 +5,9 @@ var player: CharacterBody3D
 var anim_tree: AnimationTree
 var anim_player: AnimationPlayer
 
+@export var animation_tree_path: NodePath  # <-- AÑADE ESTA LÍNEA
+@export var state_module_path: NodePath   
+
 # Paths dentro del AnimationTree
 const PARAM_LOC: StringName = &"parameters/Locomotion/blend_position"
 const PARAM_AIRBLEND: StringName = &"parameters/AirBlend/blend_amount"
@@ -100,7 +103,8 @@ func _handle_airborne(delta: float) -> void:
 		_travel_to_state("Fall")
 		_fall_triggered = true
 
-	_set_air_blend(_fall_triggered ? 1.0 : 0.0)
+	_set_air_blend(1.0 if _fall_triggered else 0.0)
+
 
 func _handle_grounded() -> void:
 	if _airborne:
@@ -155,30 +159,55 @@ func _set_sprint_scale(value: float) -> void:
 		anim_tree.set(PARAM_SPRINTSCL, value)
 
 func _cache_state_machine() -> void:
-	if not _tree_has_param(PARAM_SM_PLAYBACK):
+	# En 4.4, si _tree es @onready AnimationTree tipado, no hace falta check contra null.
+	# Mejor validar que el export path esté asignado, por si acaso.
+	if animation_tree_path == NodePath():
+		push_warning("Asigna 'animation_tree_path' en el inspector.")
 		return
-	var playback := anim_tree.get(PARAM_SM_PLAYBACK)
-	if playback is AnimationNodeStateMachinePlayback:
-		_state_machine = playback
-		_travel_to_state("Locomotion")
+
+	# Recupera el playback con cast explícito
+	var playback := anim_tree.get("parameters/StateMachine/playback") as AnimationNodeStateMachinePlayback
+	if playback == null:
+		push_warning("No se encontró 'parameters/StateMachine/playback' en el AnimationTree. Revisa el nodo StateMachine y su path.")
+		return
+
+	_state_machine = playback
+	_travel_to_state("Locomotion")
+
+
+
+
 
 func _connect_state_signals() -> void:
 	if player == null:
 		return
-	var state_mod := player.m_state if "m_state" in player else null
+
+	var state_mod: Node = null
+
+	# 1) si hay ruta exportada, úsala
+	if state_module_path != NodePath():
+		state_mod = get_node_or_null(state_module_path)
+
+	# 2) fallback: buscar por convención en la jerarquía del player
+	if state_mod == null and player.has_node("Modules/State"):
+		state_mod = player.get_node("Modules/State")
+	elif state_mod == null and player.has_node("State"):
+		state_mod = player.get_node("State")
+
 	if state_mod == null:
 		return
-	var landed_cb := Callable(self, "_on_landed")
-	if not state_mod.landed.is_connected(landed_cb):
-		state_mod.landed.connect(landed_cb)
+
+	# Conexiones seguras (evita duplicados)
+	if state_mod.has_signal("landed"):
+		if not state_mod.landed.is_connected(_on_landed):
+			state_mod.landed.connect(_on_landed)
 	if state_mod.has_signal("jumped"):
-		var jumped_cb := Callable(self, "_on_jumped")
-		if not state_mod.jumped.is_connected(jumped_cb):
-			state_mod.jumped.connect(jumped_cb)
+		if not state_mod.jumped.is_connected(_on_jumped):
+			state_mod.jumped.connect(_on_jumped)
 	if state_mod.has_signal("left_ground"):
-		var left_cb := Callable(self, "_on_left_ground")
-		if not state_mod.left_ground.is_connected(left_cb):
-			state_mod.left_ground.connect(left_cb)
+		if not state_mod.left_ground.is_connected(_on_left_ground):
+			state_mod.left_ground.connect(_on_left_ground)
+
 
 func _on_jumped() -> void:
 	_has_jumped = true
