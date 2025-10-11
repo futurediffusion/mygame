@@ -1,76 +1,236 @@
-# MyGame – Technical Overview
+# MyGame – Biblia Técnica R3
 
-## Engine & Version
-- Built with Godot 4.4 (Forward+ renderer) using the official project structure in `project.godot`.
-- 3D character controller prototype with editor-exported parameters for gameplay tuning.
+## Portada del proyecto
+- **Versión interna:** R3 (Revisión completa a octubre de 2024).
+- **Motor:** Godot Engine 4.4 (Forward+ renderer habilitado en `project.godot`).
+- **Elevator pitch:** prototipo de aventura/cooperativo con un jugador totalmente modular, aliados gestionados por FSM y progresión estadística data-driven. El objetivo de R3 es estabilizar la base jugable y documentar todos los sistemas antes de entrar en producción de R4.
 
-## Core Architecture
-- Modular player character composed of dedicated systems instantiated as child Nodes and wired through `Player.gd`.
-- Global services exposed as autoload singletons: `GameState` for pause/cinematic flags and `SimClock` for advanced tick scheduling.
-- Support scripts for camera rigging and stamina live under `scripts/player`, keeping presentation and resource logic separated from core modules.
+### Estado actual
+El build es jugable en tercera persona con cámara orbital, locomoción física y recursos básicos (stamina, sprint). Los aliados pueden patrullar, combatir, construir, hablar, nadar y sentarse usando la misma librería de animaciones que el jugador. La UI dispone de un HUD desacoplado, y los datos de progresión se generan a partir de arquetipos JSON. El reloj de simulación ya centraliza los ticks y está listo para escalar a múltiples capas.
 
-## Implemented Systems
-- **MovementModule** – Handles horizontal velocity integration, acceleration/deceleration curves, and sprint speed targets with per-frame inputs provided by the player controller.【F:Modules/Movement.gd†L1-L80】
-- **JumpModule** – Implements buffered jumps, coyote time, jump variable height, state-driven gravity delegation, animation triggers, and camera/audio hooks.【F:Modules/Jump.gd†L1-L117】
-- **StateModule** – Centralizes gravity application, landing impact detection, slope/snap configuration, and emits landing signals for downstream consumers.【F:Modules/State.gd†L1-L56】
-- **OrientationModule** – Rotates the visual model toward camera-relative input, respecting configurable lerp and mesh forward corrections.【F:Modules/Orientation.gd†L1-L32】
-- **AnimationCtrlModule** – Drives AnimationTree blend positions, sprint timescale, and air-state blending based on cached per-frame context from the player.【F:Modules/AnimationCtrl.gd†L1-L112】
-- **AudioCtrlModule** – Centralizes SFX playback (jump, land, footsteps) and optional timer-driven footsteps to keep audio logic decoupled from movement.【F:Modules/AudioCtrl.gd†L1-L45】
-- **CameraRig** – Provides smooth orbit camera controls, zoom, input capture toggling, and FOV kick responses exposed via a public API.【F:scripts/player/CameraOrbit.gd†L1-L236】
-- **Stamina** – Manages sprint resource drain/regeneration and gating for sprint activation.【F:scripts/player/Stamina.gd†L1-L26】
-- **Ally FSM** – Introduced a reusable ally scene with a tab-indented GDScript state machine covering idle, movement, combat, building, sneaking, swimming, talking, and sitting, including stat progression hooks and optional AnimationPlayer playback.【F:scenes/entities/Ally.gd†L1-L356】【F:scenes/entities/Ally.tscn†L1-L33】
-- **GameState Singleton** – Tracks pause/cinematic state and exposes signals to listeners.【F:Singletons/GameState.gd†L1-L19】
-- **EventBus Singleton** – Broadcasts HUD, ally, save/load, and stamina signals to keep UI, audio, and gameplay notifications decoupled.【F:Singletons/EventBus.gd†L1-L14】
-- **Save Singleton** – Persists arbitrary dictionaries via JSON plus optional ZSTD compression while gracefully handling missing or legacy save files.【F:Singletons/Save.gd†L1-L43】
-- **SimClock Service** – Authoritative scheduler with configurable per-group intervals, pause controls, and registry-driven tick dispatch for modules and orchestrators.【F:Singletons/SimClock.gd†L1-L139】
+### ¿Qué funciona en R3?
+- Captura de input y bindings automáticos (`scripts/bootstrap/InputSetup.gd`).
+- Controlador del jugador con módulos de movimiento, salto, orientación, animación y audio (`Modules/*.gd`, `scenes/entities/player.gd`).
+- Stamina jugable y seguimiento de ciclos de uso (`scripts/player/Stamina.gd`, `scenes/entities/player.gd`).
+- FSM completa de aliados con progresión de habilidades, animaciones y personalización visual (`scenes/entities/Ally.gd`).
+- Progresión basada en `AllyStats` y arquetipos data-driven (`Resources/AllyStats.gd`, `data/ally_archetypes.json`, `Singletons/Data.gd`).
+- Autoloads de servicios (`SimClock`, `EventBus`, `GameState`, `Save`) configurados en `project.godot`.
+- HUD reactivo basado en eventos (`scenes/ui/HUD.gd`).
 
-## Recent Fixes
-- Added an `InputSetup` autoload bootstrap that ensures default keyboard/mouse actions exist, replaces the legacy talk action with interact, and avoids duplicate bindings for cloned projects.【F:scripts/bootstrap/InputSetup.gd†L1-L74】
-- Typed ally scene traversal helpers and scene instantiation so Godot 4.4 stops treating Variant inference warnings as build blockers, keeping animation binding, material overrides, gear attachments, and tinting logic untouched.【F:scenes/entities/Ally.gd†L350-L481】
-- Hardened ally visual setup by resolving the Data autoload lookup, validating JSON payload types, and swapping to `BoneAttachment3D` for gear so Godot 4.4 stops raising missing-member errors while keeping hot-swap visuals intact.【F:scenes/entities/Ally.gd†L373-L467】
-- Clamped scheduler interval updates with `maxf` to keep type inference strict in Godot 4.4 while preserving safe lower bounds on group cadence edits.【F:Singletons/SimClock.gd†L50-L58】
-- Relaxed the typed registry declaration in `SimClock` to avoid nested generic collection errors while keeping group iteration logic intact.【F:Singletons/SimClock.gd†L16-L118】
-- Cleared the autoload/class registration conflict on `EventBus` so Godot 4.4 stops flagging the singleton as hidden while keeping all broadcast signals intact.【F:Singletons/EventBus.gd†L1-L12】
-- Explicitly typed the JSON load result in the `Save` singleton so Godot 4.4 stops downgrading the dictionary to Variant during inference warnings.【F:Singletons/Save.gd†L31-L40】
-- Restored `AllyStats` property blocks with proper tab indentation so Godot 4.4 parses exported dictionaries without errors.【F:Resources/AllyStats.gd†L1-L252】
-- Hardened the `Data` singleton with explicit Variant-typed intermediates so Godot 4.4 no longer raises inference errors while preserving deep skill tree merges and growth copies.【F:Singletons/Data.gd†L31-L199】
-- Documented collision layer masks in `PhysicsLayers` and applied them to player, ally, and terrain scenes so collisions stay deterministic across layers.【F:scripts/core/PhysicsLayers.gd†L1-L36】【F:scenes/entities/player.tscn†L68-L75】【F:scenes/entities/Ally.tscn†L168-L175】【F:scenes/world/test_ramps.tscn†L24-L38】【F:scenes/world/test_flat.tscn†L12-L20】【F:scenes/world/test_world.tscn†L12-L20】
-- Reworked the player orchestrator to cache per-frame inputs (movement, sprint, crouch, jump, talk, sit, interact, combat switch, build), gate motion during pause/cinematic states, emit context transitions (SWIM/SNEAK/TALK/SIT), and forward stamina cycles to `AllyStats` while keeping SimClock fallbacks intact for authoritative ticks.【F:scenes/entities/player.gd†L1-L377】
-- Extended the stamina component to accept stat-modulated sprint drain overrides so player growth can tune consumption without duplicating resource math.【F:scripts/player/Stamina.gd†L1-L27】
-- Cached the player `TriggerArea` alongside other onready references, aligned the water-area signal handlers, and made the talk request signal parameterless so Godot 4.4 stops emitting duplicate-function and missing-argument errors while keeping area monitoring intact.【F:scenes/entities/player.gd†L12-L190】
+### ¿Qué queda en prototipo o backlog para R4?
+- Integrar AnimationTree avanzado compartido para Player y Ally (blendspaces contextuales).
+- Migrar todos los módulos y aliados al tick del `SimClock` (algunos aún dependen de `_physics_process`).
+- Implementar IA enemiga, reputación y economía sistémica.
+- Sistema de guardado/carga integral (actualmente sólo persiste diccionarios sueltos).
+- Modularidad visual de NPCs (materiales, gear y tintado todavía dependen de rutas estáticas).
+- Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
+---
 
-## Player Orchestration
-- `Player.gd` exports tuning parameters, caches node references, and `setup()`-injects itself into each module on `_ready()` to keep module state synchronized.【F:scenes/entities/player.gd†L14-L96】
-- `physics_tick()` caches camera-relative input, updates sprint eligibility, pushes per-frame context into modules, and prepares post-move work before the authoritative scheduler advances the local group.【F:scenes/entities/player.gd†L108-L161】
-- Integrates with `SimClock` by registering as the lead local tick participant and finalizing movement once the scheduler has advanced child modules.【F:scenes/entities/player.gd†L88-L161】
-- Delegates stamina consumption, camera feedback, and audio triggers through module APIs to keep orchestration lean and testable.【F:scenes/entities/player.gd†L188-L210】
+## Diagrama textual de estructura del proyecto
+```
+res://
+ ├─ README.md (este documento)
+ ├─ howtopush.txt
+ ├─ icon.svg / icon.svg.import (icono del proyecto)
+ ├─ node_3d.tscn (escena de prueba vacía)
+ ├─ project.godot (configuración, autoloads e InputMap inicial)
+ ├─ Modules/
+ │   ├─ AnimationCtrl.gd (controlador de AnimationTree del jugador)
+ │   ├─ AudioCtrl.gd (reproducción de SFX de movimiento)
+ │   ├─ Jump.gd (mecánicas de salto y buffers)
+ │   ├─ ModuleBase.gd (base para módulos con registro en SimClock)
+ │   ├─ Movement.gd (integración horizontal y aceleración)
+ │   ├─ Orientation.gd (rotación del modelo hacia la entrada)
+ │   └─ State.gd (gravedad, aterrizajes y configuración física)
+ ├─ Resources/
+ │   └─ AllyStats.gd (Resource con estadísticas, skills y fórmulas)
+ ├─ Singletons/
+ │   ├─ Data.gd (autoload de arquetipos y fábrica de stats)
+ │   ├─ EventBus.gd (bus de señales globales)
+ │   ├─ GameState.gd (estado global de pausa/cinemática)
+ │   ├─ Save.gd (utilidad de guardado comprimido JSON)
+ │   └─ SimClock.gd (scheduler de ticks local/regional/global)
+ ├─ art/
+ │   └─ characters/
+ │       ├─ animations1.glb (+ `.import`) – rig y animaciones comunes
+ │       ├─ animations1_player2.png (+ `.import`) – textura base de proxy
+ │       ├─ front jump.glb (+ `.import`), land*.glb (+ `.import`) – clips adicionales
+ ├─ audio/
+ │   └─ sfx/
+ │       ├─ footsteps/footstep.ogg (+ `.import`)
+ │       └─ player/{jump,land}.ogg (+ `.import`)
+ ├─ core/
+ │   └─ one_shots/SetupInput.gd (bootstrap histórico de InputMap)
+ ├─ data/
+ │   ├─ ally_archetypes.json (arquetipos jugables)
+ │   └─ animations/animations.res (AnimationLibrary compartida)
+ ├─ scenes/
+ │   ├─ entities/
+ │   │   ├─ Ally.tscn / Ally.gd (NPC modular con FSM)
+ │   │   ├─ player.tscn / player.gd (jugador principal)
+ │   │   └─ player_backup.gd (versión previa de orquestador, referencia histórica)
+ │   ├─ ui/
+ │   │   └─ HUD.tscn / HUD.gd (capa de mensajes temporales)
+ │   └─ world/
+ │       ├─ test_flat.tscn, test_ramps.tscn, test_world.tscn (arenas de prueba)
+ │       └─ *.tmp (copias temporales generadas por el editor)
+ └─ scripts/
+     ├─ bootstrap/InputSetup.gd (crea bindings de input one-shot)
+     ├─ core/PhysicsLayers.gd (constantes de colisión)
+     └─ player/
+         ├─ CameraOrbit.gd (rig orbital y efectos de cámara)
+         └─ Stamina.gd (recurso de resistencia del jugador)
+```
 
-## Completed Refactor (R2)
-- Converted gravity, movement, jump, orientation, animation, and audio responsibilities into standalone modules invoked from the orchestrator, mirroring original mechanics while improving separation of concerns.【F:scenes/entities/player.gd†L81-L161】【F:Modules/Movement.gd†L1-L80】【F:Modules/Jump.gd†L1-L117】【F:Modules/State.gd†L1-L56】【F:Modules/AnimationCtrl.gd†L1-L112】【F:Modules/AudioCtrl.gd†L1-L45】
-- Added stamina-driven sprint gating and camera rig hooks to preserve feel while isolating peripheral systems.【F:scenes/entities/player.gd†L188-L210】【F:scripts/player/Stamina.gd†L1-L26】【F:scripts/player/CameraOrbit.gd†L187-L236】
-- Established `GameState` singleton for pause/cinematic gating and ensured modules respect global flags during ticking.【F:scenes/entities/player.gd†L119-L167】【F:Singletons/GameState.gd†L1-L19】
-- Promoted `SimClock` to the authoritative scheduler with per-group intervals, pause controls, and registry-driven dispatch, plus module auto-registration via `ModuleBase` and player-led post-tick orchestration.【F:Singletons/SimClock.gd†L1-L139】【F:Modules/ModuleBase.gd†L1-L39】【F:scenes/entities/player.gd†L88-L161】
+---
 
-## Pending / Next Steps (R3 Plan)
-- Extend multi-rate simulation by formalizing regional/global policies (e.g., AI and streaming cadence) and exposing editor tooling for cross-group coordination.【F:Singletons/SimClock.gd†L1-L139】
-- Expand tick orchestration to support regional/global layers (e.g., cutscenes, AI, world streaming) once group policies are defined in `SimClock`.
-- Audit remaining subsystems (e.g., stamina, camera) for tick group assignment and pause semantics to align with forthcoming layered simulation.
-- Document regression coverage and author automated tests or in-editor validation for module interfaces before R3 changes.
+## Arquitectura general
+La simulación gira alrededor del `SimClock` (`Singletons/SimClock.gd`), un scheduler que agrupa nodos por cadencias (`local`, `regional`, `global`). Cada módulo (`Modules/ModuleBase.gd`) se registra automáticamente en el clock y expone `physics_tick(dt)`. El jugador (`scenes/entities/player.gd`) decide si delega el loop en el clock o si ejecuta una ruta manual cuando éste no está disponible (modo fallback editor). En cada tick se cachea el input relativo a cámara, se propagan los datos a los módulos (movimiento, orientación, salto, animación, audio) y se finaliza la integración con `move_and_slide` antes de evaluar consumo de stamina y ciclos de aprendizaje.
 
-## Dependencies & Tools
-- **Engine**: Godot 4.4 with Forward+ renderer feature flag enabled in project settings.【F:project.godot†L1-L19】
-- **Asset Pipeline**: `.glb` sources (Blender-friendly) imported via Godot's scene importer for character animations; maintaining `.glb` assets alongside `.import` metadata ensures reproducible re-imports.【F:art/characters/animations1.glb.import†L1-L33】
-- **Audio**: Uses Godot `AudioStreamPlayer3D` nodes referenced by `Player.gd`; no external middleware required.【F:scenes/entities/player.gd†L4-L9】【F:Modules/AudioCtrl.gd†L6-L45】
+Los aliados (`scenes/entities/Ally.gd`) usan un FSM explícito con estados `IDLE`, `MOVE`, `COMBAT_*`, `BUILD`, `SNEAK`, `SWIM`, `TALK`, `SIT`. Cada estado aplica animaciones y actualiza estadísticas mediante `AllyStats`, el Resource que encapsula atributos base, skills y reglas de progresión (`Resources/AllyStats.gd`). Las estadísticas se generan desde la singleton `Data.gd`, que parsea `data/ally_archetypes.json`, fusiona defaults, crecimiento y configuración visual; ese mismo diccionario controla presets de materiales y gear en tiempo de ejecución.
 
-## Contributing Notes
-- New gameplay features should be delivered as modules conforming to the `physics_tick(delta)` contract and exposing a `tick_group` property for future `SimClock` scheduling.【F:Modules/ModuleBase.gd†L4-L31】【F:Singletons/SimClock.gd†L1-L139】
-- Keep `Player.gd` focused on orchestration: prefer per-frame input caching plus module APIs rather than duplicating logic in the orchestrator.【F:scenes/entities/player.gd†L108-L161】
-- Update `GameState` when introducing new global modes so pause/cinematic gating remains authoritative.【F:Singletons/GameState.gd†L1-L19】
-- Maintain asset imports (`.glb` + `.import`) and register new singletons through `project.godot` autoloads for consistency.【F:project.godot†L12-L19】【F:art/characters/animations1.glb.import†L1-L33】
-- `SimClock` autoload now instantiates the `SimClockScheduler` class to keep the singleton name collision-free while preserving typed module casts via `ModuleBase` helpers.【F:Singletons/SimClock.gd†L1-L139】【F:Modules/ModuleBase.gd†L1-L39】【F:scenes/entities/player.gd†L57-L167】
+Los autoloads (`EventBus`, `Data`, `SimClock`, `GameState`, `Save`) se comunican vía señales: `EventBus` difunde mensajes de HUD y eventos de gameplay; `GameState` expone flags globales de pausa/cinemática para que Player module el input; `Save` aporta utilidades de persistencia; `Data` abastece instancias `AllyStats` y presets visuales. El HUD (`scenes/ui/HUD.gd`) sólo escucha `EventBus.hud_message`, manteniendo la UI desacoplada de la lógica. El bootstrap de input (`scripts/bootstrap/InputSetup.gd`) ejecuta una sola vez al inicio y garantiza que todas las acciones (movimiento, combate, construcción) estén registradas incluso en proyectos clonados.
 
-## Ally Progression Data
-- Added data-driven ally defaults and archetypes in `data/ally_archetypes.json`, including base stat templates, skill trees, and growth tuning for ranged and melee examples.
-- Introduced the `Data` singleton to load archetype JSON, merge defaults, and instantiate `AllyStats` resources on demand.
-- Authored `Resources/AllyStats.gd` to encapsulate stat growth rules, diminishing returns tracking, stamina cycle logic, and derived combat formulas for allies.
+---
+
+## Sistemas implementados
+
+### Player Orchestrator (`scenes/entities/player.gd`)
+Gestiona el ciclo físico del jugador, cachea el input y propaga el contexto a los módulos. Expone señales (`context_state_changed`, `talk_requested`, `sit_toggled`, `interact_requested`, `combat_mode_switched`, `build_mode_toggled`) que permiten a otros sistemas reaccionar sin acceder al input bruto. Al finalizar cada tick, decide si ejecutar `_manual_tick_modules` o esperar a `SimClock.ticked`, aplica `move_and_slide`, sincroniza stamina y reporta ciclos a `AllyStats` mediante `note_stamina_cycle`. También detecta contacto con áreas de agua y cambia `ContextState` para el HUD o IA.
+
+### Módulos del jugador (`Modules/`)
+- **MovementModule (`Movement.gd`)**: recibe la dirección normalizada y el flag de sprint desde el Player, calcula la velocidad horizontal objetivo y aplica aceleración/decadencia separada para suelo/aire.
+- **JumpModule (`Jump.gd`)**: administra coyote time, jump buffer, salto variable y disparo de animaciones/audio; emite efectos de cámara cuando procede.
+- **StateModule (`State.gd`)**: centraliza la gravedad (con multiplicador de caída), configura `floor_max_angle`/`floor_snap_length` y emite la señal `landed` tras detectar impactos.
+- **OrientationModule (`Orientation.gd`)**: interpola la rotación del modelo hacia el input de locomoción respetando la corrección de forward.
+- **AnimationCtrlModule (`AnimationCtrl.gd`)**: actualiza el `AnimationTree` (`PARAM_LOC`, `PARAM_AIRBLEND`, `PARAM_SPRINTSCL`) y controla el blend de caída.
+- **AudioCtrlModule (`AudioCtrl.gd`)**: toca SFX de salto, aterrizaje y pasos con random pitch; admite modo automático por timer para footfalls.
+
+Todos heredan de `ModuleBase`, que resuelve el registro en `SimClock` y permite pausar ticks por grupo o módulo.
+
+### Ally FSM (`scenes/entities/Ally.gd`)
+Un `CharacterBody3D` configurable vía inspector. Cada estado del enum ejecuta un método `_do_*` que actualiza `velocity`, reproduce animaciones (`AnimationPlayer` autocargado) y gana habilidades según la actividad (`gain_skill`, `gain_base_stat`). Ofrece API pública para control externo: `set_move_dir`, `set_crouched`, `set_sprinting`, `set_in_water`, `start_talking`, `sit_on`, `stand_up`, `engage_melee`, `register_ranged_attack`. También gestiona anclajes de asiento, temporizadores de diálogo, personalización visual (`apply_visual_from_archetype`) y seguimiento de ciclos de stamina.
+
+### AllyStats (`Resources/AllyStats.gd`)
+Resource con propiedades exportadas para HP, stamina, vitalidad, fuerza, atletismo, natación y árboles de skills (`war`, `stealth`, `science`, `craft`, `social`). Implementa reglas de progresión con `gain_skill`, `gain_base_stat`, `note_stamina_cycle`, `note_low_hp_and_bed_recovery`, `attack_power_for`, `sprint_speed`, `sprint_stamina_cost`. Controla diminishing returns mediante `_phase_multiplier_for`, `_skill_repeat_decay` y `_session_repeat_factor` para evitar grindeo repetitivo.
+
+### Data y arquetipos (`Singletons/Data.gd` + `data/ally_archetypes.json`)
+Carga el JSON al iniciarse, guarda defaults y entradas individuales, y expone consultas (`archetype_exists`, `get_archetype_entry`, `get_capabilities`, `get_archetype_visual`). `make_stats_from_archetype` instancia `AllyStats` aplicando mapeo de propiedades base, merge profundo de skill trees y crecimiento (multiplicadores y soft caps). También preserva el diccionario en `allies` para compatibilidad con código heredado.
+
+### SimClock (`Singletons/SimClock.gd`)
+Scheduler autoritativo con acumuladores por grupo (`local`, `regional`, `global`). Permite pausar grupos o módulos, ajustar intervalos y emitir la señal `ticked(group_name, dt)`. Los módulos inscritos reciben `physics_tick` según la cadencia seleccionada. Player detecta si el clock está presente y sincroniza `_finish_physics_step` tras cada tick local.
+
+### EventBus + HUD (`Singletons/EventBus.gd`, `scenes/ui/HUD.gd`)
+`EventBus` define señales globales (`hud_message`, `ally_died`, `save_requested`, `load_requested`, `stamina_changed`) y helpers `post_hud`, `notify_ally_died`. `HUD.gd` escucha `hud_message`, muestra texto en pantalla y usa un `SceneTreeTimer` para ocultarlo tras el tiempo indicado. El patrón elimina dependencias directas entre gameplay y UI.
+
+### Input one-shot (`scripts/bootstrap/InputSetup.gd` + `core/one_shots/SetupInput.gd`)
+`InputSetup.gd` se instancia al inicio, elimina la acción obsoleta `talk`, crea acciones faltantes y añade eventos (teclas o botones) sin duplicados; después se autodestruye. `core/one_shots/SetupInput.gd` queda como referencia histórica con bindings mínimos (WASD + salto) y puede retirarse cuando todos los niveles usen el bootstrap nuevo.
+
+### Stamina y vitalidad
+`Stamina.gd` mantiene `value`, consumo por sprint (`consume_for_sprint`) y regeneración con retardo (`regen_delay`). El jugador consulta `can_sprint`, llama a `consume_for_sprint` y delega los ciclos a `AllyStats.note_stamina_cycle`, que decide cuándo aumentar `stamina_max`. `AllyStats.note_low_hp_and_bed_recovery` cubre progresión de vitalidad tras recuperaciones en cama.
+
+---
+
+## Contrato de Stats
+- **Incremento de skills:** `gain_skill(tree, skill, amount, context)` aplica multiplicadores por fase (`_phase_multiplier_for` con tramos 0–40, 40–80, 80+), factor de sesión (`_session_repeat_factor`) y decaimiento por repetición (`_skill_repeat_decay`). Acciones consecutivas con el mismo `action_hash` reducen ganancias hasta 0.25×, mientras que rotar actividades restaura el multiplicador.
+- **Incremento de atributos base:** `gain_base_stat` valida rangos y sólo permite aumentar stamina cuando `_allow_stamina_gain` es verdadero (usado por ciclos). Stats como `move_speed` se clampéan a [0, 100].
+- **Ciclos de stamina:** `note_stamina_cycle(consumed, recovered, window)` exige al menos 40% de consumo y 95% de recuperación en ventanas de 10–240 s. Cada ciclo exitoso otorga ~0.35 puntos de stamina escalados por `window_factor` y reduce el multiplicador para evitar farmeo continuo.
+- **Recuperación de vitalidad:** `note_low_hp_and_bed_recovery` otorga vitalidad si el aliado cayó por debajo de 15% y descansó en cama; el factor de recuperación decae para prevenir exploits.
+- **Fórmulas de combate:** `attack_power_for` = 0.5 × fuerza + 0.7 × skill + bonuses; `unarmed_base_damage` depende de fuerza y `war.unarmed`. `sprint_speed(base)` escala con atletismo/200, y `sprint_stamina_cost(base)` reduce el coste hasta 20% según atletismo/250.
+- **Relación skills-ramas:** los árboles `war`, `stealth`, `science`, `craft`, `social` cubren subramas específicas (p. ej. `war.swords`, `stealth.lockpicking`, `science.engineering`). Ejemplos: `stats.gain_skill("war", "swords", 1.0, {"action_hash": "melee_sword"})`, `stats.note_stamina_cycle(0.55, 0.97, 60.0)`.
+
+---
+
+## Input y controles
+Acciones creadas por `InputSetup.gd` (teclado/ratón por defecto):
+
+| Acción | Binding | Uso |
+| --- | --- | --- |
+| `move_forward`, `move_back`, `move_left`, `move_right` | **W / S / A / D** | Locomoción básica.
+| `sprint` | **Shift** | Activa sprint si hay stamina.
+| `jump` | **Space** | Salto con buffer y coyote time.
+| `crouch` | **C** | Sigilo/agacharse.
+| `interact` | **E** | Interacción contextual (hablar, usar, abrir).
+| `use` | **F** | Acción secundaria (reservada para herramientas).
+| `build` | **B** | Conmutar modo de construcción.
+| `attack_primary` | **Botón izquierdo** | Ataque principal.
+| `attack_secondary` | **Botón derecho** | Defensa/apuntar.
+| `pause` | **Esc** | Pausa y modo ratón.
+
+El nodo bootstrap se elimina tras registrar las acciones, evitando repetir bindings cada carga.
+
+---
+
+## Data-driven y arquetipos
+`ally_archetypes.json` sigue esta estructura:
+```json
+{
+  "defaults": {
+    "base": { "hp": 80, ... },
+    "skills": { "war": { "swords": 0, ... }, ... },
+    "growth": { "skill_gain_multiplier": 1.0, "soft_cap": 80 }
+  },
+  "archetypes": [
+    {
+      "id": "archer",
+      "base": { "hp": 72, "stamina": 95, ... },
+      "skills": { "war": { "ranged": 48, ... }, ... },
+      "visual": {
+        "preset": "res://models/...",
+        "materials": { "Body": "..." },
+        "tint": [0.85, 0.75, 0.65],
+        "gear": { "head": "...", "back": "..." }
+      },
+      "growth": { "skill_gain_multiplier": 1.1, "soft_cap": 85 }
+    }
+  ]
+}
+```
+`Data.gd` lee defaults, duplica los diccionarios y mezcla overrides por clave. `make_stats_from_archetype("archer")` produce un `AllyStats` listo para usar y `apply_visual_from_archetype` aplica preset, materiales, gear y tintado. Las capacidades (`capabilities`) permiten filtrar aliados por rol.
+
+---
+
+## Animaciones y modelos
+- `player.tscn` instancia un `AnimationTree` con nodos `Locomotion`, `AirBlend`, `Jump`, `SprintScale` conectados al `AnimationPlayer` del modelo GLB (`art/characters/animations1.glb`).
+- `AnimationCtrlModule` maneja los parámetros del árbol; comparte clips (`idle`, `walk`, `run`, `fall air loop`) con los aliados.
+- `Ally.gd` busca automáticamente un `AnimationPlayer` en su jerarquía (`_bind_anim_player_from`), permitiendo reutilizar presets de Player. Las funciones `_swap_visual`, `_apply_material_overrides`, `_attach_gear` soportan hablar, sentarse, nadar, construir y atacar con animaciones específicas.
+- Actualmente no hay `AnimationTree` dedicado para los aliados; se planea introducirlo en R4 para soportar blends complejos.
+
+---
+
+## Interfaz (HUD + EventBus)
+`HUD.gd` (CanvasLayer) escucha `EventBus.hud_message` y muestra texto durante `seconds`. Usa un `SceneTreeTimer` para ocultar el mensaje y desconecta el timer previo si se emite otro mensaje. Ejemplo:
+```gdscript
+EventBus.post_hud("Guardado", 1.5)
+```
+Cualquier sistema puede publicar mensajes sin conocer la escena de HUD, manteniendo un diseño desacoplado. El bus también puede ampliarse con señales para stamina, guardado o muerte de aliados.
+
+---
+
+## Performance y escalabilidad
+- **SimClock** agrupa módulos por cadencia, reduciendo coste cuando sistemas lejanos se mueven a capas regionales/globales. Permite pausar grupos enteros durante menús o cinemáticas.
+- **FSM de aliados** usa lógica ligera por estado y evita nodos extra (un `CharacterBody3D` con animaciones directas).
+- **Stats con DR** previenen exploits de farmeo repetitivo y mantienen progresión controlada sin introducir cálculos costosos.
+- **Arquitectura modular** separa locomoción, animación y audio del orquestador, facilitando instanciar múltiples jugadores o NPCs reutilizando módulos existentes.
+
+---
+
+## Problemas comunes detectados en R3
+- **Animaciones que no se reproducen:** asegurarse de que el `AnimationPlayer` esté bajo `Model` y que el nombre del clip coincida (ver exportados en `Ally.gd`).
+- **Diferencias de indentación (tabs/espacios):** todos los scripts usan tabs; mezclar espacios produce errores en Godot 4.
+- **`move_and_slide` sin `velocity`:** al pausar módulos (`should_skip_module_updates`) se debe limpiar la velocidad para evitar drift.
+- **Scripts sin `class_name`:** añadirlo a recursos/módulos para aprovechar el autocompletado y registro en el editor.
+- **Autoloads ausentes:** confirmar en `project.godot` que `Data`, `EventBus`, `SimClock`, `GameState`, `Save` están definidos antes de correr escenas aisladas.
+- **Bootstrap duplicado:** eliminar instancias viejas de `core/one_shots/SetupInput.gd` cuando se use `scripts/bootstrap/InputSetup.gd` para evitar acciones en conflicto.
+
+---
+
+## Roadmap R3 → R4
+1. Migrar absolutamente todos los sistemas de `_physics_process` a `SimClock` (Player ya soporta ambos caminos, Ally debe integrarse).
+2. Implementar un `AnimationTree` compartido para Aliados con blend de contexto (sneak, swim, talk, sit) y control centralizado.
+3. Diseñar IA enemiga con navegación regional y soporte de reputación/economía.
+4. Completar pipeline de guardado/carga persistente (estado del jugador, aliados, mundo) usando `Save.gd` como backend.
+5. Refactorizar la personalización visual de NPCs para admitir combinaciones dinámicas (materiales, gear modular, tintado runtime).
+6. Limpiar escenas `world/` y preparar escenarios de benchmark para pruebas de rendimiento multitudes + clock regional.
+
