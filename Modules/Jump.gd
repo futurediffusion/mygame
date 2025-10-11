@@ -114,7 +114,7 @@ func _perform_jump() -> void:
 
 func _get_input_buffer() -> InputBuffer:
 	if player and "input_buffer" in player:
-		var ib := player.input_buffer
+		var ib: InputBuffer = player.input_buffer as InputBuffer
 		if ib is InputBuffer:
 			return ib
 	return null

@@ -20,9 +20,9 @@ func _process(_delta: float) -> void:
 	_update_ticks_label()
 
 func _connect_controls() -> void:
-        if _toggle_simclock_button != null:
-                _toggle_simclock_button.disabled = true
-                _toggle_simclock_button.text = "Modo Ally: SimClock"
+	if _toggle_simclock_button != null:
+		_toggle_simclock_button.disabled = true
+		_toggle_simclock_button.text = "Modo Ally: SimClock"
 	if _toggle_pause_button != null:
 		_toggle_pause_button.pressed.connect(_on_toggle_pause_pressed)
 
@@ -44,17 +44,17 @@ func _spawn_allies() -> void:
 		ally.global_position = offset
 
 func _on_toggle_pause_pressed() -> void:
-        var clock := _get_simclock()
-        if clock == null:
-                return
-        _is_group_paused = not _is_group_paused
-        clock.pause_group(Flags.ALLY_TICK_GROUP, _is_group_paused)
-        _update_controls()
+	var clock := _get_simclock()
+	if clock == null:
+		return
+	_is_group_paused = not _is_group_paused
+	clock.pause_group(Flags.ALLY_TICK_GROUP, _is_group_paused)
+	_update_controls()
 
 func _update_controls() -> void:
 	_update_pause_button()
-        if _toggle_simclock_button != null:
-                _toggle_simclock_button.text = "Modo Ally: SimClock"
+	if _toggle_simclock_button != null:
+		_toggle_simclock_button.text = "Modo Ally: SimClock"
 
 func _update_pause_button() -> void:
 	if _toggle_pause_button == null:
@@ -63,13 +63,13 @@ func _update_pause_button() -> void:
 	_toggle_pause_button.text = label
 
 func _update_ticks_label() -> void:
-        if _ticks_label == null:
-                return
-        var clock := _get_simclock()
-        if clock == null:
-                _ticks_label.text = "SimClock no disponible"
-                return
-        var stats := clock.get_group_stats()
+	if _ticks_label == null:
+		return
+	var clock := _get_simclock()
+	if clock == null:
+		_ticks_label.text = "SimClock no disponible"
+		return
+	var stats := clock.get_group_stats()
 	var group := Flags.ALLY_TICK_GROUP
 	var data: Dictionary = stats.get(group, {})
 	var tick_count: int = int(data.get("tick_count", 0))
