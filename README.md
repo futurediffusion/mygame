@@ -30,6 +30,7 @@
 - Cleared the autoload/class registration conflict on `EventBus` so Godot 4.4 stops flagging the singleton as hidden while keeping all broadcast signals intact.【F:Singletons/EventBus.gd†L1-L12】
 - Explicitly typed the JSON load result in the `Save` singleton so Godot 4.4 stops downgrading the dictionary to Variant during inference warnings.【F:Singletons/Save.gd†L31-L40】
 - Restored `AllyStats` property blocks with proper tab indentation so Godot 4.4 parses exported dictionaries without errors.【F:Resources/AllyStats.gd†L1-L252】
+- Hardened the `Data` singleton with explicit Variant-typed intermediates so Godot 4.4 no longer raises inference errors while preserving deep skill tree merges and growth copies.【F:Singletons/Data.gd†L31-L199】
 
 
 ## Player Orchestration

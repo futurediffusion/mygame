@@ -28,7 +28,7 @@ func _ready() -> void:
 
 	_defaults = data.get("defaults", {}).duplicate(true)
 
-	var archetype_array_any := data.get("archetypes", [])
+	var archetype_array_any: Variant = data.get("archetypes", [])
 	var archetype_array: Array = []
 	if typeof(archetype_array_any) == TYPE_ARRAY:
 		archetype_array = archetype_array_any
@@ -42,7 +42,7 @@ func _ready() -> void:
 		var entry: Dictionary = entry_any
 		if not entry.has("id"):
 			continue
-		var id := String(entry["id"])
+		var id: String = String(entry["id"])
 		var copy: Dictionary = entry.duplicate(true)
 		_archetypes[id] = copy
 		allies[id] = copy
@@ -62,7 +62,7 @@ func get_capabilities(id: String) -> PackedStringArray:
 	if not archetype_exists(id):
 		return PackedStringArray()
 	var entry: Dictionary = _archetypes[id]
-	var capabilities_any := entry.get("capabilities", [])
+	var capabilities_any: Variant = entry.get("capabilities", [])
 	if typeof(capabilities_any) != TYPE_ARRAY:
 		return PackedStringArray()
 	var capabilities: Array = capabilities_any
@@ -72,10 +72,11 @@ func get_archetype_visual(id: String) -> Dictionary:
 	if not archetype_exists(id):
 		return {}
 	var entry: Dictionary = _archetypes[id]
-	var visual_any := entry.get("visual", {})
+	var visual_any: Variant = entry.get("visual", {})
 	if typeof(visual_any) != TYPE_DICTIONARY:
 		return {}
-	return visual_any
+	var visual: Dictionary = visual_any
+	return visual
 
 # ---------------------------
 # Fábrica de Stats
@@ -91,8 +92,8 @@ func make_stats_from_archetype(id: String) -> AllyStats:
 	var entry: Dictionary = _archetypes[id]
 
 	# --- BASE ---
-	var base_defaults_any := _defaults.get("base", {})
-	var base_overrides_any := entry.get("base", {})
+	var base_defaults_any: Variant = _defaults.get("base", {})
+	var base_overrides_any: Variant = entry.get("base", {})
 	var base_defaults: Dictionary = {}
 	var base_overrides: Dictionary = {}
 	if typeof(base_defaults_any) == TYPE_DICTIONARY:
@@ -114,12 +115,12 @@ func make_stats_from_archetype(id: String) -> AllyStats:
 		stats.set(prop_name, combined_base[key])
 
 	# --- SKILLS ---
-	var defaults_skills_any := _defaults.get("skills", {})
+	var defaults_skills_any: Variant = _defaults.get("skills", {})
 	var defaults_skills: Dictionary = {}
 	if typeof(defaults_skills_any) == TYPE_DICTIONARY:
 		defaults_skills = defaults_skills_any
 
-	var skills_over_any := entry.get("skills", {})
+	var skills_over_any: Variant = entry.get("skills", {})
 	var skills_over: Dictionary = {}
 	if typeof(skills_over_any) == TYPE_DICTIONARY:
 		skills_over = skills_over_any
@@ -127,7 +128,7 @@ func make_stats_from_archetype(id: String) -> AllyStats:
 	# target skills = deep copy de defaults
 	var skills: Dictionary = {}
 	for tree_name in defaults_skills.keys():
-		var tree_defaults := defaults_skills[tree_name]
+		var tree_defaults: Variant = defaults_skills[tree_name]
 		if typeof(tree_defaults) == TYPE_DICTIONARY:
 			skills[tree_name] = tree_defaults.duplicate(true)
 
@@ -136,14 +137,14 @@ func make_stats_from_archetype(id: String) -> AllyStats:
 
 	# escribir cada árbol en el Resource (pasa por sanitisers del Resource)
 	for tree_name in skills.keys():
-		var tree_dict_any := skills[tree_name]
+		var tree_dict_any: Variant = skills[tree_name]
 		if typeof(tree_dict_any) == TYPE_DICTIONARY:
 			var tree_dict: Dictionary = tree_dict_any
 			stats.set(tree_name, tree_dict.duplicate(true))
 
 	# --- GROWTH ---
-	var growth_defaults_any := _defaults.get("growth", {})
-	var growth_overrides_any := entry.get("growth", {})
+	var growth_defaults_any: Variant = _defaults.get("growth", {})
+	var growth_overrides_any: Variant = entry.get("growth", {})
 	var growth: Dictionary = {}
 	if typeof(growth_defaults_any) == TYPE_DICTIONARY:
 		growth = growth_defaults_any.duplicate(true)
@@ -162,13 +163,13 @@ func make_stats_from_archetype(id: String) -> AllyStats:
 # Mezcla src dentro de target: target[tree][skill] = src[tree][skill]
 func _merge_skill_tree(target: Dictionary, src: Dictionary) -> void:
 	for tree_name in src.keys():
-		var source_tree_any := src[tree_name]
+		var source_tree_any: Variant = src[tree_name]
 		if typeof(source_tree_any) != TYPE_DICTIONARY:
 			continue
 		var source_tree: Dictionary = source_tree_any
 		if not target.has(tree_name):
 			target[tree_name] = {}
-		var target_tree_any := target[tree_name]
+		var target_tree_any: Variant = target[tree_name]
 		if typeof(target_tree_any) != TYPE_DICTIONARY:
 			target[tree_name] = {}
 			target_tree_any = target[tree_name]
@@ -180,22 +181,23 @@ func _merge_skill_tree(target: Dictionary, src: Dictionary) -> void:
 # Utilidades
 # ---------------------------
 func _load_json(path: String) -> Dictionary:
-	var file := FileAccess.open(path, FileAccess.READ)
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
 	if file == null:
 		push_error("Unable to open %s: %s" % [path, FileAccess.get_open_error()])
 		return {}
-	var text := file.get_as_text()
+	var text: String = file.get_as_text()
 	file.close()
 
-	var json := JSON.new()
-	var parse_error := json.parse(text)
+	var json: JSON = JSON.new()
+	var parse_error: int = json.parse(text)
 	if parse_error != OK:
 		push_error("Failed to parse %s: %s" % [path, json.get_error_message()])
 		return {}
 
-	var data_any := json.get_data()
+	var data_any: Variant = json.get_data()
 	if typeof(data_any) != TYPE_DICTIONARY:
 		push_error("JSON at %s is not a dictionary." % path)
 		return {}
 
-	return data_any
+	var data_dict: Dictionary = data_any
+	return data_dict
