@@ -36,6 +36,17 @@ var _module_paused: Dictionary = {}
 # R3→R4 MIGRATION: Lookup para asociaciones nodo-grupo.
 var _node_groups: Dictionary = {}
 var _module_priority: Dictionary = {} # R3→R4 MIGRATION
+# R3→R4 MIGRATION: Telemetría de ticks por grupo.
+var _tick_counters: Dictionary = {
+	GROUP_LOCAL: 0,
+	GROUP_REGIONAL: 0,
+	GROUP_GLOBAL: 0
+}
+var _tick_sim_time: Dictionary = {
+	GROUP_LOCAL: 0.0,
+	GROUP_REGIONAL: 0.0,
+	GROUP_GLOBAL: 0.0
+}
 
 signal ticked(group_name: StringName, dt: float)
 
@@ -161,8 +172,8 @@ func _physics_process(delta: float) -> void:
 		_acc[GROUP_REGIONAL] -= regional_interval
 	# Global
 	while _acc[GROUP_GLOBAL] >= global_interval and global_interval > 0.0:
-		_tick_group(GROUP_GLOBAL, global_interval)
-		_acc[GROUP_GLOBAL] -= global_interval
+	_tick_group(GROUP_GLOBAL, global_interval)
+	_acc[GROUP_GLOBAL] -= global_interval
 
 
 func _tick_group(group_name: StringName, dt: float) -> void:
@@ -176,6 +187,10 @@ func _tick_group(group_name: StringName, dt: float) -> void:
 			continue
 		if n.has_method("physics_tick"):
 			n.physics_tick(dt)
+	if _tick_counters.has(group_name):
+		_tick_counters[group_name] = int(_tick_counters[group_name]) + 1 # R3→R4 MIGRATION
+	if _tick_sim_time.has(group_name):
+		_tick_sim_time[group_name] = float(_tick_sim_time[group_name]) + dt # R3→R4 MIGRATION
 	emit_signal("ticked", group_name, dt)
 
 func _resolve_group(module: Object) -> StringName:
@@ -243,3 +258,26 @@ func _safe_node_path(node: Object) -> NodePath:
 	if node != null and is_instance_valid(node) and node is Node:
 		return (node as Node).get_path()
 	return NodePath()
+
+# R3→R4 MIGRATION: Estadísticas públicas para herramientas.
+func get_group_stats() -> Dictionary:
+	var stats := {}
+	for group in [GROUP_LOCAL, GROUP_REGIONAL, GROUP_GLOBAL]:
+		stats[group] = {
+			"tick_count": int(_tick_counters.get(group, 0)),
+			"sim_time": float(_tick_sim_time.get(group, 0.0)),
+			"interval": get_group_interval(group)
+		}
+	return stats
+
+# R3→R4 MIGRATION: Salida rápida para consola de depuración.
+func print_clock_stats() -> void:
+	var stats := get_group_stats()
+	for group in stats.keys():
+		var data: Dictionary = stats[group]
+		var tick_count: int = int(data.get("tick_count", 0))
+		var sim_time: float = float(data.get("sim_time", 0.0))
+		var ticks_per_second := 0.0
+		if sim_time > 0.0:
+			ticks_per_second = float(tick_count) / sim_time
+		print("[SimClock] %s -> ticks: %d, sim_time: %.4f, ticks/s: %.2f" % [String(group), tick_count, sim_time, ticks_per_second])

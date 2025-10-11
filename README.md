@@ -29,6 +29,8 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Orden de tick determinista en `Singletons/SimClock.gd`: nuevo export `order_strategy`, API `set_priority` y limpieza automática de módulos inválidos aseguran emisión estable antes de pausar por grupo.
 - Actualizados los comparadores de orden en `Singletons/SimClock.gd` para usar `Callable` con `sort_custom` en Godot 4.4, eliminando los errores de análisis por firma de función.
 - `Singletons/GameState.gd` ahora coordina las pausas del `SimClock` local durante `set_paused` y `set_cinematic`, evitando consumo de stamina o transiciones de FSM mientras dure la pausa.
+- Telemetría R3→R4: `Singletons/SimClock.gd` suma contadores de ticks/tiempo y expone `print_clock_stats()`/`get_group_stats()`, mientras `scenes/entities/Ally.gd` registra transiciones de estados con `print_verbose` y `Modules/AllyFSMModule.gd` limpia registros al cambiar `USE_SIMCLOCK_ALLY` en runtime.
+- Nuevo banco de pruebas `scenes/world/test_clock_benchmark.tscn` con script dedicado para instanciar aliados masivamente, alternar `Flags.USE_SIMCLOCK_ALLY`, pausar `Flags.ALLY_TICK_GROUP` y mostrar métricas de ticks/s en pantalla.
 - Formalizada la migración R3→R4 inicial: `SimClock` ahora tipa grupos con `StringName`, expone pausa por grupo y se apoya en `scripts/core/Flags.gd` para banderas de compatibilidad sin alterar el loop del Player.
 - Ajustado `Modules/AnimationCtrl.gd` para que verifique la existencia de parámetros del `AnimationTree` con `get_parameter_list` cuando `has_parameter` no está disponible en Godot 4.4, evitando llamadas inválidas en runtime.
 - Tipado explícito y sanitización de `entry_name` en `Modules/AnimationCtrl.gd` para evitar errores de inferencia en Godot 4.4 cuando el parámetro viene como `Variant` o `null`.
@@ -88,6 +90,7 @@ res://
  │   │   └─ HUD.tscn / HUD.gd (capa de mensajes temporales)
  │   └─ world/
  │       ├─ test_flat.tscn, test_ramps.tscn, test_world.tscn (arenas de prueba)
+ │       ├─ test_clock_benchmark.tscn (benchmark de ticks SimClock vs `_physics_process`)
  │       └─ *.tmp (copias temporales generadas por el editor)
  └─ scripts/
      ├─ bootstrap/InputSetup.gd (crea bindings de input one-shot)
