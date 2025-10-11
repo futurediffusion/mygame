@@ -76,7 +76,7 @@ func execute_jump() -> void:
 	if player and player.has_method("apply_perfect_jump_combo"):
 		final_jump_velocity = player.apply_perfect_jump_combo(jump_velocity)
 	player.velocity.y = final_jump_velocity
-# Buscar el módulo State de forma segura
+	# Buscar el módulo State de forma segura
 	var state_mod: Node = null
 	if player.has_node("Modules/State"):
 		state_mod = player.get_node("Modules/State")
