@@ -14,29 +14,30 @@ var _tick_sim_time: Dictionary = {}
 
 @export var fixed_dt_local: float = 1.0 / 60.0
 @export var fixed_dt_regional: float = 1.0 / 10.0
-@export var fixed_dt_global: float = 1.0
+@export var fixed_dt_global: float = 1.0 / 2.0
 
-var _accum_local: float = 0.0
-var _accum_regional: float = 0.0
-var _accum_global: float = 0.0
+var _accum: Dictionary = {
+        GROUP_LOCAL: 0.0,
+        GROUP_REGIONAL: 0.0,
+        GROUP_GLOBAL: 0.0,
+}
 
 func _ready() -> void:
-	_ensure_group_defaults()
+        _ensure_group_defaults()
 
-func _process(delta: float) -> void:
-	_accum_local += delta
-	_accum_regional += delta
-	_accum_global += delta
+func _physics_process(delta: float) -> void:
+        _accum[GROUP_LOCAL] += delta
+        _accum[GROUP_REGIONAL] += delta
+        _accum[GROUP_GLOBAL] += delta
 
-	while _accum_local >= fixed_dt_local:
-		_tick_group(GROUP_LOCAL, fixed_dt_local)
-		_accum_local -= fixed_dt_local
-	while _accum_regional >= fixed_dt_regional:
-		_tick_group(GROUP_REGIONAL, fixed_dt_regional)
-		_accum_regional -= fixed_dt_regional
-	while _accum_global >= fixed_dt_global:
-		_tick_group(GROUP_GLOBAL, fixed_dt_global)
-		_accum_global -= fixed_dt_global
+        _process_group(GROUP_LOCAL, fixed_dt_local)
+        _process_group(GROUP_REGIONAL, fixed_dt_regional)
+        _process_group(GROUP_GLOBAL, fixed_dt_global)
+
+func _process_group(group: StringName, step: float) -> void:
+        while _accum.get(group, 0.0) >= step:
+                _tick_group(group, step)
+                _accum[group] = float(_accum.get(group, 0.0) - step)
 
 func register_module(mod: Node, group: StringName, priority: int) -> void:
 	_ensure_group_entry(group)
