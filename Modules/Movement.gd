@@ -1,85 +1,65 @@
 extends ModuleBase
 class_name MovementModule
 
-var player: CharacterBody3D
+@export var max_speed_ground := 7.5
+@export var max_speed_air := 6.5
+@export var accel_ground := 26.0
+@export var accel_air := 9.5
+@export var ground_friction := 10.0
 
-# cache de parámetros que lee del Player (para ser fieles al original)
-var accel_ground := 22.0
-var accel_air := 8.0
-var decel := 18.0
-var run_speed := 6.0
 var sprint_speed := 9.5
 var speed_multiplier := 1.0
 
-# input cacheado por frame (inyectado desde Player)
-var _input_dir := Vector3.ZERO
+var player: CharacterBody3D
+var _move_dir := Vector3.ZERO
 var _is_sprinting := false
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
-	# leemos del Player para replicar valores exportados (por si cambian en el editor)
-	accel_ground = p.accel_ground
-	accel_air = p.accel_air
-	decel = p.decel
-	run_speed = p.run_speed
-	sprint_speed = p.sprint_speed
+	if "run_speed" in player:
+		max_speed_ground = player.run_speed
+	if "sprint_speed" in player:
+		sprint_speed = player.sprint_speed
+	if "accel_ground" in player:
+		accel_ground = player.accel_ground
+	if "accel_air" in player:
+		accel_air = player.accel_air
+	if "decel" in player:
+		ground_friction = max(player.decel, ground_friction)
+	if "speed_multiplier" in player:
+		speed_multiplier = max(player.speed_multiplier, 0.0)
 
 func set_frame_input(input_dir: Vector3, is_sprinting: bool) -> void:
-	_input_dir = input_dir
+	_move_dir = input_dir
 	_is_sprinting = is_sprinting
 
 func set_speed_multiplier(multiplier: float) -> void:
 	speed_multiplier = max(multiplier, 0.0)
-
-func h_vec() -> Vector2:
-	return Vector2(player.velocity.x, player.velocity.z)
-
-func set_h_vec(v: Vector2) -> void:
-	player.velocity.x = v.x
-	player.velocity.z = v.y
-
-func h_speed() -> float:
-	return h_vec().length()
 
 func physics_tick(delta: float) -> void:
 	if player == null or not is_instance_valid(player):
 		return
 	if player.has_method("should_skip_module_updates") and player.should_skip_module_updates():
 		return
-	update_horizontal_velocity(delta, _input_dir, _is_sprinting)
+	_update_horizontal_velocity(delta)
 
-# ---- Funciones 1:1 con el Player original ----
-func update_horizontal_velocity(delta: float, input_dir: Vector3, is_sprinting: bool) -> void:
-	var target_speed: float = sprint_speed if is_sprinting else run_speed
-	target_speed *= speed_multiplier
-	var current_horiz: Vector2 = h_vec()
-
-	if input_dir != Vector3.ZERO:
-		var target_horiz: Vector2 = Vector2(input_dir.x, input_dir.z) * target_speed
-		current_horiz = accelerate_towards(current_horiz, target_horiz, delta)
-	else:
-		if h_speed() < 0.001:
-			current_horiz = Vector2.ZERO
-		else:
-			current_horiz = apply_deceleration(current_horiz, delta)
-
-	set_h_vec(current_horiz)
-
-func accelerate_towards(current: Vector2, target: Vector2, delta: float) -> Vector2:
-	var accel_rate: float = accel_ground if player.is_on_floor() else accel_air
-	var difference: Vector2 = target - current
-	var distance: float = difference.length()
-
-	if distance < 0.001:
-		return target
-
-	var change_amount: float = min(accel_rate * delta, distance)
-	return current + difference.normalized() * change_amount
-
-func apply_deceleration(current: Vector2, delta: float) -> Vector2:
-	var speed: float = current.length()
-	if speed < 0.001:
-		return Vector2.ZERO
-
-	var drop: float = min(speed, decel * delta)
-	return current.normalized() * (speed - drop)
+func _update_horizontal_velocity(delta: float) -> void:
+	var on_floor := player.is_on_floor()
+	var target_speed := max_speed_ground if on_floor else max_speed_air
+	if _is_sprinting and on_floor:
+		target_speed = sprint_speed
+	target_speed = max(target_speed, 0.0) * speed_multiplier
+	var want := Vector2.ZERO
+	if _move_dir.length_squared() > 0.0001:
+		var flattened := Vector2(_move_dir.x, _move_dir.z)
+		if flattened.length_squared() > 1.0:
+			flattened = flattened.normalized()
+		want = flattened * target_speed
+	var current := Vector2(player.velocity.x, player.velocity.z)
+	if want.length_squared() > 0.0:
+		var accel := accel_ground if on_floor else accel_air
+		current = current.move_toward(want, accel * delta)
+	elif on_floor and ground_friction > 0.0:
+		current = current.move_toward(Vector2.ZERO, ground_friction * delta)
+	player.velocity.x = current.x
+	player.velocity.z = current.y

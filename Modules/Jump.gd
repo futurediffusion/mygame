@@ -1,129 +1,130 @@
 extends ModuleBase
 class_name JumpModule
 
+@export var jump_velocity: float = 6.5
+@export var coyote_time: float = 0.120
+@export var jump_hold_time: float = 0.150
+@export var extra_hold_gravity_scale: float = 0.6
+@export var uses_state_gravity := true
+
 var player: CharacterBody3D
-
-# Parámetros de salto (mantengo tus valores)
-var coyote_time := 0.12
-var jump_buffer := 0.15
-var jump_velocity := 8.5
-var gravity_scale := 1.0
-var fall_gravity_multiplier := 1.5
-
-# Estado interno
-var _air_time: float = 0.0
-var _coyote_timer: float = 0.0
-var _jump_buffer_timer: float = 0.0
-var _jump_button_held := false
-
-# Opcionales
 var anim_tree: AnimationTree
 var camera_rig: Node
+
 const PARAM_JUMP: StringName = &"parameters/Jump/request"
 
-# --- Flags de integración ---
-# Si TRUE: la gravedad la aplica State; Jump NO debe aplicarla.
-@export var uses_state_gravity := true
-# Factor de “salto corto” (mantengo 0.5 como en tu versión)
-@export var jump_cutoff_factor := 0.5
+var _time_since_left_floor: float = 9999.0
+var _air_time: float = 0.0
+var _jump_held := false
+var _hold_timer: float = 0.0
+var _was_on_floor := true
+var _state_module: Node
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
-	# Fidelidad con Player (si existen)
-	coyote_time = p.coyote_time if "coyote_time" in p else coyote_time
-	jump_buffer = p.jump_buffer if "jump_buffer" in p else jump_buffer
-	jump_velocity = p.jump_velocity if "jump_velocity" in p else jump_velocity
-	gravity_scale = p.gravity_scale if "gravity_scale" in p else gravity_scale
-	fall_gravity_multiplier = p.fall_gravity_multiplier if "fall_gravity_multiplier" in p else fall_gravity_multiplier
-	anim_tree = p.anim_tree if "anim_tree" in p else null
-	camera_rig = p.camera_rig if "camera_rig" in p else null
+	_was_on_floor = player.is_on_floor()
+	if _was_on_floor:
+		_time_since_left_floor = 9999.0
+	else:
+		_time_since_left_floor = 0.0
+	if "jump_velocity" in player:
+		jump_velocity = player.jump_velocity
+	if "coyote_time" in player:
+		coyote_time = player.coyote_time
+	if "anim_tree" in player:
+		anim_tree = player.anim_tree
+	if "camera_rig" in player:
+		camera_rig = player.camera_rig
+	_state_module = _locate_state_module()
 
 func physics_tick(delta: float) -> void:
 	if player == null or not is_instance_valid(player):
 		return
 	if player.has_method("should_skip_module_updates") and player.should_skip_module_updates():
 		return
-	# Fase 3: mover timers + ejecución al tick
-	update_jump_mechanics(delta)
-	handle_jump_input()
-	# OJO: la gravedad la hace State (Fase 1). El salto variable lo seguimos aplicando aquí:
-	apply_variable_jump_height()
 
-# --- Mecánicas de salto ---
-func update_jump_mechanics(delta: float) -> void:
-	if player.is_on_floor():
-		_coyote_timer = coyote_time
+	var on_floor := player.is_on_floor()
+	if on_floor:
+		if not _was_on_floor:
+			on_landed()
 		_air_time = 0.0
+		_time_since_left_floor = 9999.0
 	else:
-		_coyote_timer = max(0.0, _coyote_timer - delta)
+		if _was_on_floor:
+			on_left_ground()
+		_time_since_left_floor += delta
 		_air_time += delta
+	_was_on_floor = on_floor
 
-	if Input.is_action_just_pressed("jump"):
-		_jump_buffer_timer = jump_buffer
-		_jump_button_held = true
+	var now := Time.get_unix_time_from_system()
+	var want_jump := false
+	if "input_buffer" in player and player.input_buffer != null:
+		want_jump = player.input_buffer.consume_jump(now)
 	else:
-		_jump_buffer_timer = max(0.0, _jump_buffer_timer - delta)
-		if Input.is_action_just_released("jump"):
-			_jump_button_held = false
+		want_jump = Input.is_action_just_pressed("jump")
 
-func handle_jump_input() -> void:
-	var can_jump: bool = _jump_buffer_timer > 0.0 and (player.is_on_floor() or _coyote_timer > 0.0)
-	if can_jump:
-		execute_jump()
+	var can_jump := on_floor or (_time_since_left_floor <= coyote_time)
+	if want_jump and can_jump:
+		_perform_jump()
 
-func execute_jump() -> void:
+	if _jump_held:
+		_hold_timer += delta
+		if _hold_timer >= jump_hold_time or not Input.is_action_pressed("jump") or player.velocity.y <= 0.0:
+			_jump_held = false
+
+func on_left_ground() -> void:
+	_time_since_left_floor = 0.0
+
+func on_landed() -> void:
+	_time_since_left_floor = 9999.0
+	_hold_timer = 0.0
+	_jump_held = false
+	_air_time = 0.0
+
+func is_hold_active() -> bool:
+	return _jump_held
+
+func get_air_time() -> float:
+	return _air_time
+
+func _perform_jump() -> void:
+	player.floor_snap_length = 0.0
 	var final_jump_velocity := jump_velocity
-	if player and player.has_method("apply_perfect_jump_combo"):
+	if player.has_method("apply_perfect_jump_combo"):
 		final_jump_velocity = player.apply_perfect_jump_combo(jump_velocity)
-	player.velocity.y = final_jump_velocity
-	# Buscar el módulo State de forma segura
-	var state_mod: Node = null
-	if player.has_node("Modules/State"):
-		state_mod = player.get_node("Modules/State")
-	elif player.has_node("State"):
-		state_mod = player.get_node("State")
+	player.velocity.y = max(player.velocity.y, final_jump_velocity)
+	_jump_held = true
+	_hold_timer = 0.0
+	_air_time = 0.0
+	_was_on_floor = false
+	_time_since_left_floor = 0.0
+	_trigger_jump_animation()
+	_play_jump_audio()
+	_notify_state_jump()
+	if camera_rig and camera_rig.has_method("_play_jump_kick"):
+		camera_rig.call_deferred("_play_jump_kick")
 
-	if state_mod and is_instance_valid(state_mod) and state_mod.has_signal("jumped"):
-		state_mod.emit_signal("jumped")
-	_coyote_timer = 0.0
-	_jump_buffer_timer = 0.0
-	trigger_jump_animation()
+func _trigger_jump_animation() -> void:
+	if anim_tree:
+		anim_tree.set(PARAM_JUMP, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 
-	# Audio: usa módulo si está, si no el sfx directo
+func _play_jump_audio() -> void:
 	if "m_audio" in player and is_instance_valid(player.m_audio):
 		player.m_audio.play_jump()
 	elif "jump_sfx" in player and is_instance_valid(player.jump_sfx):
 		player.jump_sfx.play()
 
-	if camera_rig and camera_rig.has_method("_play_jump_kick"):
-		camera_rig.call_deferred("_play_jump_kick")
+func _notify_state_jump() -> void:
+	if _state_module == null or not is_instance_valid(_state_module):
+		_state_module = _locate_state_module()
+	if _state_module and _state_module.has_signal("jumped"):
+		_state_module.emit_signal("jumped")
 
-func trigger_jump_animation() -> void:
-	if anim_tree:
-		anim_tree.set(PARAM_JUMP, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
-
-# --- Gravedad (NO usada si uses_state_gravity = true) ---
-# Mantenemos por compatibilidad, pero será NO-OP cuando Fase 1 está activa.
-func apply_gravity(delta: float, base_gravity: float) -> void:
-	if uses_state_gravity:
-		return
-	if not player.is_on_floor():
-		var g := base_gravity * gravity_scale
-		# Fast falling SOLO al caer (velocity.y < 0)
-		if player.velocity.y < 0.0:
-			g *= fall_gravity_multiplier
-		player.velocity.y -= g * delta
-
-# Salto variable: SOLO cuando va subiendo (velocity.y > 0)
-func apply_variable_jump_height() -> void:
-	if (not _jump_button_held) and player.velocity.y > 0.0:
-		player.velocity.y *= jump_cutoff_factor
-
-func get_air_time() -> float:
-	return _air_time
-
-func is_falling() -> bool:
-	return not player.is_on_floor() and player.velocity.y < 0.0
-
-func is_rising() -> bool:
-	return not player.is_on_floor() and player.velocity.y > 0.0
+func _locate_state_module() -> Node:
+	if player == null or not is_instance_valid(player):
+		return null
+	if player.has_node("Modules/State"):
+		return player.get_node("Modules/State")
+	if player.has_node("State"):
+		return player.get_node("State")
+	return null
