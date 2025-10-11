@@ -42,6 +42,36 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Normalizada la indentación con tabs en `scenes/entities/Ally.gd` para que Godot 4.4 procese correctamente `fsm_step` y el ciclo físico.
 - Corregido el acceso al autoload `SimClock` en `Modules/ModuleBase.gd`, `scenes/entities/player.gd` y `scenes/entities/Ally.gd`, resolviendo el choque `class_name` vs singleton de Godot 4.4 antes de registrar módulos.
 - Tipado el cálculo de aterrizaje en `Modules/State.gd` usando `absf`/`bool` para evitar errores de inferencia en Godot 4.4.
+- Salto sostenido restaurado en Godot 4.4:
+  - InputBuffer ahora tipado (float) y consulta de “mantener salto” en tick físico.
+  - JumpModule consume buffer, aplica coyote (120 ms) y activa `_jump_held` con tope de 150 ms.
+  - State aplica gravedad reducida durante `_jump_held` (extra_hold_gravity_scale), con tipados locales (Vector3, float) para evitar inferencia Variant.
+
+- PerfectJumpCombo re-integrado:
+  - Nuevo módulo tipado con ventana de aterrizaje (100 ms), stacks con decaimiento y multiplicadores (velocidad/salto).
+  - Movement y Jump leen los multiplicadores cada tick; Player registra aterrizajes y “perfect” al encadenar.
+  - Resultado: encadenes de saltos más responsivos y sensación de locomoción más viva.
+
+- Tipado estricto Godot 4.4:
+  - Variables y temporales relevantes anotados (float, Vector3, JumpModule, PerfectJumpCombo) para eliminar warnings “inferred Variant”.
+  - Tabs para indentación y orden de paso: módulos → move_and_slide().
+
+Pruebas:
+- Verificado salto corto vs. largo al mantener/soltar salto.
+- Verificado combo: incremento de stacks en aterrizajes encadenados; decay progresivo si no encadenas.
+
+Checklist rápido para Codex
+
+ Jump.gd usa InputBuffer.is_jump_down() y corta _jump_held al soltar o al agotar jump_hold_time.
+
+ State.gd reduce gravedad si _jump_held (tipos locales: var g: float, var v: Vector3).
+
+ PerfectJumpCombo.gd presente y conectado: on_landed() + register_perfect() en la ventana.
+
+ Movement.gd y Jump.gd aplican combo.speed_multiplier() y combo.jump_multiplier().
+
+ Tabs, no espacios. Sin velocity * dt y move_and_slide() una vez al final del tick.
+
 
 ---
 

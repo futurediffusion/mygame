@@ -1,18 +1,19 @@
 extends ModuleBase
 class_name MovementModule
 
-@export var max_speed_ground := 7.5
-@export var max_speed_air := 6.5
-@export var accel_ground := 26.0
-@export var accel_air := 9.5
-@export var ground_friction := 10.0
+@export var max_speed_ground: float = 7.5
+@export var max_speed_air: float = 6.5
+@export var accel_ground: float = 26.0
+@export var accel_air: float = 9.5
+@export var ground_friction: float = 10.0
 
-var sprint_speed := 9.5
-var speed_multiplier := 1.0
+var sprint_speed: float = 9.5
+var speed_multiplier: float = 1.0
 
 var player: CharacterBody3D
-var _move_dir := Vector3.ZERO
-var _is_sprinting := false
+var _move_dir: Vector3 = Vector3.ZERO
+var _is_sprinting: bool = false
+var _combo: PerfectJumpCombo
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
@@ -48,7 +49,11 @@ func _update_horizontal_velocity(delta: float) -> void:
 	var target_speed := max_speed_ground if on_floor else max_speed_air
 	if _is_sprinting and on_floor:
 		target_speed = sprint_speed
-	target_speed = max(target_speed, 0.0) * speed_multiplier
+	var combo_speed_mul: float = 1.0
+	var combo := _get_combo()
+	if combo:
+		combo_speed_mul = combo.speed_multiplier()
+	target_speed = max(target_speed, 0.0) * speed_multiplier * combo_speed_mul
 	var want := Vector2.ZERO
 	if _move_dir.length_squared() > 0.0001:
 		var flattened := Vector2(_move_dir.x, _move_dir.z)
@@ -63,3 +68,11 @@ func _update_horizontal_velocity(delta: float) -> void:
 		current = current.move_toward(Vector2.ZERO, ground_friction * delta)
 	player.velocity.x = current.x
 	player.velocity.z = current.y
+
+func _get_combo() -> PerfectJumpCombo:
+	if player == null or not is_instance_valid(player):
+		return null
+	if _combo and is_instance_valid(_combo):
+		return _combo
+	_combo = player.get_node_or_null("PerfectJumpCombo") as PerfectJumpCombo
+	return _combo

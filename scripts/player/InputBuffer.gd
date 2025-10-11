@@ -1,7 +1,7 @@
 extends Node
 class_name InputBuffer
 
-@export var jump_buffer_time: float = 0.120
+@export var jump_buffer_time: float = 0.12	# 120 ms
 var _jump_pressed_at: float = -1.0
 
 func note_jump_pressed(now: float) -> void:
@@ -15,3 +15,7 @@ func consume_jump(now: float) -> bool:
 		return true
 	_jump_pressed_at = -1.0
 	return false
+
+# Útil para “salto variable”: consulta si aún está presionado
+func is_jump_down() -> bool:
+	return Input.is_action_pressed("jump")
