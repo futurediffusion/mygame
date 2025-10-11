@@ -1,8 +1,9 @@
-[gd_scene load_steps=9 format=4 uid="uid://dg70n4q4hda07"]
+[gd_scene load_steps=10 format=4 uid="uid://dg70n4q4hda07"]
 
 [ext_resource type="Script" uid="uid://1702mvf8w8cf" path="res://scenes/entities/Ally.gd" id="1_wx4v5"]
 [ext_resource type="Texture2D" uid="uid://uh7te6p55l03" path="res://art/characters/animations1_player2.png" id="2_rofai"]
 [ext_resource type="AnimationLibrary" uid="uid://d2yeay5avcx06" path="res://data/animations/animations.res" id="3_w43w0"]
+[ext_resource type="Script" uid="uid://allyfsmodule" path="res://Modules/AllyFSMModule.gd" id="4_allyfsm"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_62j5s"]
 radius = 0.4
@@ -168,6 +169,11 @@ radius = 1.5
 collision_layer = 2
 collision_mask = 29
 script = ExtResource("1_wx4v5")
+
+[node name="FSMModule" type="Node" parent="."]
+script = ExtResource("4_allyfsm")
+owner_ally = NodePath(".")
+tick_group = &"local"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)

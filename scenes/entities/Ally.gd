@@ -38,6 +38,8 @@ enum State {
 @onready var anim_player: AnimationPlayer = null
 @onready var seat_anchor: Node3D = $SeatAnchor
 @onready var _model_root: Node3D = $Model
+# R3→R4 MIGRATION: Referencia al módulo FSM para ticks SimClock.
+@onready var _fsm_module: AllyFSMModule = get_node_or_null(^"FSMModule") as AllyFSMModule
 
 var _target_dir: Vector3 = Vector3.ZERO
 var _combat_target: Node3D
@@ -72,9 +74,9 @@ func _ready() -> void:
 	# R3→R4 MIGRATION: Adaptador SimClock proxy.
 	var sim_clock: SimClockScheduler = get_node_or_null(^"/root/SimClock") as SimClockScheduler
 	var use_sim_clock := Flags.USE_SIMCLOCK_ALLY and sim_clock != null and is_instance_valid(sim_clock)
+	if _fsm_module != null:
+		_fsm_module.set_runtime_enabled(use_sim_clock)
 	if use_sim_clock:
-		if not sim_clock.ticked.is_connected(_on_sim_clock_ticked):
-			sim_clock.ticked.connect(_on_sim_clock_ticked)
 		set_physics_process(false)
 		if Engine.is_editor_hint():
 			print_verbose("R3→R4 MIGRATION: Ally usando SimClock (%s)" % Flags.ALLY_TICK_GROUP)
