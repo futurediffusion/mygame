@@ -146,7 +146,11 @@ func _ready() -> void:
 		combo.coyote_time = coyote_time
 		combo.jump_buffer = jump_buffer
 
-	SimClock.register_module(self, sim_group, priority)
+	var clock := _get_simclock()
+	if clock:
+		clock.register_module(self, sim_group, priority)
+	else:
+		push_warning("SimClock autoload no disponible; Player no se registró en el scheduler.")
 
 	# ⬇️ CONECTA LAS SEÑALES EN EL Area3D, NO EN EL PLAYER
 	if trigger_area and is_instance_valid(trigger_area):
@@ -550,3 +554,12 @@ func _play_landing_audio(is_hard: bool) -> void:
 func _trigger_camera_landing(is_hard: bool) -> void:
 	if camera_rig:
 		camera_rig.call_deferred("_on_player_landed", is_hard)
+
+func _get_simclock() -> SimClock:
+	var tree := get_tree()
+	if tree == null:
+		return null
+	var autoload := tree.get_root().get_node_or_null("/root/SimClock")
+	if autoload == null:
+		return null
+	return autoload as SimClock
