@@ -15,6 +15,7 @@
 5. **Evita el operador ternario compacto (`?:`).** Prefiere `a if cond else b` para mantener compatibilidad 4.4. 【F:README.md†L30-L33】
 6. **Propaga HUD/UI vía `EventBus.post_hud` o señales existentes.** No acoples escenas directas. 【F:Singletons/EventBus.gd†L3-L16】【F:scenes/ui/HUD.gd†L6-L28】
 7. **Datos primero.** Cambios de stats o arquetipos pasan por JSON + `Data.gd`, no hardcodees en lógica. 【F:README.md†L16-L173】
+8. **Orden del tick del Player:** `State.pre_move_update(dt)` → `Jump.physics_tick(dt)` → resto de módulos → `move_and_slide()` → `State.post_move_update()`. Mantén este flujo para que coyote/hold usen el mismo reloj. 【F:scenes/entities/player.gd†L190-L233】
 
 ## 3. Patrones y plantillas útiles
 - **Nuevo módulo de jugador/NPC**

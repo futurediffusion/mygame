@@ -1,97 +1,67 @@
 extends ModuleBase
 class_name StateModule
 
-@export var gravity: float = 24.0
-@export var fall_multiplier: float = 1.0
-@export var floor_snap_on_ground: float = 0.3
-@export var floor_snap_in_air: float = 0.0
-@export var configure_physics: bool = true
+@export var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+@export var fall_gravity_scale: float = 1.6
+@export var floor_max_angle: float = 0.785398
+@export var floor_snap_length: float = 0.3
 
-var player: CharacterBody3D
-var _was_on_floor: bool = true
-var _jump_module: JumpModule
-
-signal landed(is_hard: bool)
-@warning_ignore("unused_signal")
 signal jumped
 signal left_ground
+signal landed(is_hard: bool)
 
-func setup(p: CharacterBody3D) -> void:
-	player = p
-	_was_on_floor = player.is_on_floor()
-	_jump_module = _find_jump_module(player)
+var _owner_body: CharacterBody3D
+var _was_on_floor: bool = false
+var last_on_floor_time_s: float = -1.0
+var _pre_move_velocity_y: float = 0.0
 
-	if "gravity" in p:
-		gravity = p.gravity
-	elif ProjectSettings.has_setting("physics/3d/default_gravity"):
-		gravity = float(ProjectSettings.get_setting("physics/3d/default_gravity"))
-	if "fall_gravity_multiplier" in p:
-		fall_multiplier = p.fall_gravity_multiplier
-
-	if configure_physics:
-		if "max_slope_deg" in player:
-			player.floor_max_angle = deg_to_rad(player.max_slope_deg)
-		if "snap_len" in player:
-			floor_snap_on_ground = player.snap_len
-	player.floor_snap_length = floor_snap_on_ground
-
-func physics_tick(delta: float) -> void:
-	if player == null or not is_instance_valid(player):
+func setup(owner_body: CharacterBody3D) -> void:
+	_owner_body = owner_body
+	if _owner_body == null or not is_instance_valid(_owner_body):
 		return
-	if player.has_method("should_skip_module_updates") and player.should_skip_module_updates():
-		return
-	if _jump_module == null or not is_instance_valid(_jump_module):
-		_jump_module = _find_jump_module(player)
+	_was_on_floor = _owner_body.is_on_floor()
+	var now_s := Time.get_ticks_msec() * 0.001
+	last_on_floor_time_s = now_s if _was_on_floor else -1.0
+	if "gravity" in owner_body:
+		gravity = owner_body.gravity
+	if "fall_gravity_multiplier" in owner_body:
+		fall_gravity_scale = owner_body.fall_gravity_multiplier
+	if "max_slope_deg" in owner_body:
+		floor_max_angle = deg_to_rad(owner_body.max_slope_deg)
+	if "snap_len" in owner_body:
+		floor_snap_length = owner_body.snap_len
+	_owner_body.floor_max_angle = floor_max_angle
+	_owner_body.floor_snap_length = floor_snap_length
 
-	var now_on_floor: bool = player.is_on_floor()
-	var v: Vector3 = player.velocity
-	var jm: JumpModule = _jump_module
-
-	if not now_on_floor:
-		var g: float = gravity
-		if fall_multiplier != 1.0 and v.y < 0.0:
-			g *= fall_multiplier
-		if jm and jm.is_hold_active():
-			g *= jm.extra_hold_gravity_scale
-		v.y -= g * delta
-		if _was_on_floor:
-			_set_floor_snap(floor_snap_in_air)
-			if jm:
-				jm.on_left_ground()
-			emit_signal("left_ground")
-	else:
-		if v.y < 0.0:
-			v.y = 0.0
-		_set_floor_snap(floor_snap_on_ground)
-		if not _was_on_floor:
-			if jm:
-				jm.on_landed()
-			var impact_velocity: float = absf(player.velocity.y)
-			var is_hard: bool = impact_velocity > 10.0
-			if player.has_method("_play_landing_audio"):
-				player._play_landing_audio(is_hard)
-			if player.has_method("_trigger_camera_landing"):
-				player._trigger_camera_landing(is_hard)
-			emit_signal("landed", is_hard)
-
-	player.velocity = v
-	_was_on_floor = now_on_floor
-
-func _set_floor_snap(length: float) -> void:
-	if player != null and is_instance_valid(player):
-		player.floor_snap_length = length
-
-func apply_gravity(_delta: float) -> void:
+func physics_tick(_dt: float) -> void:
 	pass
 
-func _find_jump_module(owner: Node) -> JumpModule:
-	if owner == null or not is_instance_valid(owner):
-		return null
-	var candidate: Node = null
-	if owner.has_node("Modules/Jump"):
-		candidate = owner.get_node("Modules/Jump")
-	elif owner.has_node("Jump"):
-		candidate = owner.get_node("Jump")
-	if candidate and candidate is JumpModule:
-		return candidate
-	return null
+func pre_move_update(dt: float) -> void:
+	if _owner_body == null or not is_instance_valid(_owner_body):
+		return
+	if _owner_body.has_method("should_skip_module_updates") and _owner_body.should_skip_module_updates():
+		return
+	_pre_move_velocity_y = _owner_body.velocity.y
+	if _owner_body.is_on_floor():
+		if _owner_body.velocity.y < 0.0:
+			_owner_body.velocity.y = 0.0
+		return
+	var gravity_scale := 1.0
+	if _owner_body.velocity.y <= 0.0:
+		gravity_scale = fall_gravity_scale
+	_owner_body.velocity.y -= gravity * gravity_scale * dt
+
+func post_move_update() -> void:
+	if _owner_body == null or not is_instance_valid(_owner_body):
+		return
+	var now_s := Time.get_ticks_msec() * 0.001
+	var on_floor := _owner_body.is_on_floor()
+	if on_floor:
+		last_on_floor_time_s = now_s
+	if _was_on_floor and not on_floor:
+		left_ground.emit()
+	elif (not _was_on_floor) and on_floor:
+		var impact_velocity := absf(_pre_move_velocity_y)
+		var is_hard := impact_velocity > 10.0
+		landed.emit(is_hard)
+	_was_on_floor = on_floor
