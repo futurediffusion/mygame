@@ -1,4 +1,5 @@
 extends CharacterBody3D
+const SIMCLOCK_SCRIPT := preload("res://Singletons/SimClock.gd")
 
 enum State {
 	IDLE,
@@ -585,10 +586,12 @@ func _find_skeleton(root: Node) -> Skeleton3D:
 # jump_module.jump_started.connect(ally.notify_jump_started)
 
 func _get_simclock() -> SimClockAutoload:
-	var tree := get_tree()
+	var tree: SceneTree = get_tree()
 	if tree == null:
 		return null
-	var autoload := tree.get_root().get_node_or_null("/root/SimClock")
+	var autoload: Node = tree.get_root().get_node_or_null(^"/root/SimClock")
 	if autoload == null:
 		return null
-	return autoload as SimClockAutoload
+	if autoload is SIMCLOCK_SCRIPT:
+		return autoload as SimClockAutoload
+	return null

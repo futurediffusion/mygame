@@ -7,7 +7,8 @@ signal cinematic_changed(in_cinematic: bool)
 var is_paused := false
 var is_in_cinematic := false
 
-const LOCAL_GROUP: StringName = SimClockAutoload.GROUP_LOCAL
+const SIMCLOCK_SCRIPT := preload("res://Singletons/SimClock.gd")
+const LOCAL_GROUP: StringName = SIMCLOCK_SCRIPT.GROUP_LOCAL
 
 func set_paused(paused: bool) -> void:
 	if is_paused == paused:
@@ -42,4 +43,6 @@ func _get_simclock() -> SimClockAutoload:
 	var autoload: Node = root.get_node_or_null(^"/root/SimClock")
 	if autoload == null:
 		return null
-	return autoload as SimClockAutoload
+	if autoload is SIMCLOCK_SCRIPT:
+		return autoload as SimClockAutoload
+	return null
