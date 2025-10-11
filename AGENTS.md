@@ -60,3 +60,4 @@ func physics_tick(dt: float) -> void:
 
 ## 6. Notas recientes
 - Godot 4.4 falla con "Unexpected indent" si se cuelan espacios en `scenes/entities/player.gd`; mantén tabs estrictos al ajustar `_update_module_stats()` o cualquier bloque que sincronice exports con módulos.
+- Evita retirar `class_name` de los autoloads (`SimClockAutoload`, `GameState`): Godot 4.4 deja de exponerlos y los casts tipados en escenas (`player.gd`, módulos) empiezan a marcar errores de parseo.

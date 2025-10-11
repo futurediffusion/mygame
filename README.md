@@ -26,6 +26,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Log rápido (último cambio)
+- `Singletons/GameState.gd` y `Singletons/SimClock.gd`: se restauró el `class_name` y la indentación en tabs para que Godot 4.4 vuelva a exponer los autoloads `GameState` y `SimClockAutoload` sin errores de parseo ni advertencias de tipado al castear en el Player.
 - `scenes/entities/player.gd`: se restauró la indentación en tabs de `_update_module_stats()` para que Godot 4.4 deje de marcar "Unexpected indent" al sincronizar exports de salto y movimiento durante la carga.
 
 ### Registro de mantenimiento reciente
