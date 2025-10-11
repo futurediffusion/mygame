@@ -41,6 +41,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - `scripts/core/Flags.gd` conserva únicamente `ALLY_TICK_GROUP`, retirando toggles heredados como `USE_SIMCLOCK_ALLY`.
 - Normalizada la indentación con tabs en `scenes/entities/Ally.gd` para que Godot 4.4 procese correctamente `fsm_step` y el ciclo físico.
 - Corregido el acceso al autoload `SimClock` en `Modules/ModuleBase.gd`, `scenes/entities/player.gd` y `scenes/entities/Ally.gd`, resolviendo el choque `class_name` vs singleton de Godot 4.4 antes de registrar módulos.
+- Tipado el cálculo de aterrizaje en `Modules/State.gd` usando `absf`/`bool` para evitar errores de inferencia en Godot 4.4.
 
 ---
 

@@ -65,8 +65,8 @@ func physics_tick(delta: float) -> void:
 		if not _was_on_floor:
 			if _jump_module:
 				_jump_module.on_landed()
-			var impact_velocity := abs(player.velocity.y)
-			var is_hard := impact_velocity > 10.0
+			var impact_velocity: float = absf(player.velocity.y)
+			var is_hard: bool = impact_velocity > 10.0
 			if player.has_method("_play_landing_audio"):
 				player._play_landing_audio(is_hard)
 			if player.has_method("_trigger_camera_landing"):
