@@ -411,9 +411,9 @@ func _get_camera_relative_input() -> Vector3:
 func _update_module_stats() -> void:
 	if input_buffer:
 		input_buffer.jump_buffer_time = jump_buffer
-if m_jump:
-m_jump.jump_speed = jump_velocity
-m_jump.coyote_time = coyote_time
+	if m_jump:
+		m_jump.jump_speed = jump_velocity
+		m_jump.coyote_time = coyote_time
 	if m_movement:
 		m_movement.max_speed_ground = run_speed
 		m_movement.max_speed_air = run_speed

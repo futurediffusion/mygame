@@ -57,3 +57,6 @@ func physics_tick(dt: float) -> void:
 ```
 
 > Mantén este archivo sincronizado si detectas nuevas invariantes (ej. métricas de SimClock, AnimationTree compartido) para que el agente siempre tenga el mapa actualizado.
+
+## 6. Notas recientes
+- Godot 4.4 falla con "Unexpected indent" si se cuelan espacios en `scenes/entities/player.gd`; mantén tabs estrictos al ajustar `_update_module_stats()` o cualquier bloque que sincronice exports con módulos.

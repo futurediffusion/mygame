@@ -25,7 +25,11 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Modularidad visual de NPCs (materiales, gear y tintado todavía dependen de rutas estáticas).
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
+### Log rápido (último cambio)
+- `scenes/entities/player.gd`: se restauró la indentación en tabs de `_update_module_stats()` para que Godot 4.4 deje de marcar "Unexpected indent" al sincronizar exports de salto y movimiento durante la carga.
+
 ### Registro de mantenimiento reciente
+- `_update_module_stats()` en `scenes/entities/player.gd` vuelve a usar tabs y repropaga `jump_speed`/`coyote_time` al módulo de salto y velocidades/aceleraciones al módulo de movimiento, eliminando los errores de parseo reportados en Godot 4.4.
 - Reordenado el ciclo de salto: `InputBuffer.gd` guarda press/release con reloj compartido, `State.gd` aplica gravedad en `pre_move_update`/`post_move_update` y `Jump.gd` consume buffer + coyote + hold reduciendo gravedad antes de `move_and_slide()`.
 - Actualizado `scripts/player/InputBuffer.gd` y `scenes/entities/player.gd`: el buffer escucha `_unhandled_input` como nodo hijo, conserva 120 ms y entrega el salto al tick del `SimClock` sin perder pulsaciones.
 - Reescrito el trinomio de locomoción: `Modules/Jump.gd` usa buffer+coyote con `floor_snap` seguro y hold variable, `Modules/State.gd` reduce gravedad mientras se mantiene el salto y `Modules/Movement.gd` adopta aceleraciones 26/9.5 con fricción 10; `player.gd` sincroniza los nuevos exports (accel/air/fricción).
