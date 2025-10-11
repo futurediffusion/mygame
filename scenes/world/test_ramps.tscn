@@ -1,7 +1,10 @@
-[gd_scene load_steps=9 format=3 uid="uid://bg14wj4en8l1m"]
+[gd_scene load_steps=10 format=3 uid="uid://bg14wj4en8l1m"]
 
 [ext_resource type="PackedScene" uid="uid://l4e1k3jkgu8s" path="res://scenes/entities/player.tscn" id="1_11l7r"]
 [ext_resource type="PackedScene" uid="uid://dg70n4q4hda07" path="res://scenes/entities/Ally.tscn" id="2_3d8dh"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3d8dh"]
+albedo_color = Color(0.685616, 0.961761, 0.674583, 1)
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_ground"]
 size = Vector2(50, 50)
@@ -24,8 +27,15 @@ size = Vector3(6, 0.5, 6)
 [node name="RampTest" type="Node3D"]
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 84.3447, 0)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="DirectionalLight3D"]
+transform = Transform3D(0.999817, 0.0191102, 0, -0.0191102, 0.999817, 0, 0, 0, 1, 0, 23.7945, 114.591)
+sky_mode = 1
 
 [node name="Ground" type="MeshInstance3D" parent="."]
+transform = Transform3D(5.68, 0, 0, 0, 5.68, 0, 0, 0, 5.68, 0, -4.9078, 0)
+material_override = SubResource("StandardMaterial3D_3d8dh")
 mesh = SubResource("PlaneMesh_ground")
 
 [node name="StaticBody3D" type="StaticBody3D" parent="Ground"]
@@ -33,6 +43,7 @@ collision_layer = 8
 collision_mask = 7
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Ground/StaticBody3D"]
+transform = Transform3D(5.68, 0, 0, 0, 5.68, 0, 0, 0, 5.68, 0, 0, 0)
 shape = SubResource("BoxShape3D_ground")
 
 [node name="Ramp" type="MeshInstance3D" parent="."]
@@ -44,6 +55,37 @@ collision_layer = 8
 collision_mask = 7
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Ramp/StaticBody3D"]
+shape = SubResource("BoxShape3D_ramp")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ramp/StaticBody3D/CollisionShape3D"]
+shape = SubResource("BoxShape3D_ramp")
+
+[node name="Ramp" type="MeshInstance3D" parent="Ramp"]
+transform = Transform3D(1, 0, 0, 0, 0.909889, 0.414852, 0, -0.414852, 0.909889, -18.4724, -5.10141, -14.3337)
+mesh = SubResource("BoxMesh_ramp")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Ramp/Ramp"]
+collision_layer = 8
+collision_mask = 7
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ramp/Ramp/StaticBody3D"]
+shape = SubResource("BoxShape3D_ramp")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ramp/Ramp/StaticBody3D/CollisionShape3D"]
+shape = SubResource("BoxShape3D_ramp")
+
+[node name="Ramp" type="MeshInstance3D" parent="Ramp/Ramp"]
+transform = Transform3D(-0.0289859, -0.32576, 0.945008, -0.0956323, 0.941972, 0.321781, -0.994995, -0.0810462, -0.0584571, 28.7757, -1.17464, -14.7111)
+mesh = SubResource("BoxMesh_ramp")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Ramp/Ramp/Ramp"]
+collision_layer = 8
+collision_mask = 7
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ramp/Ramp/Ramp/StaticBody3D"]
+shape = SubResource("BoxShape3D_ramp")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ramp/Ramp/Ramp/StaticBody3D/CollisionShape3D"]
 shape = SubResource("BoxShape3D_ramp")
 
 [node name="Platform" type="MeshInstance3D" parent="."]

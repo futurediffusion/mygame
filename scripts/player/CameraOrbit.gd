@@ -1,100 +1,254 @@
 extends Node3D
-class_name CameraOrbit
+class_name CameraRig
 
-@export var camera: Camera3D
-@export var player_body: CharacterBody3D
+# ============================================================================
+# CAMERA POSITIONING
+# ============================================================================
+@export_group("Position")
+@export_range(0.0, 5.0, 0.1) var height_offset: float = 1.5
 
-# Distancias
-@export var desired_distance: float = 3.5
-@export var min_distance: float = 0.6
-@export var max_distance: float = 6.0
+@export_group("Look Sensitivity")
+@export_range(0.01, 1.0, 0.01) var sensitivity_deg: float = 0.12
+@export var invert_y: bool = false
 
-# Colisión (ajusta el mask en el Inspector según tus capas de mundo)
-@export var collision_mask: int = 0xFFFFFFFF
-@export var safe_margin: float = 0.08   # cuánto "nos alejamos" de la pared
-@export var collision_radius_hint: float = 0.25 # para compensar grosor de cámara
+@export_group("Smoothing")
+@export_range(0.01, 0.5, 0.01) var smooth_time: float = 0.08
 
-# Look & feel
-@export var sens_x: float = 0.12
-@export var sens_y: float = 0.10
-@export var pitch_min_deg: float = -70.0
-@export var pitch_max_deg: float = 75.0
-@export var distance_smooth: float = 12.0
-@export var aim_smooth: float = 18.0
-@export var zoom_step: float = 0.7
+@export_group("Pitch Limits")
+@export_range(-89.0, 0.0, 1.0) var min_pitch_deg: float = -60.0
+@export_range(0.0, 89.0, 1.0) var max_pitch_deg: float = 60.0
 
-var _yaw: float = 0.0
-var _pitch: float = 0.15 # rad, ~8.6°
-var _current_distance: float
+@export_group("Zoom")
+@export_range(0.5, 5.0, 0.1) var min_radius: float = 2.0
+@export_range(5.0, 30.0, 0.5) var max_radius: float = 15.0
+@export_range(0.5, 30.0, 0.5) var radius: float = 5.0
+@export_range(0.1, 2.0, 0.1) var zoom_step: float = 0.5
 
+@export_group("Field of View")
+@export_range(50.0, 120.0, 1.0) var fov_default: float = 70.0
+@export_range(0.0, 10.0, 0.5) var fov_kick_jump: float = 3.0
+@export_range(0.0, 15.0, 0.5) var fov_kick_land_hard: float = 6.0
+
+@export_group("Input")
+@export var capture_on_start: bool = true
+
+# ============================================================================
+# CACHED NODES
+# ============================================================================
+@onready var yaw: Node3D = $Yaw
+@onready var pitch: Node3D = $Yaw/Pitch
+@onready var spring: SpringArm3D = $Yaw/Pitch/SpringArm3D
+@onready var cam: Camera3D = $Yaw/Pitch/SpringArm3D/Camera3D
+
+# ============================================================================
+# INTERNAL STATE
+# ============================================================================
+var _current_yaw_deg: float = 0.0
+var _current_pitch_deg: float = 15.0
+var _target_yaw_deg: float = 0.0
+var _target_pitch_deg: float = 15.0
+var _target_radius: float = 5.0
+
+# Cached values
+var _y_invert_multiplier: float = 1.0
+var _smooth_time_safe: float
+
+# ============================================================================
+# INITIALIZATION
+# ============================================================================
 func _ready() -> void:
-    # Autodetecta la Camera3D si no se asignó
-    if camera == null:
-        camera = get_node_or_null("Camera3D")
-    if camera == null:
-        push_error("[CameraOrbit] Asigna una Camera3D en el inspector o como hijo directo.")
-        set_process(false)
-        set_physics_process(false)
-        return
-    _current_distance = clamp(desired_distance, min_distance, max_distance)
-    Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	_initialize_position()
+	_initialize_rotation()
+	_initialize_zoom()
+	_initialize_camera()
+	_configure_spring_arm()
+	_setup_input_capture()
+	_cache_constants()
 
+func _initialize_position() -> void:
+	position.y = height_offset
+
+func _initialize_rotation() -> void:
+	_current_yaw_deg = yaw.rotation_degrees.y
+	_current_pitch_deg = clampf(pitch.rotation_degrees.x, min_pitch_deg, max_pitch_deg)
+	_target_yaw_deg = _current_yaw_deg
+	_target_pitch_deg = _current_pitch_deg
+
+func _initialize_zoom() -> void:
+	_target_radius = radius
+	spring.spring_length = clampf(radius, min_radius, max_radius)
+
+func _initialize_camera() -> void:
+	if cam:
+		cam.fov = fov_default
+
+func _configure_spring_arm() -> void:
+	# CRÍTICO: El SpringArm3D necesita collision_mask configurado
+	# para detectar geometría del mundo y evitar atravesar paredes
+	spring.collision_mask = 1  # Layer 1 para geometría del mundo
+	spring.spring_length = radius
+	spring.margin = 0.2  # Pequeño margen para evitar clipping
+	
+	# IMPORTANTE: Configurar shape para el raycast
+	var shape := SphereShape3D.new()
+	shape.radius = 0.2
+	spring.shape = shape
+
+func _setup_input_capture() -> void:
+	if capture_on_start:
+		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+
+func _cache_constants() -> void:
+	_y_invert_multiplier = -1.0 if invert_y else 1.0
+	_smooth_time_safe = max(0.0001, smooth_time)
+
+# ============================================================================
+# INPUT HANDLING
+# ============================================================================
 func _unhandled_input(event: InputEvent) -> void:
-    if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
-        _yaw -= event.relative.x * sens_x * 0.01
-        _pitch -= event.relative.y * sens_y * 0.01
-        _pitch = clamp(
-            _pitch,
-            deg_to_rad(pitch_min_deg),
-            deg_to_rad(pitch_max_deg)
-        )
-    if event is InputEventMouseButton and event.pressed:
-        if event.button_index == MOUSE_BUTTON_WHEEL_UP:
-            desired_distance = clamp(desired_distance - zoom_step, min_distance, max_distance)
-        elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-            desired_distance = clamp(desired_distance + zoom_step, min_distance, max_distance)
+	if _handle_escape_key(event):
+		return
+	
+	if _is_mouse_captured():
+		_handle_mouse_motion(event)
+		_handle_mouse_wheel(event)
 
-func _physics_process(delta: float) -> void:
-    # 1) Orienta el pivot según yaw/pitch
-    var target_basis := Basis()
-    target_basis = target_basis.rotated(Vector3.UP, _yaw)
-    target_basis = target_basis.rotated(target_basis.x, _pitch)
+func _handle_escape_key(event: InputEvent) -> bool:
+	if not (event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE):
+		return false
+	
+	_toggle_mouse_capture()
+	return true
 
-    # Interpolar suavemente la orientación del pivot (evita jitter con animaciones del player)
-    var new_basis := global_transform.basis.slerp(target_basis, clamp(aim_smooth * delta, 0.0, 1.0))
-    global_transform.basis = new_basis
+func _toggle_mouse_capture() -> void:
+	var current_mode: Input.MouseMode = Input.get_mouse_mode()
+	var new_mode: Input.MouseMode = (
+		Input.MOUSE_MODE_VISIBLE if current_mode == Input.MOUSE_MODE_CAPTURED 
+		else Input.MOUSE_MODE_CAPTURED
+	)
+	Input.set_mouse_mode(new_mode)
 
-    # 2) Calcula la posición ideal de la cámara (detrás del pivot)
-    var origin: Vector3 = global_transform.origin
-    var back_dir: Vector3 = -global_transform.basis.z # en Godot, -Z es forward; para ir "atrás" usamos +Z del pivot
-    var ideal_target: Vector3 = origin + back_dir * desired_distance
+func _is_mouse_captured() -> bool:
+	return Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED
 
-    # 3) Raycast para evitar clipping (excluye al player)
-    var space_state := get_world_3d().direct_space_state
-    var query := PhysicsRayQueryParameters3D.create(origin, ideal_target)
-    query.collide_with_areas = true
-    query.collide_with_bodies = true
-    query.collision_mask = collision_mask
-    if player_body != null:
-        query.exclude = [player_body.get_rid()]
+func _handle_mouse_motion(event: InputEvent) -> void:
+	if not event is InputEventMouseMotion:
+		return
+	
+	var motion: InputEventMouseMotion = event as InputEventMouseMotion
+	_update_rotation_targets(motion.relative)
 
-    var hit := space_state.intersect_ray(query)
+func _update_rotation_targets(mouse_delta: Vector2) -> void:
+	_target_yaw_deg -= mouse_delta.x * sensitivity_deg
+	_target_pitch_deg -= mouse_delta.y * sensitivity_deg * _y_invert_multiplier
+	_target_pitch_deg = clampf(_target_pitch_deg, min_pitch_deg, max_pitch_deg)
 
-    var target_pos: Vector3 = ideal_target
-    if hit.size() > 0:
-        # Ajusta distancia para quedar justo antes del obstáculo
-        var hit_pos: Vector3 = hit["position"]
-        var dist: float = origin.distance_to(hit_pos) - (safe_margin + collision_radius_hint)
-        dist = clamp(dist, min_distance, desired_distance)
-        target_pos = origin + back_dir * dist
+func _handle_mouse_wheel(event: InputEvent) -> void:
+	if not (event is InputEventMouseButton and event.pressed):
+		return
+	
+	var button_event: InputEventMouseButton = event as InputEventMouseButton
+	
+	match button_event.button_index:
+		MOUSE_BUTTON_WHEEL_UP:
+			_target_radius = maxf(min_radius, _target_radius - zoom_step)
+		MOUSE_BUTTON_WHEEL_DOWN:
+			_target_radius = minf(max_radius, _target_radius + zoom_step)
 
-    # 4) Suaviza la distancia para evitar "pops" al entrar/salir de colisión
-    var target_dist := origin.distance_to(target_pos)
-    _current_distance = lerp(_current_distance, target_dist, clamp(distance_smooth * delta, 0.0, 1.0))
+# ============================================================================
+# UPDATE LOOP
+# ============================================================================
+func _process(delta: float) -> void:
+	_maintain_height()
+	_update_smooth_rotation(delta)
+	_update_smooth_zoom(delta)
+	_apply_transforms()
 
-    # 5) Coloca cámara y mira al pivot
-    camera.global_transform.origin = origin + back_dir * _current_distance
-    camera.look_at(origin, Vector3.UP)
+func _maintain_height() -> void:
+	"""Mantiene la altura relativa al padre (Player)"""
+	if abs(position.y - height_offset) > 0.001:
+		position.y = height_offset
 
-    # 6) Opcional: alinear "near" para reducir clipping con el suelo en picado
-    # camera.near = 0.05
+func _update_smooth_rotation(delta: float) -> void:
+	var interpolation_factor: float = _calculate_smooth_factor(delta)
+	
+	_current_yaw_deg = _lerp_angle_deg(_current_yaw_deg, _target_yaw_deg, interpolation_factor)
+	_current_pitch_deg = lerpf(_current_pitch_deg, _target_pitch_deg, interpolation_factor)
+
+func _update_smooth_zoom(delta: float) -> void:
+	var interpolation_factor: float = _calculate_smooth_factor(delta)
+	radius = lerpf(radius, _target_radius, interpolation_factor)
+
+func _calculate_smooth_factor(delta: float) -> float:
+	return 1.0 - exp(-delta / _smooth_time_safe)
+
+func _apply_transforms() -> void:
+	yaw.rotation_degrees.y = _current_yaw_deg
+	pitch.rotation_degrees.x = _current_pitch_deg
+	spring.spring_length = clampf(radius, min_radius, max_radius)
+
+func _lerp_angle_deg(from: float, to: float, weight: float) -> float:
+	var difference: float = fposmod((to - from) + 180.0, 360.0) - 180.0
+	return from + difference * weight
+
+# ============================================================================
+# FOV EFFECTS (Called from Player)
+# ============================================================================
+func _on_player_landed(is_hard: bool) -> void:
+	if not cam:
+		return
+	
+	var kick_intensity: float = fov_kick_land_hard if is_hard else (fov_kick_jump * 0.5)
+	_apply_fov_kick(kick_intensity)
+
+func _play_jump_kick() -> void:
+	if not cam:
+		return
+	
+	cam.fov = minf(fov_default + fov_kick_jump, cam.fov + fov_kick_jump)
+
+func _apply_fov_kick(kick_amount: float) -> void:
+	var target_fov: float = fov_default + kick_amount
+	cam.fov = lerpf(cam.fov, target_fov, 0.7)
+	
+	await get_tree().create_timer(0.08).timeout
+	
+	if cam:  # Verify camera still exists after await
+		cam.fov = lerpf(cam.fov, fov_default, 0.2)
+
+# ============================================================================
+# PUBLIC API
+# ============================================================================
+func get_look_direction() -> Vector3:
+	"""Returns the forward direction the camera is facing"""
+	return -yaw.global_transform.basis.z
+
+func get_right_direction() -> Vector3:
+	"""Returns the right direction relative to camera"""
+	return yaw.global_transform.basis.x
+
+func set_yaw_rotation(degrees: float) -> void:
+	"""Instantly set yaw rotation (useful for teleports/respawns)"""
+	_current_yaw_deg = degrees
+	_target_yaw_deg = degrees
+	yaw.rotation_degrees.y = degrees
+
+func set_pitch_rotation(degrees: float) -> void:
+	"""Instantly set pitch rotation (useful for teleports/respawns)"""
+	var clamped: float = clampf(degrees, min_pitch_deg, max_pitch_deg)
+	_current_pitch_deg = clamped
+	_target_pitch_deg = clamped
+	pitch.rotation_degrees.x = clamped
+
+func reset_fov() -> void:
+	"""Reset FOV to default value"""
+	if cam:
+		cam.fov = fov_default
+
+func get_camera() -> Camera3D:
+	"""Get the Camera3D node"""
+	return cam
+
+func get_spring_arm() -> SpringArm3D:
+	"""Get the SpringArm3D node for advanced configuration"""
+	return spring
