@@ -25,6 +25,9 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Modularidad visual de NPCs (materiales, gear y tintado todavía dependen de rutas estáticas).
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
+### Registro de mantenimiento reciente
+- Ajustado `Modules/AnimationCtrl.gd` para que verifique la existencia de parámetros del `AnimationTree` con `get_parameter_list` cuando `has_parameter` no está disponible en Godot 4.4, evitando llamadas inválidas en runtime.
+
 ---
 
 ## Diagrama textual de estructura del proyecto
