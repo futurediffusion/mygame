@@ -36,6 +36,9 @@ const INPUT_ACTIONS := {
 
 @export var stats: AllyStats
 
+@export var sim_group: StringName = SimClock.GROUP_LOCAL
+@export var priority: int = 10
+
 # ============================================================================
 # MOVEMENT CONFIGURATION
 # ============================================================================
@@ -81,7 +84,6 @@ const INPUT_ACTIONS := {
 @onready var stamina: Stamina = $Stamina
 @onready var camera_rig: Node = get_node_or_null(^"CameraRig")
 @onready var game_state: GameState = get_node_or_null(^"/root/GameState")
-@onready var sim_clock: SimClockScheduler = get_node_or_null(^"/root/SimClock")
 @onready var trigger_area: Area3D = get_node_or_null(^"TriggerArea")
 @onready var combo: PerfectJumpCombo = $PerfectJumpCombo
 
@@ -97,12 +99,8 @@ const INPUT_ACTIONS := {
 # INTERNAL STATE
 # ============================================================================
 var _sprint_threshold: float
-var _use_sim_clock := false
 var _skip_module_updates := false
 var _block_animation_updates := false
-var _pending_move_delta := 0.0
-var _pending_move_is_sprinting := false
-var _pending_move_ready := false
 var _combo_floor_state := false
 var _input_cache: Dictionary = {}
 var _context_state: ContextState = ContextState.DEFAULT
@@ -148,15 +146,7 @@ func _ready() -> void:
 		combo.coyote_time = coyote_time
 		combo.jump_buffer = jump_buffer
 
-	_use_sim_clock = sim_clock != null and is_instance_valid(sim_clock)
-	if _use_sim_clock:
-		# R3→R4 MIGRATION: Registro usando StringName canónico.
-		sim_clock.register(self, SimClockScheduler.GROUP_LOCAL)
-		if not sim_clock.ticked.is_connected(_on_sim_clock_ticked):
-			sim_clock.ticked.connect(_on_sim_clock_ticked)
-		set_physics_process(false)
-	else:
-		set_physics_process(true)
+	SimClock.register_module(self, sim_group, priority)
 
 	# ⬇️ CONECTA LAS SEÑALES EN EL Area3D, NO EN EL PLAYER
 	if trigger_area and is_instance_valid(trigger_area):
@@ -176,12 +166,10 @@ func _ready() -> void:
 		_stamina_ratio_min = ratio
 		_stamina_ratio_max_since_min = ratio
 
-func _exit_tree() -> void:
-	if _use_sim_clock and sim_clock and is_instance_valid(sim_clock):
-		if sim_clock.ticked.is_connected(_on_sim_clock_ticked):
-			sim_clock.ticked.disconnect(_on_sim_clock_ticked)
-		# R3→R4 MIGRATION: Desregistro centralizado sin string literal.
-		sim_clock.unregister(self)
+func _on_clock_tick(group: StringName, dt: float) -> void:
+	if group == sim_group:
+		physics_tick(dt)
+
 
 # ============================================================================
 # MAIN PHYSICS LOOP
@@ -219,19 +207,9 @@ func physics_tick(delta: float) -> void:
 	m_anim.set_frame_anim_inputs(is_sprinting, air_time)
 	_skip_module_updates = is_paused or in_cinematic
 	_block_animation_updates = is_paused or in_cinematic
-	_pending_move_delta = delta
-	_pending_move_is_sprinting = is_sprinting
-	_pending_move_ready = true
 	_evaluate_context_state(input_dir)
-	if not _use_sim_clock:
-		_manual_tick_modules(delta)
-		_finish_physics_step(delta, is_sprinting)
-		_pending_move_ready = false
-
-func _physics_process(delta: float) -> void:
-	if _use_sim_clock:
-		return
-	physics_tick(delta)
+	_manual_tick_modules(delta)
+	_finish_physics_step(delta, is_sprinting)
 
 func _manual_tick_modules(delta: float) -> void:
 	if not _skip_module_updates:
@@ -255,14 +233,6 @@ func _finish_physics_step(delta: float, is_sprinting: bool) -> void:
 	_consume_sprint_stamina(delta, is_sprinting)
 	_track_stamina_cycle(delta, is_sprinting)
 
-# R3→R4 MIGRATION: Compatibilidad con StringName emitido por SimClock.
-func _on_sim_clock_ticked(group_name: StringName, _dt: float) -> void:
-	if group_name != SimClockScheduler.GROUP_LOCAL:
-		return
-	if not _pending_move_ready:
-		return
-	_finish_physics_step(_pending_move_delta, _pending_move_is_sprinting)
-	_pending_move_ready = false
 
 func should_skip_module_updates() -> bool:
 	return _skip_module_updates
