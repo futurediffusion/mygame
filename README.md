@@ -26,6 +26,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Registro de mantenimiento reciente
+- Corregida la indentación del bucle global en `Singletons/SimClock.gd` para restaurar el parseo en Godot 4.4.
 - Orden de tick determinista en `Singletons/SimClock.gd`: nuevo export `order_strategy`, API `set_priority` y limpieza automática de módulos inválidos aseguran emisión estable antes de pausar por grupo.
 - Actualizados los comparadores de orden en `Singletons/SimClock.gd` para usar `Callable` con `sort_custom` en Godot 4.4, eliminando los errores de análisis por firma de función.
 - `Singletons/GameState.gd` ahora coordina las pausas del `SimClock` local durante `set_paused` y `set_cinematic`, evitando consumo de stamina o transiciones de FSM mientras dure la pausa.
