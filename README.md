@@ -143,6 +143,12 @@ Carga el JSON al iniciarse, guarda defaults y entradas individuales, y expone co
 ### SimClock (`Singletons/SimClock.gd`)
 Scheduler autoritativo con acumuladores por grupo (`local`, `regional`, `global`). Permite pausar grupos o módulos, ajustar intervalos y emitir la señal `ticked(group_name, dt)`. Los módulos inscritos reciben `physics_tick` según la cadencia seleccionada. Player detecta si el clock está presente y sincroniza `_finish_physics_step` tras cada tick local.
 
+### Loop de Simulación
+- **Emisión de ticks:** `Singletons/SimClock.gd` es un autoload único que procesa los acumuladores por grupo y emite `ticked(group_name, dt)` cada frame físico. La bandera `Flags.USE_SIMCLOCK_ALLY` controla si los aliados se registran para escuchar estos ticks o se quedan en `_physics_process` de compatibilidad.
+- **Módulos suscritos:** Los módulos derivados de `Modules/ModuleBase.gd` se registran automáticamente en el grupo que especifiquen y reciben `physics_tick(dt)`. El orquestador del jugador (`scenes/entities/player.gd`) ya opera mediante SimClock local, y los aliados delegan su FSM a `Modules/AllyFSMModule.gd`, que reinyecta el tick en `scenes/entities/Ally.gd` cuando `Flags.USE_SIMCLOCK_ALLY` está activo.
+- **Pausa por grupo:** `Singletons/GameState.gd` coordina las pausas llamando a `SimClock.set_group_paused(StringName, bool)` para suspender `local`, `regional` o `global`. Los helpers en `scripts/core/Flags.gd` encapsulan `USE_SIMCLOCK_ALLY` y `ALLY_TICK_GROUP` (por defecto `"local"`) para mantener compatibilidad con escenas que aún dependen de `_physics_process`.
+- **Orden de actualización:** El `SimClock` ordena suscripción de módulos según la prioridad registrada (por defecto FIFO) antes de emitir `ticked`. Primero se resuelven los módulos locales (jugador, aliados, HUD reactivo), luego los regionales (sistemas de zona) y al final los globales (economía, telemetría). La migración R3→R4 mantiene el orden determinista al reutilizar la misma cola para AllyFSMModule y Player.
+
 ### EventBus + HUD (`Singletons/EventBus.gd`, `scenes/ui/HUD.gd`)
 `EventBus` define señales globales (`hud_message`, `ally_died`, `save_requested`, `load_requested`, `stamina_changed`) y helpers `post_hud`, `notify_ally_died`. `HUD.gd` escucha `hud_message`, muestra texto en pantalla y usa un `SceneTreeTimer` para ocultarlo tras el tiempo indicado. El patrón elimina dependencias directas entre gameplay y UI.
 

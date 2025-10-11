@@ -73,6 +73,7 @@ func _ready() -> void:
 	# 	sim_clock.register(self, "local")
 	refresh_sim_clock_binding()
 
+# R3→R4 MIGRATION: Deprecated; usar AllyFSMModule.
 func _physics_process(delta: float) -> void:
 	_ally_physics_update(delta)
 
