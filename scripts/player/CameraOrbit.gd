@@ -40,6 +40,10 @@ class_name CameraRig
 @onready var spring: SpringArm3D = $Yaw/Pitch/SpringArm3D
 @onready var cam: Camera3D = $Yaw/Pitch/SpringArm3D/Camera3D
 
+const CAMERA_COLLISION_MASK := (1 << 3) | (1 << 4)  # Terrain + interactables
+const TERRAIN_LAYER_ID := 4
+const INTERACTABLE_LAYER_ID := 5
+
 # ============================================================================
 # INTERNAL STATE
 # ============================================================================
@@ -83,7 +87,9 @@ func _initialize_camera() -> void:
 		cam.fov = fov_default
 
 func _configure_spring_arm() -> void:
-	spring.collision_mask = 1  # Layer 1 for world geometry
+	spring.collision_mask = CAMERA_COLLISION_MASK
+	spring.set_collision_mask_value(TERRAIN_LAYER_ID, true)
+	spring.set_collision_mask_value(INTERACTABLE_LAYER_ID, true)
 
 func _setup_input_capture() -> void:
 	if capture_on_start:

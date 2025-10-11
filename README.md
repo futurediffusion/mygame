@@ -16,6 +16,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Progresión basada en `AllyStats` y arquetipos data-driven (`Resources/AllyStats.gd`, `data/ally_archetypes.json`, `Singletons/Data.gd`).
 - Autoloads de servicios (`SimClock`, `EventBus`, `GameState`, `Save`) configurados en `project.godot`.
 - HUD reactivo basado en eventos (`scenes/ui/HUD.gd`).
+- Animaciones en aire ajustadas: `AnimationCtrlModule` conserva el blend de locomoción durante los saltos, ralentiza la caminata en caída y el `CameraRig` vuelve a colisionar con terreno/interactuables para evitar que la cámara atraviese el piso.
 
 ### ¿Qué queda en prototipo o backlog para R4?
 - Integrar AnimationTree avanzado compartido para Player y Ally (blendspaces contextuales).

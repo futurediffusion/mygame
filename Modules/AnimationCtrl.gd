@@ -24,10 +24,13 @@ var fall_ramp_delay := 0.10
 var fall_ramp_time := 0.20
 var fall_blend_lerp := 12.0
 
+# Ajustes de locomoción en aire
+var airborne_locomotion_speed_scale := 0.55
+var airborne_locomotion_slow_delay := 0.10
+var airborne_locomotion_slow_time := 0.25
+
 # Estado interno de blend
 var _current_air_blend := 0.0
-# Se usa para amortiguar la transición del blend de locomoción cuando está en el aire
-var _current_locomotion_blend := 0.0
 
 # Inputs cacheados por frame
 var _is_sprinting := false
@@ -63,53 +66,40 @@ func set_frame_anim_inputs(is_sprinting: bool, air_time: float) -> void:
 	_air_time = air_time
 
 func physics_tick(delta: float) -> void:
-        if player == null or not is_instance_valid(player):
-                return
-        if player.has_method("should_skip_module_updates") and player.should_skip_module_updates():
-                return
-        if player.has_method("should_block_animation_update") and player.should_block_animation_update():
-                return
-        _update_locomotion_blend(_is_sprinting, delta)
-        _update_sprint_timescale(_is_sprinting)
-        _update_air_blend(delta, _air_time)
+	if player == null or not is_instance_valid(player):
+		return
+	if player.has_method("should_skip_module_updates") and player.should_skip_module_updates():
+		return
+	if player.has_method("should_block_animation_update") and player.should_block_animation_update():
+		return
+	_update_locomotion_blend(_is_sprinting)
+	_update_sprint_timescale(_is_sprinting)
+	_update_air_blend(delta, _air_time)
 
 # Compatibilidad (si alguien externo aún llama)
 func update_animation_state(delta: float, _input_dir: Vector3, is_sprinting: bool, air_time: float) -> void:
 	set_frame_anim_inputs(is_sprinting, air_time)
 	physics_tick(delta)
 
-func _update_locomotion_blend(is_sprinting: bool, delta: float) -> void:
-        var hspeed := Vector2(player.velocity.x, player.velocity.z).length()
-        var target_max := sprint_speed if is_sprinting else run_speed
-        var blend: float
-        if hspeed <= walk_speed:
-                blend = remap(hspeed, 0.0, walk_speed, 0.0, 0.4)
-        else:
-                blend = remap(hspeed, walk_speed, target_max, 0.4, 1.0)
-        if is_sprinting:
-                blend = pow(clampf(blend, 0.0, 1.0), sprint_blend_bias)
-        var target_blend := clampf(blend, 0.0, 1.0)
-        var is_airborne := not player.is_on_floor()
-        if is_airborne:
-                var damp_target := target_blend
-                var is_descending := player.velocity.y < fall_threshold
-                if is_descending or _air_time > fall_ramp_delay:
-                        damp_target = min(damp_target, 0.35)
-                if _air_time > fall_ramp_delay + (fall_ramp_time * 0.5):
-                        damp_target = 0.0
-                var lerp_speed := clampf(delta * 12.0, 0.0, 1.0)
-                _current_locomotion_blend = lerpf(_current_locomotion_blend, damp_target, lerp_speed)
-        else:
-                _current_locomotion_blend = target_blend
-        _current_locomotion_blend = clampf(_current_locomotion_blend, 0.0, 1.0)
-        anim_tree.set(PARAM_LOC, _current_locomotion_blend)
+func _update_locomotion_blend(is_sprinting: bool) -> void:
+	var hspeed := Vector2(player.velocity.x, player.velocity.z).length()
+	var target_max := sprint_speed if is_sprinting else run_speed
+	var blend: float
+	if hspeed <= walk_speed:
+		blend = remap(hspeed, 0.0, walk_speed, 0.0, 0.4)
+	else:
+		blend = remap(hspeed, walk_speed, target_max, 0.4, 1.0)
+	if is_sprinting:
+		blend = pow(clampf(blend, 0.0, 1.0), sprint_blend_bias)
+	anim_tree.set(PARAM_LOC, clampf(blend, 0.0, 1.0))
 
 func _update_sprint_timescale(is_sprinting: bool) -> void:
-	if not is_sprinting:
-		anim_tree.set(PARAM_SPRINTSCL, 1.0)
-		return
-	var blend_pos: float = float(anim_tree.get(PARAM_LOC))
-	var scale_factor: float = lerp(1.0, sprint_anim_speed_scale, blend_pos)
+	var scale_factor := 1.0
+	if is_sprinting:
+		var blend_pos: float = float(anim_tree.get(PARAM_LOC))
+		scale_factor = lerp(1.0, sprint_anim_speed_scale, blend_pos)
+	if not player.is_on_floor():
+		scale_factor *= _calculate_air_locomotion_timescale()
 	anim_tree.set(PARAM_SPRINTSCL, scale_factor)
 
 func _update_air_blend(delta: float, air_time: float) -> void:
@@ -126,3 +116,12 @@ func _calculate_fall_blend(air_time: float) -> float:
 		return 0.0
 	var t := clampf(elapsed / fall_ramp_time, 0.0, 1.0)
 	return smoothstep(0.0, 1.0, t)
+
+func _calculate_air_locomotion_timescale() -> float:
+	if player.velocity.y < fall_threshold:
+		return airborne_locomotion_speed_scale
+	var elapsed := _air_time - airborne_locomotion_slow_delay
+	if elapsed <= 0.0:
+		return 1.0
+	var t := clampf(elapsed / airborne_locomotion_slow_time, 0.0, 1.0)
+	return lerp(1.0, airborne_locomotion_speed_scale, smoothstep(0.0, 1.0, t))
