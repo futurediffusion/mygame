@@ -42,7 +42,8 @@ func register_module(mod: Node, group: StringName, priority: int) -> void:
 	for key in _groups.keys():
 		var existing: Array = _groups[key]
 		_groups[key] = existing.filter(func(entry): return entry.mod != mod)
-	var list: Array = _groups.get_or_add(group, [])
+	_ensure_group_entry(group)
+	var list: Array = _groups[group]
 	list.append({ "mod": mod, "prio": priority })
 	list.sort_custom(Callable(self, "_cmp_prio"))
 	_groups[group] = list
@@ -82,14 +83,18 @@ func _cmp_prio(a: Dictionary, b: Dictionary) -> bool:
 	return prio_a < prio_b
 
 func _on_mod_exited(group: StringName, mod: Node) -> void:
-	var list: Array = _groups.get_or_add(group, [])
+	if not _groups.has(group):
+		return
+	var list: Array = _groups[group]
 	list = list.filter(func(it): return it.mod != mod)
 	_groups[group] = list
 
 func _tick_group(group: StringName, dt: float) -> void:
 	if _group_paused.get(group, false):
 		return
-	var list: Array = _groups.get_or_add(group, [])
+	if not _groups.has(group):
+		return
+	var list: Array = _groups[group]
 	for entry in list.duplicate():
 		var m: Node = entry.mod
 		if is_instance_valid(m) and m.is_inside_tree():
@@ -101,10 +106,17 @@ func _tick_group(group: StringName, dt: float) -> void:
 
 func _ensure_group_defaults() -> void:
 	for group in [GROUP_LOCAL, GROUP_REGIONAL, GROUP_GLOBAL]:
-		_groups.get_or_add(group, [])
-		_group_paused.get_or_add(group, false)
-		_tick_counters.get_or_add(group, 0)
-		_tick_sim_time.get_or_add(group, 0.0)
+		_ensure_group_entry(group)
+
+func _ensure_group_entry(group: StringName) -> void:
+	if not _groups.has(group):
+		_groups[group] = []
+	if not _group_paused.has(group):
+		_group_paused[group] = false
+	if not _tick_counters.has(group):
+		_tick_counters[group] = 0
+	if not _tick_sim_time.has(group):
+		_tick_sim_time[group] = 0.0
 
 func _get_group_interval(group: StringName) -> float:
 	match group:
@@ -115,3 +127,4 @@ func _get_group_interval(group: StringName) -> float:
 		GROUP_GLOBAL:
 			return fixed_dt_global
 	return fixed_dt_local
+
