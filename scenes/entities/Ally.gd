@@ -69,9 +69,35 @@ func _ready() -> void:
 	# var sim_clock: Node = get_node_or_null(^"/root/SimClock")
 	# if sim_clock:
 	# 	sim_clock.register(self, "local")
+	# R3→R4 MIGRATION: Adaptador SimClock proxy.
+	var sim_clock: SimClockScheduler = get_node_or_null(^"/root/SimClock") as SimClockScheduler
+	var use_sim_clock := Flags.USE_SIMCLOCK_ALLY and sim_clock != null and is_instance_valid(sim_clock)
+	if use_sim_clock:
+		if not sim_clock.ticked.is_connected(_on_sim_clock_ticked):
+			sim_clock.ticked.connect(_on_sim_clock_ticked)
+		set_physics_process(false)
+		if Engine.is_editor_hint():
+			print_verbose("R3→R4 MIGRATION: Ally usando SimClock (%s)" % Flags.ALLY_TICK_GROUP)
+	else:
+		set_physics_process(true)
+		if Engine.is_editor_hint():
+			print_verbose("R3→R4 MIGRATION: Ally usando _physics_process fallback")
 
 func _physics_process(delta: float) -> void:
-	physics_tick(delta)
+	_ally_physics_update(delta)
+
+# R3→R4 MIGRATION: Punto único de entrada para updates de Ally.
+func _ally_physics_update(dt: float) -> void:
+	physics_tick(dt)
+
+# R3→R4 MIGRATION: Callback de tick filtrado para Ally.
+func _on_sim_clock_ticked(group_name: StringName, dt: float) -> void:
+	if group_name == Flags.ALLY_TICK_GROUP:
+		_on_local_tick(dt)
+
+# R3→R4 MIGRATION: Handler específico del grupo local.
+func _on_local_tick(dt: float) -> void:
+	_ally_physics_update(dt)
 
 func physics_tick(delta: float) -> void:
 	if state != _last_state:
