@@ -30,6 +30,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Tipado explícito y sanitización de `entry_name` en `Modules/AnimationCtrl.gd` para evitar errores de inferencia en Godot 4.4 cuando el parámetro viene como `Variant` o `null`.
 - Normalizada la indentación de `Modules/Jump.gd` a tabs consistentes para Godot 4.4, eliminando los errores de análisis por mezcla de espacios y preservando la lógica de salto.
 - Restaurada la indentación por tabs en `scenes/entities/player.gd` para Godot 4.4, resolviendo los errores de parsing que aparecían alrededor de `_update_module_stats()` y reactivando el script principal.
+- Eliminadas las advertencias del depurador al prefijar parámetros opcionales en `scenes/entities/Ally.gd`, silenciar la señal `jumped` en `Modules/State.gd` y autoasignar `animation_tree_path` en `Modules/AnimationCtrl.gd` cuando falta en el inspector.
 
 ---
 

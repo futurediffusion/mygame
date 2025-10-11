@@ -103,7 +103,7 @@ func physics_tick(delta: float) -> void:
 	move_and_slide()
 	_track_stamina_cycle(delta)
 
-func _do_idle(delta: float) -> void:
+func _do_idle(_delta: float) -> void:
 	velocity.x = 0.0
 	velocity.z = 0.0
 	_play_anim(anim_idle)
@@ -132,7 +132,7 @@ func _do_move(delta: float) -> void:
 		if stats:
 			stats.gain_base_stat("athletics", 0.5)
 
-func _do_combat_melee(delta: float) -> void:
+func _do_combat_melee(_delta: float) -> void:
 	if _combat_target == null or not is_instance_valid(_combat_target):
 		state = State.IDLE
 		return
@@ -148,7 +148,7 @@ func _do_combat_melee(delta: float) -> void:
 		else:
 			stats.gain_skill("war", "swords", 1.0, {"action_hash": "melee_sword"})
 
-func _do_combat_ranged(delta: float) -> void:
+func _do_combat_ranged(_delta: float) -> void:
 	velocity.x = 0.0
 	velocity.z = 0.0
 	_play_anim(anim_aim_ranged)
@@ -199,12 +199,12 @@ func _do_swim(delta: float) -> void:
 		if stats:
 			stats.gain_base_stat("swimming", 1.0)
 
-func _do_talk(delta: float) -> void:
+func _do_talk(_delta: float) -> void:
 	velocity.x = 0.0
 	velocity.z = 0.0
 	_play_anim(anim_talk_loop)
 
-func _do_sit(delta: float) -> void:
+func _do_sit(_delta: float) -> void:
 	velocity = Vector3.ZERO
 	_snap_to_seat()
 	_play_anim(anim_sit_loop)
@@ -305,18 +305,18 @@ func _flat_dir(vector: Vector3) -> Vector3:
 		result = result.normalized()
 	return result
 
-func _play_anim(name: String) -> void:
-	if name == "":
+func _play_anim(anim_name: String) -> void:
+	if anim_name == "":
 		return
 	if anim_player == null:
 		return
 	if not is_instance_valid(anim_player):
 		anim_player = null
 		return
-	if not anim_player.has_animation(name):
+	if not anim_player.has_animation(anim_name):
 		return
-	if anim_player.current_animation != name:
-		anim_player.play(name)
+	if anim_player.current_animation != anim_name:
+		anim_player.play(anim_name)
 
 func _snap_to_seat() -> void:
 	if _current_seat == null or not is_instance_valid(_current_seat):
@@ -349,7 +349,7 @@ func _track_stamina_cycle(delta: float) -> void:
 		_stamina_ratio_max_since_min = 1.0
 		_t_stamina_window = 0.0
 
-func _on_state_changed(previous: State, current: State) -> void:
+func _on_state_changed(_previous: State, current: State) -> void:
 	match current:
 		State.MOVE:
 			_t_move_accum = 0.0
