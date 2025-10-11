@@ -26,6 +26,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Log rápido (último cambio)
+- `Modules/PerfectJumpCombo.gd` + `Modules/Jump.gd`: se restauró la ventana `perfect` sin decaimiento temporal, aplicando multiplicadores curvos y reiniciando el combo inmediatamente cuando fallas el timing.
 - `Modules/Jump.gd`: el salto variable ahora recorta la velocidad vertical con `release_velocity_scale` cuando sueltas antes del umbral, logrando saltos cortos consistentes sin romper el combo perfecto ni la ventana de coyote.
 - `Singletons/GameState.gd` renombra su `class_name` a `GameStateAutoload` para evitar la colisión "Class hides an autoload singleton" en Godot 4.4 y `scenes/entities/player.gd` actualiza el tipado del autoload.
 - `Singletons/GameState.gd`, `Modules/ModuleBase.gd`, `scenes/entities/player.gd`, `scenes/entities/Ally.gd` y `scenes/world/test_clock_benchmark.gd`: ahora precargan `SimClock.gd` antes de castear y validan el tipo del autoload para que Godot 4.4 registre `SimClockAutoload` sin advertencias ni errores de parseo.
@@ -58,9 +59,9 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
   - State aplica gravedad reducida durante `_jump_held` (extra_hold_gravity_scale), con tipados locales (Vector3, float) para evitar inferencia Variant.
 
 - PerfectJumpCombo re-integrado:
-  - Nuevo módulo tipado con ventana de aterrizaje (100 ms), stacks con decaimiento y multiplicadores (velocidad/salto).
-  - Movement y Jump leen los multiplicadores cada tick; Player registra aterrizajes y “perfect” al encadenar.
-  - Resultado: encadenes de saltos más responsivos y sensación de locomoción más viva.
+  - Ventana de aterrizaje de 60 ms que se abre al tocar suelo y se cierra al intentar saltar; sólo incrementa el combo si aciertas el salto `perfect`.
+  - Multiplicadores curvos (gamma 0.5) que escalan hasta 3× velocidad y 2× altura; Movement y Jump los consultan cada tick para modular aceleración y salto base.
+  - El combo se reinicia al fallar la ventana sin decaimiento temporal para evitar pérdidas silenciosas de stacks.
 
 - Tipado estricto Godot 4.4:
   - Variables y temporales relevantes anotados (float, Vector3, JumpModule, PerfectJumpCombo) para eliminar warnings “inferred Variant”.
@@ -68,7 +69,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 
 Pruebas:
 - Revalidado salto corto vs. largo al mantener/soltar salto con el recorte `release_velocity_scale`.
-- Verificado combo: incremento de stacks en aterrizajes encadenados; decay progresivo si no encadenas.
+- Verificado combo: incremento al acertar la ventana perfecta y reinicio inmediato al fallar el timing.
 
 Checklist rápido para Codex
 

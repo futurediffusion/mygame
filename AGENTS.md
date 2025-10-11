@@ -59,6 +59,7 @@ func physics_tick(dt: float) -> void:
 > Mantén este archivo sincronizado si detectas nuevas invariantes (ej. métricas de SimClock, AnimationTree compartido) para que el agente siempre tenga el mapa actualizado.
 
 ## 6. Notas recientes
+- Cuando ajustes PerfectJumpCombo, resetea el combo al fallar la ventana perfecta y evita decaimientos ocultos; Godot 4.4 detecta mejor los regresos si el contador pasa por 0 explícito.
 - Al implementar salto variable, corta la velocidad ascendente al soltar (usa `release_velocity_scale`) en lugar de añadir `velocity +=` múltiples veces; evita micro saltos inconsistentes en Godot 4.4.
 - Godot 4.4 falla con "Unexpected indent" si se cuelan espacios en `scenes/entities/player.gd`; mantén tabs estrictos al ajustar `_update_module_stats()` o cualquier bloque que sincronice exports con módulos.
 - Evita retirar `class_name` de los autoloads (`SimClockAutoload`, `GameStateAutoload`): Godot 4.4 deja de exponerlos y los casts tipados en escenas (`player.gd`, módulos) empiezan a marcar errores de parseo.
