@@ -20,6 +20,8 @@ GameState="*res://Singletons/GameState.gd"
 SimClock="*res://Singletons/SimClock.gd"
 EventBus="*res://Singletons/EventBus.gd"
 Save="*res://Singletons/Save.gd"
+; R3→R4 MIGRATION: Feature flags para migración progresiva.
+Flags="*res://scripts/core/Flags.gd"
 
 [input]
 

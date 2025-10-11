@@ -150,7 +150,8 @@ func _ready() -> void:
 
 	_use_sim_clock = sim_clock != null and is_instance_valid(sim_clock)
 	if _use_sim_clock:
-		sim_clock.register(self, "local")
+		# R3→R4 MIGRATION: Registro usando StringName canónico.
+		sim_clock.register(self, SimClockScheduler.GROUP_LOCAL)
 		if not sim_clock.ticked.is_connected(_on_sim_clock_ticked):
 			sim_clock.ticked.connect(_on_sim_clock_ticked)
 		set_physics_process(false)
@@ -179,7 +180,8 @@ func _exit_tree() -> void:
 	if _use_sim_clock and sim_clock and is_instance_valid(sim_clock):
 		if sim_clock.ticked.is_connected(_on_sim_clock_ticked):
 			sim_clock.ticked.disconnect(_on_sim_clock_ticked)
-		sim_clock.unregister(self, "local")
+		# R3→R4 MIGRATION: Desregistro centralizado sin string literal.
+		sim_clock.unregister(self)
 
 # ============================================================================
 # MAIN PHYSICS LOOP
@@ -253,8 +255,9 @@ func _finish_physics_step(delta: float, is_sprinting: bool) -> void:
 	_consume_sprint_stamina(delta, is_sprinting)
 	_track_stamina_cycle(delta, is_sprinting)
 
-func _on_sim_clock_ticked(group_name: String, _dt: float) -> void:
-	if group_name != "local":
+# R3→R4 MIGRATION: Compatibilidad con StringName emitido por SimClock.
+func _on_sim_clock_ticked(group_name: StringName, _dt: float) -> void:
+	if group_name != SimClockScheduler.GROUP_LOCAL:
 		return
 	if not _pending_move_ready:
 		return
