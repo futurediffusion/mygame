@@ -468,33 +468,46 @@ func _on_area_exited(area: Area3D) -> void:
 	_mark_water_area(area, false)
 
 func _mark_water_area(area: Area3D, entered: bool) -> void:
-	if area == null:
+	if area == null or not is_instance_valid(area):
 		return
-	var is_water := false
+
+	var is_water: bool = false
+
+	# 1) Grupo "water" tiene prioridad
 	if area.is_in_group("water"):
 		is_water = true
+	# 2) O usa el meta "is_water" (puede venir como bool o cualquier cosa casteable)
 	elif area.has_meta("is_water"):
-		var meta_value := area.get_meta("is_water")
-		if typeof(meta_value) == TYPE_BOOL:
+		var meta_value: Variant = area.get_meta("is_water")  # evitar Variant implícito
+		if meta_value is bool:
 			is_water = meta_value
 		else:
 			is_water = bool(meta_value)
+
 	if not is_water:
 		return
+
+	# Mantén el set de áreas de agua
 	if entered:
 		if not _water_areas.has(area):
 			_water_areas.append(area)
 	else:
 		_water_areas.erase(area)
-	var was_in_water := _is_in_water
+
+	# Actualiza estado global y reevalúa contexto si cambió
+	var was_in_water: bool = _is_in_water
 	_is_in_water = _water_areas.size() > 0
+
 	if was_in_water != _is_in_water:
-		var move_dir := Vector3.ZERO
+		var move_dir: Vector3 = Vector3.ZERO
 		if _input_cache.has("move"):
 			var move_record: Dictionary = _input_cache.get("move", {})
 			if move_record.has("camera"):
-				move_dir = move_record["camera"]
+				var cam_val: Variant = move_record["camera"]  # puede ser Variant
+				if cam_val is Vector3:
+					move_dir = cam_val
 		_evaluate_context_state(move_dir)
+
 
 # ============================================================================
 # AUDIO & CAMERA HOOKS
