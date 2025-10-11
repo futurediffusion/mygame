@@ -71,19 +71,7 @@ func _ready() -> void:
 	# var sim_clock: Node = get_node_or_null(^"/root/SimClock")
 	# if sim_clock:
 	# 	sim_clock.register(self, "local")
-	# R3→R4 MIGRATION: Adaptador SimClock proxy.
-	var sim_clock: SimClockScheduler = get_node_or_null(^"/root/SimClock") as SimClockScheduler
-	var use_sim_clock := Flags.USE_SIMCLOCK_ALLY and sim_clock != null and is_instance_valid(sim_clock)
-	if _fsm_module != null:
-		_fsm_module.set_runtime_enabled(use_sim_clock)
-	if use_sim_clock:
-		set_physics_process(false)
-		if Engine.is_editor_hint():
-			print_verbose("R3→R4 MIGRATION: Ally usando SimClock (%s)" % Flags.ALLY_TICK_GROUP)
-	else:
-		set_physics_process(true)
-		if Engine.is_editor_hint():
-			print_verbose("R3→R4 MIGRATION: Ally usando _physics_process fallback")
+	refresh_sim_clock_binding()
 
 func _physics_process(delta: float) -> void:
 	_ally_physics_update(delta)
@@ -100,6 +88,22 @@ func _on_sim_clock_ticked(group_name: StringName, dt: float) -> void:
 # R3→R4 MIGRATION: Handler específico del grupo local.
 func _on_local_tick(dt: float) -> void:
 	_ally_physics_update(dt)
+
+# R3→R4 MIGRATION: Reconfigurar binding con SimClock/FSM.
+func refresh_sim_clock_binding() -> void:
+	var sim_clock: SimClockScheduler = get_node_or_null(^"/root/SimClock") as SimClockScheduler
+	var use_sim_clock := Flags.USE_SIMCLOCK_ALLY and sim_clock != null and is_instance_valid(sim_clock)
+	if _fsm_module != null:
+		_fsm_module.tick_group = Flags.ALLY_TICK_GROUP
+		_fsm_module.set_runtime_enabled(use_sim_clock)
+	if use_sim_clock:
+		set_physics_process(false)
+		if Engine.is_editor_hint():
+			print_verbose("R3→R4 MIGRATION: Ally usando SimClock (%s)" % Flags.ALLY_TICK_GROUP)
+	else:
+		set_physics_process(true)
+		if Engine.is_editor_hint():
+			print_verbose("R3→R4 MIGRATION: Ally usando _physics_process fallback")
 
 func physics_tick(dt: float) -> void:
 	if state != _last_state:
@@ -146,7 +150,7 @@ func _do_move(dt: float) -> void:
 		if stats:
 			speed = stats.sprint_speed(move_speed_base)
 		else:
-			speed = move_speed_base * 1.2
+		speed = move_speed_base * 1.2
 	var desired_velocity := flat_dir * speed
 	velocity.x = desired_velocity.x
 	velocity.z = desired_velocity.z
@@ -174,7 +178,7 @@ func _do_combat_melee(_dt: float) -> void:
 		if weapon_kind == "unarmed":
 			stats.gain_skill("war", "unarmed", 1.0, {"action_hash": "melee_unarmed"})
 		else:
-			stats.gain_skill("war", "swords", 1.0, {"action_hash": "melee_sword"})
+		stats.gain_skill("war", "swords", 1.0, {"action_hash": "melee_sword"})
 
 func _do_combat_ranged(_dt: float) -> void:
 	velocity.x = 0.0
@@ -271,12 +275,12 @@ func set_crouched(on: bool) -> void:
 				if _target_dir != Vector3.ZERO:
 					state = State.SWIM
 				else:
-					state = State.IDLE
+		state = State.IDLE
 			else:
-				if _target_dir != Vector3.ZERO:
+		if _target_dir != Vector3.ZERO:
 					state = State.MOVE
 				else:
-					state = State.IDLE
+		state = State.IDLE
 
 func set_sprinting(on: bool) -> void:
 	if sprint_enabled:
@@ -296,7 +300,7 @@ func set_in_water(on: bool) -> void:
 			elif _target_dir != Vector3.ZERO:
 				state = State.MOVE
 			else:
-				state = State.IDLE
+		state = State.IDLE
 
 func start_talking(seconds: float = -1.0) -> void:
 	if state == State.SIT:
@@ -378,6 +382,10 @@ func _track_stamina_cycle(dt: float) -> void:
 		_t_stamina_window = 0.0
 
 func _on_state_changed(_previous: State, current: State) -> void:
+	if Engine.is_editor_hint():
+		var previous_name := _state_enum_name(_previous)
+		var current_name := _state_enum_name(current)
+		print_verbose("[FSM] Ally %s: %s → %s" % [name, previous_name, current_name]) # R3→R4 MIGRATION
 	match current:
 		State.MOVE:
 			_t_move_accum = 0.0
@@ -393,6 +401,13 @@ func _on_state_changed(_previous: State, current: State) -> void:
 			velocity = Vector3.ZERO
 	if current != State.COMBAT_MELEE:
 		_combat_target = null
+
+# R3→R4 MIGRATION: Utilidad de logging para FSM Ally.
+func _state_enum_name(value: State) -> String:
+	for key in State.keys():
+		if State[key] == value:
+			return key
+	return str(value)
 
 func _cleanup_talk_timer() -> void:
 	if _talk_timer and is_instance_valid(_talk_timer):

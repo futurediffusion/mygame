@@ -30,8 +30,17 @@ func physics_tick(dt: float) -> void:
 
 func set_runtime_enabled(is_enabled: bool) -> void:
 	# R3→R4 MIGRATION: Controlar registro dinámico según disponibilidad del clock.
+	var sim_clock := _sim_clock_ref if _sim_clock_ref != null else _fetch_sim_clock()
 	if not Flags.USE_SIMCLOCK_ALLY:
+		if _is_registered and sim_clock != null:
+			sim_clock.unregister(self)
+		if Engine.is_editor_hint():
+			print_verbose("R3→R4 MIGRATION: AllyFSMModule deshabilitado (flag global)")
+		_is_registered = false
+		_sim_clock_ref = null
 		_runtime_enabled = false
+		set_process(false)
+		set_physics_process(false)
 		return
 	if is_enabled:
 		_runtime_enabled = true
@@ -40,14 +49,12 @@ func set_runtime_enabled(is_enabled: bool) -> void:
 			print_verbose("R3→R4 MIGRATION: AllyFSMModule habilitado (%s)" % tick_group)
 	else:
 		_runtime_enabled = false
-		if _is_registered:
-			var sim_clock := _sim_clock_ref if _sim_clock_ref != null else _fetch_sim_clock()
-			if sim_clock != null:
-				sim_clock.unregister(self)
-			if Engine.is_editor_hint():
-				print_verbose("R3→R4 MIGRATION: AllyFSMModule deshabilitado (fallback)")
-			_is_registered = false
-			_sim_clock_ref = null
+		if _is_registered and sim_clock != null:
+			sim_clock.unregister(self)
+		if Engine.is_editor_hint():
+			print_verbose("R3→R4 MIGRATION: AllyFSMModule deshabilitado (fallback)")
+		_is_registered = false
+		_sim_clock_ref = null
 
 func _resolve_ally() -> Node:
 	# R3→R4 MIGRATION: Determinar el Ally asociado al módulo.
