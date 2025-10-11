@@ -174,7 +174,7 @@ func _tick_group(group_name: StringName, dt: float) -> void:
 func _resolve_group(module: Object) -> StringName:
 	if _node_groups.has(module):
 		return _node_groups[module]
-	var group_variant := _safe_get(module, &"tick_group")
+	var group_variant: Variant = _safe_get(module, &"tick_group")
 	var normalized := _normalize_variant_group(group_variant)
 	if normalized != StringName():
 		return normalized
