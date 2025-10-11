@@ -9,10 +9,10 @@ func _enter_tree() -> void:
 		"move_right": KEY_D,
 		"jump": KEY_SPACE
 	}
-	for name in actions.keys():
-		if not InputMap.has_action(name):
-			InputMap.add_action(name)
-			var ev := InputEventKey.new()
-			ev.keycode = actions[name]
-			InputMap.action_add_event(name, ev)
+        for action_name in actions.keys():
+                if not InputMap.has_action(action_name):
+                        InputMap.add_action(action_name)
+                        var ev := InputEventKey.new()
+                        ev.keycode = actions[action_name]
+                        InputMap.action_add_event(action_name, ev)
 	queue_free()

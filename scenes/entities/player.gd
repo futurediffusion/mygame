@@ -30,9 +30,9 @@ const INPUT_ACTIONS := {
 # ============================================================================
 # AUDIO SYSTEM
 # ============================================================================
-@onready var jump_sfx: AudioStreamPlayer3D = $JumpSFX
-@onready var land_sfx: AudioStreamPlayer3D = $LandSFX
-@onready var footstep_sfx: AudioStreamPlayer3D = $FootstepSFX
+@onready var jump_sfx: AudioStreamPlayer3D = get_node_or_null(^"JumpSFX") as AudioStreamPlayer3D
+@onready var land_sfx: AudioStreamPlayer3D = get_node_or_null(^"LandSFX") as AudioStreamPlayer3D
+@onready var footstep_sfx: AudioStreamPlayer3D = get_node_or_null(^"FootstepSFX") as AudioStreamPlayer3D
 
 @export var stats: AllyStats
 
@@ -76,13 +76,13 @@ const INPUT_ACTIONS := {
 # ============================================================================
 @onready var yaw: Node3D = $CameraRig/Yaw
 @onready var model: Node3D = $Pivot/Model
-@onready var anim_tree: AnimationTree = $Pivot/Model/AnimationTree
-@onready var anim_player: AnimationPlayer = $Pivot/Model/AnimationPlayer
+@onready var anim_tree: AnimationTree = get_node_or_null(^"Pivot/Model/AnimationTree") as AnimationTree
+@onready var anim_player: AnimationPlayer = get_node_or_null(^"Pivot/Model/AnimationPlayer") as AnimationPlayer
 @onready var stamina: Stamina = $Stamina
 @onready var camera_rig: Node = get_node_or_null(^"CameraRig")
 @onready var game_state: GameState = get_node_or_null(^"/root/GameState")
 @onready var sim_clock: SimClockScheduler = get_node_or_null(^"/root/SimClock")
-@onready var trigger_area: Area3D = $TriggerArea  # <-- tu hijo Area3D
+@onready var trigger_area: Area3D = get_node_or_null(^"TriggerArea")
 @onready var combo: PerfectJumpCombo = $PerfectJumpCombo
 
 # --- MÓDULOS (nuevos onready) ---
@@ -105,7 +105,7 @@ var _pending_move_is_sprinting := false
 var _pending_move_ready := false
 var _combo_floor_state := false
 var _input_cache: Dictionary = {}
-var _context_state := ContextState.DEFAULT
+var _context_state: ContextState = ContextState.DEFAULT
 var _is_in_water := false
 var _water_areas: Array = []
 var _talk_active := false
@@ -121,35 +121,50 @@ var _t_stamina_window := 0.0
 # INITIALIZATION
 # ============================================================================
 func _ready() -> void:
-	if stats == null:
-		stats = AllyStats.new()
-	_initialize_input_cache()
-	_sprint_threshold = run_speed * 0.4
-	for m in [m_movement, m_jump, m_state, m_orientation, m_anim, m_audio]:
-		m.setup(self)
+        if stats == null:
+                stats = AllyStats.new()
+        _initialize_input_cache()
+        _sprint_threshold = run_speed * 0.4
+        for m in [m_movement, m_jump, m_state, m_orientation, m_anim, m_audio]:
+                m.setup(self)
 
-	if combo and is_instance_valid(combo):
-		combo.base_jump_velocity = jump_velocity
-		combo.coyote_time = coyote_time
-		combo.jump_buffer = jump_buffer
+        if anim_tree == null:
+                push_warning("AnimationTree no encontrado; animaciones desactivadas en este modo.")
+        if anim_player == null:
+                push_warning("AnimationPlayer no encontrado; animaciones desactivadas en este modo.")
 
-	_use_sim_clock = sim_clock != null and is_instance_valid(sim_clock)
-	if _use_sim_clock:
-		sim_clock.register(self, "local")
-		if not sim_clock.ticked.is_connected(_on_sim_clock_ticked):
-			sim_clock.ticked.connect(_on_sim_clock_ticked)
-		set_physics_process(false)
-	else:
-		set_physics_process(true)
+        var missing_audio_nodes: Array[String] = []
+        if jump_sfx == null:
+                missing_audio_nodes.append("JumpSFX")
+        if land_sfx == null:
+                missing_audio_nodes.append("LandSFX")
+        if footstep_sfx == null:
+                missing_audio_nodes.append("FootstepSFX")
+        if not missing_audio_nodes.is_empty():
+                push_warning("Nodos de audio faltantes (%s); SFX de jugador desactivados." % ", ".join(missing_audio_nodes))
 
-	# ⬇️ CONECTA LAS SEÑALES EN EL Area3D, NO EN EL PLAYER
-	if is_instance_valid(trigger_area):
-		if not trigger_area.area_entered.is_connected(_on_area_entered):
-			trigger_area.area_entered.connect(_on_area_entered)
-		if not trigger_area.area_exited.is_connected(_on_area_exited):
-			trigger_area.area_exited.connect(_on_area_exited)
-	else:
-		push_warning("TriggerArea (Area3D) no encontrado como hijo del Player")
+        if combo and is_instance_valid(combo):
+                combo.base_jump_velocity = jump_velocity
+                combo.coyote_time = coyote_time
+                combo.jump_buffer = jump_buffer
+
+        _use_sim_clock = sim_clock != null and is_instance_valid(sim_clock)
+        if _use_sim_clock:
+                sim_clock.register(self, "local")
+                if not sim_clock.ticked.is_connected(_on_sim_clock_ticked):
+                        sim_clock.ticked.connect(_on_sim_clock_ticked)
+                set_physics_process(false)
+        else:
+                set_physics_process(true)
+
+        # ⬇️ CONECTA LAS SEÑALES EN EL Area3D, NO EN EL PLAYER
+        if trigger_area and is_instance_valid(trigger_area):
+                if not trigger_area.area_entered.is_connected(_on_area_entered):
+                        trigger_area.area_entered.connect(_on_area_entered)
+                if not trigger_area.area_exited.is_connected(_on_area_exited):
+                        trigger_area.area_exited.connect(_on_area_exited)
+        else:
+                push_warning("TriggerArea (Area3D) no está presente como hijo del Player; se omiten triggers.")
 
 	_update_module_stats()
 
@@ -255,8 +270,8 @@ func should_block_animation_update() -> bool:
 func get_input_cache() -> Dictionary:
 	return _input_cache.duplicate(true)
 
-func get_context_state() -> int:
-	return _context_state
+func get_context_state() -> ContextState:
+        return _context_state
 
 # ============================================================================
 # INPUT PROCESSING
@@ -355,28 +370,28 @@ func _update_action_cache(key: String, action_names: Array, allow_input: bool) -
 	return record
 
 func _action_pressed(action_names: Array) -> bool:
-	for name in action_names:
-		if typeof(name) == TYPE_STRING and InputMap.has_action(name):
-			if Input.is_action_pressed(name):
-				return true
-	return false
+        for action_name in action_names:
+                if typeof(action_name) == TYPE_STRING and InputMap.has_action(action_name):
+                        if Input.is_action_pressed(action_name):
+                                return true
+        return false
 
 func _action_just_pressed(action_names: Array) -> bool:
-	for name in action_names:
-		if typeof(name) == TYPE_STRING and InputMap.has_action(name):
-			if Input.is_action_just_pressed(name):
-				return true
-	return false
+        for action_name in action_names:
+                if typeof(action_name) == TYPE_STRING and InputMap.has_action(action_name):
+                        if Input.is_action_just_pressed(action_name):
+                                return true
+        return false
 
 func _action_just_released(action_names: Array) -> bool:
-	for name in action_names:
-		if typeof(name) == TYPE_STRING and InputMap.has_action(name):
-			if Input.is_action_just_released(name):
-				return true
-	return false
+        for action_name in action_names:
+                if typeof(action_name) == TYPE_STRING and InputMap.has_action(action_name):
+                        if Input.is_action_just_released(action_name):
+                                return true
+        return false
 
 func _evaluate_context_state(move_dir: Vector3) -> void:
-	var desired := ContextState.DEFAULT
+        var desired: ContextState = ContextState.DEFAULT
 	if _is_sitting:
 		desired = ContextState.SIT
 	elif _talk_active:
@@ -393,12 +408,12 @@ func _evaluate_context_state(move_dir: Vector3) -> void:
 			desired = ContextState.SNEAK
 	_set_context_state(desired)
 
-func _set_context_state(state: int) -> void:
-	if _context_state == state:
-		return
-	var previous := _context_state
-	_context_state = state
-	_input_cache["context_state"] = _context_state
+func _set_context_state(state: ContextState) -> void:
+        if _context_state == state:
+                return
+        var previous := _context_state
+        _context_state = state
+        _input_cache["context_state"] = _context_state
 	context_state_changed.emit(state, previous)
 
 # ============================================================================
