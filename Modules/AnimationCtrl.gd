@@ -251,18 +251,19 @@ func _travel_to_state(state_name: String) -> void:
 func _tree_has_param(param: StringName) -> bool:
 	if anim_tree == null:
 		return false
-	var param_string := String(param)
-	if anim_tree.has_method("has_parameter"):
-		return anim_tree.call("has_parameter", NodePath(param_string))
-	for entry in anim_tree.get_parameter_list():
-		if typeof(entry) == TYPE_DICTIONARY and entry.has("name"):
-			var entry_name_value: Variant = entry.get("name", null)
-			if entry_name_value == null:
-				continue
-			var entry_string := entry_name_value if typeof(entry_name_value) == TYPE_STRING else String(entry_name_value)
-			if entry_string == param_string:
-				return true
-	return false
+	
+	# Verificar si el parámetro existe intentando leerlo
+	var param_list: Array = []
+	if anim_tree.has_method("get_property_list"):
+		param_list = anim_tree.get_property_list()
+		for prop in param_list:
+			if prop is Dictionary and prop.has("name"):
+				if String(prop["name"]) == String(param):
+					return true
+	
+	# Fallback: intentar acceder directamente
+	var value = anim_tree.get(param)
+	return value != null
 
 func _has_state(state_name: String) -> bool:
 	if anim_tree == null:
