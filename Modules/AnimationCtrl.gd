@@ -251,10 +251,19 @@ func _travel_to_state(state_name: String) -> void:
 func _tree_has_param(param: StringName) -> bool:
 	if anim_tree == null:
 		return false
-	return anim_tree.has_parameter(NodePath(String(param)))
+	var param_string := String(param)
+	if anim_tree.has_method("has_parameter"):
+		return anim_tree.call("has_parameter", NodePath(param_string))
+	for entry in anim_tree.get_parameter_list():
+		if typeof(entry) == TYPE_DICTIONARY and entry.has("name"):
+			var entry_name := entry["name"]
+			var entry_string := entry_name if typeof(entry_name) == TYPE_STRING else String(entry_name)
+			if entry_string == param_string:
+				return true
+	return false
 
 func _has_state(state_name: String) -> bool:
 	if anim_tree == null:
 		return false
-	var param_path := "parameters/StateMachine/nodes/%s/position" % state_name
-	return anim_tree.has_parameter(NodePath(param_path))
+	var param_path := StringName("parameters/StateMachine/nodes/%s/position" % state_name)
+	return _tree_has_param(param_path)
