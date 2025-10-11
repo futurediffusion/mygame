@@ -15,9 +15,10 @@ config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
-EventBus="*res://Singletons/EventBus.gd"
+
 GameState="*res://Singletons/GameState.gd"
 SimClock="*res://Singletons/SimClock.gd"
+EventBus="*res://Singletons/EventBus.gd"
 Save="*res://Singletons/Save.gd"
 
 [input]

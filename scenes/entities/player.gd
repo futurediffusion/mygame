@@ -10,7 +10,7 @@ enum ContextState {
 }
 
 signal context_state_changed(new_state: int, previous_state: int)
-signal talk_requested(target: Node = null)
+signal talk_requested(target: Node)
 signal sit_toggled(is_sitting: bool)
 signal interact_requested()
 signal combat_mode_switched(mode: String)
@@ -118,6 +118,8 @@ var _t_stamina_window := 0.0
 # ============================================================================
 # INITIALIZATION
 # ============================================================================
+@onready var trigger_area: Area3D = $TriggerArea  # <-- tu hijo Area3D
+
 func _ready() -> void:
 	if stats == null:
 		stats = AllyStats.new()
@@ -125,6 +127,7 @@ func _ready() -> void:
 	_sprint_threshold = run_speed * 0.4
 	for m in [m_movement, m_jump, m_state, m_orientation, m_anim, m_audio]:
 		m.setup(self)
+
 	_use_sim_clock = sim_clock != null and is_instance_valid(sim_clock)
 	if _use_sim_clock:
 		sim_clock.register(self, "local")
@@ -133,17 +136,33 @@ func _ready() -> void:
 		set_physics_process(false)
 	else:
 		set_physics_process(true)
-	if not area_entered.is_connected(_on_area_entered):
-		area_entered.connect(_on_area_entered)
-	if not area_exited.is_connected(_on_area_exited):
-		area_exited.connect(_on_area_exited)
+
+	# ⬇️ CONECTA LAS SEÑALES EN EL Area3D, NO EN EL PLAYER
+	if is_instance_valid(trigger_area):
+		if not trigger_area.area_entered.is_connected(_on_area_entered):
+			trigger_area.area_entered.connect(_on_area_entered)
+		if not trigger_area.area_exited.is_connected(_on_area_exited):
+			trigger_area.area_exited.connect(_on_area_exited)
+	else:
+		push_warning("TriggerArea (Area3D) no encontrado como hijo del Player")
+
 	_update_module_stats()
+
 	if stamina:
-		var ratio := 1.0
+		var ratio: float = 1.0
 		if stamina.max_stamina > 0.0:
 			ratio = clampf(stamina.value / stamina.max_stamina, 0.0, 1.0)
 		_stamina_ratio_min = ratio
 		_stamina_ratio_max_since_min = ratio
+
+# Firmas correctas para las señales de Area3D:
+func _on_area_entered(area: Area3D) -> void:
+	# TODO: lógica cuando entra otra Area3D
+	pass
+
+func _on_area_exited(area: Area3D) -> void:
+	# TODO: lógica cuando sale otra Area3D
+	pass
 
 func _exit_tree() -> void:
 	if _use_sim_clock and sim_clock and is_instance_valid(sim_clock):
