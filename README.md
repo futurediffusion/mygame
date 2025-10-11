@@ -26,12 +26,14 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Log rápido (último cambio)
+- `Modules/Jump.gd`: el salto variable ahora recorta la velocidad vertical con `release_velocity_scale` cuando sueltas antes del umbral, logrando saltos cortos consistentes sin romper el combo perfecto ni la ventana de coyote.
 - `Singletons/GameState.gd` renombra su `class_name` a `GameStateAutoload` para evitar la colisión "Class hides an autoload singleton" en Godot 4.4 y `scenes/entities/player.gd` actualiza el tipado del autoload.
 - `Singletons/GameState.gd`, `Modules/ModuleBase.gd`, `scenes/entities/player.gd`, `scenes/entities/Ally.gd` y `scenes/world/test_clock_benchmark.gd`: ahora precargan `SimClock.gd` antes de castear y validan el tipo del autoload para que Godot 4.4 registre `SimClockAutoload` sin advertencias ni errores de parseo.
 - `Singletons/GameState.gd` y `Singletons/SimClock.gd`: se restauró el `class_name` y la indentación en tabs para que Godot 4.4 vuelva a exponer los autoloads `GameState` y `SimClockAutoload` sin errores de parseo ni advertencias de tipado al castear en el Player.
 - `scenes/entities/player.gd`: se restauró la indentación en tabs de `_update_module_stats()` para que Godot 4.4 deje de marcar "Unexpected indent" al sincronizar exports de salto y movimiento durante la carga.
 
 ### Registro de mantenimiento reciente
+- `Modules/Jump.gd` introduce `release_velocity_scale` como export para sintonizar la altura del salto corto y corta la velocidad ascendente cuando el botón se suelta antes de agotar `max_hold_time`, manteniendo tabs para Godot 4.4.
 - `_update_module_stats()` en `scenes/entities/player.gd` vuelve a usar tabs y repropaga `jump_speed`/`coyote_time` al módulo de salto y velocidades/aceleraciones al módulo de movimiento, eliminando los errores de parseo reportados en Godot 4.4.
 - Reordenado el ciclo de salto: `InputBuffer.gd` guarda press/release con reloj compartido, `State.gd` aplica gravedad en `pre_move_update`/`post_move_update` y `Jump.gd` consume buffer + coyote + hold reduciendo gravedad antes de `move_and_slide()`.
 - Actualizado `scripts/player/InputBuffer.gd` y `scenes/entities/player.gd`: el buffer escucha `_unhandled_input` como nodo hijo, conserva 120 ms y entrega el salto al tick del `SimClock` sin perder pulsaciones.
@@ -65,7 +67,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
   - Tabs para indentación y orden de paso: módulos → move_and_slide().
 
 Pruebas:
-- Verificado salto corto vs. largo al mantener/soltar salto.
+- Revalidado salto corto vs. largo al mantener/soltar salto con el recorte `release_velocity_scale`.
 - Verificado combo: incremento de stacks en aterrizajes encadenados; decay progresivo si no encadenas.
 
 Checklist rápido para Codex
