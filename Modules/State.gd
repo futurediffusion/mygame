@@ -1,14 +1,14 @@
 extends ModuleBase
 class_name StateModule
 
-@export var gravity := 24.0
-@export var fall_multiplier := 1.0
-@export var floor_snap_on_ground := 0.3
-@export var floor_snap_in_air := 0.0
-@export var configure_physics := true
+@export var gravity: float = 24.0
+@export var fall_multiplier: float = 1.0
+@export var floor_snap_on_ground: float = 0.3
+@export var floor_snap_in_air: float = 0.0
+@export var configure_physics: bool = true
 
 var player: CharacterBody3D
-var _was_on_floor := true
+var _was_on_floor: bool = true
 var _jump_module: JumpModule
 
 signal landed(is_hard: bool)
@@ -43,28 +43,29 @@ func physics_tick(delta: float) -> void:
 	if _jump_module == null or not is_instance_valid(_jump_module):
 		_jump_module = _find_jump_module(player)
 
-	var now_on_floor := player.is_on_floor()
-	var velocity := player.velocity
+	var now_on_floor: bool = player.is_on_floor()
+	var v: Vector3 = player.velocity
+	var jm: JumpModule = _jump_module
 
 	if not now_on_floor:
-		var g := gravity
-		if fall_multiplier != 1.0 and velocity.y < 0.0:
+		var g: float = gravity
+		if fall_multiplier != 1.0 and v.y < 0.0:
 			g *= fall_multiplier
-		if _jump_module and _jump_module.is_hold_active() and velocity.y > 0.0:
-			g *= _jump_module.extra_hold_gravity_scale
-		velocity.y -= g * delta
+		if jm and jm.is_hold_active():
+			g *= jm.extra_hold_gravity_scale
+		v.y -= g * delta
 		if _was_on_floor:
 			_set_floor_snap(floor_snap_in_air)
-			if _jump_module:
-				_jump_module.on_left_ground()
+			if jm:
+				jm.on_left_ground()
 			emit_signal("left_ground")
 	else:
-		if velocity.y < 0.0:
-			velocity.y = 0.0
+		if v.y < 0.0:
+			v.y = 0.0
 		_set_floor_snap(floor_snap_on_ground)
 		if not _was_on_floor:
-			if _jump_module:
-				_jump_module.on_landed()
+			if jm:
+				jm.on_landed()
 			var impact_velocity: float = absf(player.velocity.y)
 			var is_hard: bool = impact_velocity > 10.0
 			if player.has_method("_play_landing_audio"):
@@ -73,7 +74,7 @@ func physics_tick(delta: float) -> void:
 				player._trigger_camera_landing(is_hard)
 			emit_signal("landed", is_hard)
 
-	player.velocity = velocity
+	player.velocity = v
 	_was_on_floor = now_on_floor
 
 func _set_floor_snap(length: float) -> void:

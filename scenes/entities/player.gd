@@ -103,7 +103,6 @@ var input_buffer: InputBuffer
 var _sprint_threshold: float
 var _skip_module_updates := false
 var _block_animation_updates := false
-var _combo_floor_state := false
 var _input_cache: Dictionary = {}
 var _context_state: ContextState = ContextState.DEFAULT
 var _is_in_water := false
@@ -132,6 +131,9 @@ func _ready() -> void:
 	input_buffer.jump_buffer_time = jump_buffer
 	add_child(input_buffer)
 
+	if m_state and not m_state.landed.is_connected(_on_state_landed):
+		m_state.landed.connect(_on_state_landed)
+
 	if anim_tree == null:
 		push_warning("AnimationTree no encontrado; animaciones desactivadas en este modo.")
 	if anim_player == null:
@@ -146,11 +148,6 @@ func _ready() -> void:
 		missing_audio_nodes.append("FootstepSFX")
 	if not missing_audio_nodes.is_empty():
 		push_warning("Nodos de audio faltantes (%s); SFX de jugador desactivados." % ", ".join(missing_audio_nodes))
-
-	if combo and is_instance_valid(combo):
-		combo.base_jump_velocity = jump_velocity
-		combo.coyote_time = coyote_time
-		combo.jump_buffer = jump_buffer
 
 	var clock := _get_simclock()
 	if clock:
@@ -180,7 +177,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if input_buffer == null:
 		return
 	if event.is_action_pressed("jump"):
-		input_buffer.note_jump_pressed(Time.get_unix_time_from_system())
+		var now: float = Time.get_unix_time_from_system()
+		input_buffer.note_jump_pressed(now)
 
 func _on_clock_tick(group: StringName, dt: float) -> void:
 	if group == sim_group:
@@ -192,9 +190,8 @@ func _on_clock_tick(group: StringName, dt: float) -> void:
 # ============================================================================
 func physics_tick(delta: float) -> void:
 	var on_floor_now := is_on_floor()
-	_combo_floor_state = on_floor_now
 	if combo and is_instance_valid(combo):
-		combo.on_physics_step(delta, on_floor_now)
+		combo.physics_tick(delta)
 	var is_paused := false
 	var in_cinematic := false
 	if game_state:
@@ -210,12 +207,7 @@ func physics_tick(delta: float) -> void:
 	if allow_input:
 		is_sprinting = _update_sprint_state(delta, input_dir)
 	m_movement.set_frame_input(input_dir, is_sprinting)
-	var speed_multiplier := 1.0
-	if combo and is_instance_valid(combo):
-		speed_multiplier = combo.get_speed_multiplier()
-	if m_movement and m_movement.has_method("set_speed_multiplier"):
-		m_movement.set_speed_multiplier(speed_multiplier)
-	_sprint_threshold = run_speed * 0.4 * speed_multiplier
+	_sprint_threshold = run_speed * 0.4
 	m_orientation.set_frame_input(input_dir)
 	var air_time := 0.0
 	if m_jump and m_jump.has_method("get_air_time"):
@@ -248,6 +240,11 @@ func _finish_physics_step(delta: float, is_sprinting: bool) -> void:
 	move_and_slide()
 	_consume_sprint_stamina(delta, is_sprinting)
 	_track_stamina_cycle(delta, is_sprinting)
+
+
+func _on_state_landed(_is_hard: bool) -> void:
+	if combo and is_instance_valid(combo):
+		combo.on_landed()
 
 
 func should_skip_module_updates() -> bool:
@@ -292,8 +289,6 @@ func _cache_input_states(allow_input: bool, move_dir: Vector3) -> void:
 	var sprint_record := _update_action_cache("sprint", INPUT_ACTIONS.get("sprint", []), allow_input)
 	var crouch_record := _update_action_cache("crouch", INPUT_ACTIONS.get("crouch", []), allow_input)
 	var jump_record := _update_action_cache("jump", INPUT_ACTIONS.get("jump", []), allow_input)
-	if allow_input and combo and is_instance_valid(combo) and jump_record.get("just_pressed", false):
-		combo.on_jump_input_pressed()
 	var talk_record := _update_action_cache("talk", INPUT_ACTIONS.get("talk", []), allow_input)
 	var sit_record := _update_action_cache("sit", INPUT_ACTIONS.get("sit", []), allow_input)
 	var interact_record := _update_action_cache("interact", INPUT_ACTIONS.get("interact", []), allow_input)
@@ -422,10 +417,6 @@ func _get_camera_relative_input() -> Vector3:
 	return direction
 
 func _update_module_stats() -> void:
-	if combo and is_instance_valid(combo):
-		combo.base_jump_velocity = jump_velocity
-		combo.coyote_time = coyote_time
-		combo.jump_buffer = jump_buffer
 	if input_buffer:
 		input_buffer.jump_buffer_time = jump_buffer
 	if m_jump:
@@ -438,11 +429,8 @@ func _update_module_stats() -> void:
 		m_movement.accel_air = accel_air
 		m_movement.ground_friction = decel
 		m_movement.sprint_speed = sprint_speed
-	var speed_multiplier := 1.0
-	if combo and is_instance_valid(combo):
-		speed_multiplier = combo.get_speed_multiplier()
 	if m_movement and m_movement.has_method("set_speed_multiplier"):
-		m_movement.set_speed_multiplier(speed_multiplier)
+		m_movement.set_speed_multiplier(1.0)
 	if stats:
 		var effective_sprint := sprint_speed
 		effective_sprint = stats.sprint_speed(effective_sprint)
@@ -463,16 +451,6 @@ func _update_sprint_state(delta: float, input_dir: Vector3) -> bool:
 		return false
 	return stamina.can_sprint()
 
-func apply_perfect_jump_combo(base_impulse: float) -> float:
-	var final_impulse := base_impulse
-	if combo and is_instance_valid(combo):
-		combo.base_jump_velocity = base_impulse
-		var combo_impulse := combo.consume_jump_if_available(_combo_floor_state)
-		if combo_impulse > 0.0:
-			final_impulse = combo_impulse
-		else:
-			final_impulse = base_impulse * combo.get_jump_multiplier()
-	return final_impulse
 
 func _consume_sprint_stamina(delta: float, is_sprinting: bool) -> void:
 	if not is_sprinting:

@@ -5,7 +5,7 @@ class_name JumpModule
 @export var coyote_time: float = 0.120
 @export var jump_hold_time: float = 0.150
 @export var extra_hold_gravity_scale: float = 0.6
-@export var uses_state_gravity := true
+@export var uses_state_gravity: bool = true
 
 var player: CharacterBody3D
 var anim_tree: AnimationTree
@@ -15,10 +15,11 @@ const PARAM_JUMP: StringName = &"parameters/Jump/request"
 
 var _time_since_left_floor: float = 9999.0
 var _air_time: float = 0.0
-var _jump_held := false
+var _jump_held: bool = false
 var _hold_timer: float = 0.0
-var _was_on_floor := true
+var _was_on_floor: bool = true
 var _state_module: Node
+var _combo: PerfectJumpCombo
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
@@ -43,7 +44,7 @@ func physics_tick(delta: float) -> void:
 	if player.has_method("should_skip_module_updates") and player.should_skip_module_updates():
 		return
 
-	var on_floor := player.is_on_floor()
+	var on_floor: bool = player.is_on_floor()
 	if on_floor:
 		if not _was_on_floor:
 			on_landed()
@@ -56,20 +57,26 @@ func physics_tick(delta: float) -> void:
 		_air_time += delta
 	_was_on_floor = on_floor
 
-	var now := Time.get_unix_time_from_system()
-	var want_jump := false
-	if "input_buffer" in player and player.input_buffer != null:
-		want_jump = player.input_buffer.consume_jump(now)
+	var now: float = Time.get_unix_time_from_system()
+	var want_jump: bool = false
+	var ib: InputBuffer = _get_input_buffer()
+	if ib:
+		want_jump = ib.consume_jump(now)
 	else:
 		want_jump = Input.is_action_just_pressed("jump")
 
-	var can_jump := on_floor or (_time_since_left_floor <= coyote_time)
+	var can_jump: bool = on_floor or (_time_since_left_floor <= coyote_time)
 	if want_jump and can_jump:
 		_perform_jump()
+		_jump_held = true
+		_hold_timer = 0.0
 
 	if _jump_held:
 		_hold_timer += delta
-		if _hold_timer >= jump_hold_time or not Input.is_action_pressed("jump") or player.velocity.y <= 0.0:
+		var still_pressed: bool = Input.is_action_pressed("jump")
+		if ib:
+			still_pressed = ib.is_jump_down()
+		if (_hold_timer >= jump_hold_time) or (not still_pressed):
 			_jump_held = false
 
 func on_left_ground() -> void:
@@ -89,12 +96,11 @@ func get_air_time() -> float:
 
 func _perform_jump() -> void:
 	player.floor_snap_length = 0.0
-	var final_jump_velocity := jump_velocity
-	if player.has_method("apply_perfect_jump_combo"):
-		final_jump_velocity = player.apply_perfect_jump_combo(jump_velocity)
+	var final_jump_velocity: float = jump_velocity
+	var combo: PerfectJumpCombo = _get_combo()
+	if combo:
+		final_jump_velocity *= combo.jump_multiplier()
 	player.velocity.y = max(player.velocity.y, final_jump_velocity)
-	_jump_held = true
-	_hold_timer = 0.0
 	_air_time = 0.0
 	_was_on_floor = false
 	_time_since_left_floor = 0.0
@@ -103,6 +109,23 @@ func _perform_jump() -> void:
 	_notify_state_jump()
 	if camera_rig and camera_rig.has_method("_play_jump_kick"):
 		camera_rig.call_deferred("_play_jump_kick")
+	if combo and combo.is_in_perfect_window():
+		combo.register_perfect()
+
+func _get_input_buffer() -> InputBuffer:
+	if player and "input_buffer" in player:
+		var ib := player.input_buffer
+		if ib is InputBuffer:
+			return ib
+	return null
+
+func _get_combo() -> PerfectJumpCombo:
+	if player == null or not is_instance_valid(player):
+		return null
+	if _combo and is_instance_valid(_combo):
+		return _combo
+	_combo = player.get_node_or_null("PerfectJumpCombo") as PerfectJumpCombo
+	return _combo
 
 func _trigger_jump_animation() -> void:
 	if anim_tree:
