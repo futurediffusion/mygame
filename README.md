@@ -26,6 +26,8 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Registro de mantenimiento reciente
+- Renombrado `class_name` de `Singletons/SimClock.gd` a `SimClockAutoload` y actualizados los casts tipados en `ModuleBase`, `GameState`, `player.gd`, `Ally.gd` y el benchmark para evitar la colisión con el autoload de Godot 4.4.
+- Ajustado `ModuleBase` con constantes `DEFAULT_*` y `Modules/AllyFSMModule.gd` reasigna los defaults antes de `super._ready()` para eliminar la duplicación de exports (`sim_group`, `priority`) y mantener prioridad 15 para aliados.
 - Restaurado `Singletons/SimClock.gd` con indentación a tabs, comparador tipado y limpieza de entradas para que Godot 4.4 vuelva a exponer la clase `SimClock` a `GameState` y al resto de autoloads.
 - Priorización FSM→movimiento: `Modules/AllyFSMModule.gd` pasa a prioridad 15 y ahora invoca `fsm_step(dt)`; `scenes/entities/Ally.gd` mantiene prioridad 20, aplica el `move_and_slide()` final y conserva un fallback interno para aliados sin módulo.
 - `Singletons/SimClock.gd` deja de usar `Dictionary.get_or_add` (inexistente en Godot 4.4), inicializa grupos con `_ensure_group_entry` y mantiene la iteración segura con `duplicate()` + limpieza en `tree_exited`.

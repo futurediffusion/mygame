@@ -555,11 +555,11 @@ func _trigger_camera_landing(is_hard: bool) -> void:
 	if camera_rig:
 		camera_rig.call_deferred("_on_player_landed", is_hard)
 
-func _get_simclock() -> SimClock:
+func _get_simclock() -> SimClockAutoload:
 	var tree := get_tree()
 	if tree == null:
 		return null
 	var autoload := tree.get_root().get_node_or_null("/root/SimClock")
 	if autoload == null:
 		return null
-	return autoload as SimClock
+	return autoload as SimClockAutoload

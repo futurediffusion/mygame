@@ -31,11 +31,11 @@ func _update_simclock_pause() -> void:
     if Engine.is_editor_hint():
         print_verbose("GameState -> SimClock.pause_group(%s)" % should_pause) # R3→R4 MIGRATION
 
-func _get_simclock() -> SimClock:
-    var root := get_tree()
-    if root == null:
-        return null
-    var autoload := root.get_root().get_node_or_null("/root/SimClock")
-    if autoload == null:
-        return null
-    return autoload as SimClock
+func _get_simclock() -> SimClockAutoload:
+	var root := get_tree()
+	if root == null:
+		return null
+	var autoload := root.get_root().get_node_or_null("/root/SimClock")
+	if autoload == null:
+		return null
+	return autoload as SimClockAutoload
