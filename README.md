@@ -25,6 +25,7 @@
 - **SimClock Service** – Authoritative scheduler with configurable per-group intervals, pause controls, and registry-driven tick dispatch for modules and orchestrators.【F:Singletons/SimClock.gd†L1-L139】
 
 ## Recent Fixes
+- Typed ally scene traversal helpers and scene instantiation so Godot 4.4 stops treating Variant inference warnings as build blockers, keeping animation binding, material overrides, gear attachments, and tinting logic untouched.【F:scenes/entities/Ally.gd†L350-L481】
 - Hardened ally visual setup by resolving the Data autoload lookup, validating JSON payload types, and swapping to `BoneAttachment3D` for gear so Godot 4.4 stops raising missing-member errors while keeping hot-swap visuals intact.【F:scenes/entities/Ally.gd†L373-L467】
 - Clamped scheduler interval updates with `maxf` to keep type inference strict in Godot 4.4 while preserving safe lower bounds on group cadence edits.【F:Singletons/SimClock.gd†L50-L58】
 - Relaxed the typed registry declaration in `SimClock` to avoid nested generic collection errors while keeping group iteration logic intact.【F:Singletons/SimClock.gd†L16-L118】

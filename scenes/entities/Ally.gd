@@ -380,7 +380,8 @@ func _bind_anim_player_from(root: Node) -> void:
 	anim_player = null
 	if root == null:
 		return
-	var stack := [root]
+	var stack: Array[Node] = []
+	stack.push_back(root)
 	while stack.size() > 0:
 		var n: Node = stack.pop_back()
 		if n is AnimationPlayer:
@@ -428,7 +429,7 @@ func _swap_visual(preset: PackedScene) -> void:
 		return
 	for child in _model_root.get_children():
 		child.queue_free()
-	var inst := preset.instantiate()
+	var inst: Node = preset.instantiate()
 	_model_root.add_child(inst)
 	_bind_anim_player_from(_model_root)
 	if anim_player == null:
@@ -437,9 +438,10 @@ func _swap_visual(preset: PackedScene) -> void:
 func _apply_material_overrides(dict_paths: Dictionary) -> void:
 	if _model_root == null or dict_paths.is_empty():
 		return
-	var queue := [_model_root]
+	var queue: Array[Node] = []
+	queue.push_back(_model_root)
 	while queue.size() > 0:
-		var node := queue.pop_back()
+		var node: Node = queue.pop_back()
 		if node is MeshInstance3D:
 			var mesh_instance := node as MeshInstance3D
 			if dict_paths.has(mesh_instance.name):
@@ -470,17 +472,17 @@ func _attach_gear(gear: Dictionary) -> void:
 		attachment.name = "Gear_%s" % slot
 		attachment.set_meta("gear_slot", slot)
 		skeleton.add_child(attachment)
-		var inst := scene.instantiate()
+		var inst: Node = scene.instantiate()
 		attachment.add_child(inst)
 
 func _get_data_singleton() -> Data:
-	var tree := get_tree()
+	var tree: SceneTree = get_tree()
 	if tree == null:
 		return null
-	var root := tree.get_root()
+	var root: Node = tree.get_root()
 	if root == null:
 		return null
-	var node := root.get_node_or_null(^"Data")
+	var node: Node = root.get_node_or_null(^"Data")
 	if node == null:
 		return null
 	return node as Data
@@ -497,9 +499,10 @@ func _slot_to_bone(slot: String) -> String:
 func _tint_meshes(color: Color) -> void:
 	if _model_root == null:
 		return
-	var queue := [_model_root]
+	var queue: Array[Node] = []
+	queue.push_back(_model_root)
 	while queue.size() > 0:
-		var node := queue.pop_back()
+		var node: Node = queue.pop_back()
 		if node is MeshInstance3D:
 			var mesh_instance := node as MeshInstance3D
 			var mesh := mesh_instance.mesh
@@ -517,9 +520,10 @@ func _tint_meshes(color: Color) -> void:
 func _find_skeleton(root: Node) -> Skeleton3D:
 	if root == null:
 		return null
-	var queue := [root]
+	var queue: Array[Node] = []
+	queue.push_back(root)
 	while queue.size() > 0:
-		var node := queue.pop_back()
+		var node: Node = queue.pop_back()
 		if node is Skeleton3D:
 			return node
 		for child in node.get_children():
