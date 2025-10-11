@@ -150,7 +150,7 @@ func _do_move(dt: float) -> void:
 		if stats:
 			speed = stats.sprint_speed(move_speed_base)
 		else:
-		speed = move_speed_base * 1.2
+			speed = move_speed_base * 1.2
 	var desired_velocity := flat_dir * speed
 	velocity.x = desired_velocity.x
 	velocity.z = desired_velocity.z
@@ -178,7 +178,7 @@ func _do_combat_melee(_dt: float) -> void:
 		if weapon_kind == "unarmed":
 			stats.gain_skill("war", "unarmed", 1.0, {"action_hash": "melee_unarmed"})
 		else:
-		stats.gain_skill("war", "swords", 1.0, {"action_hash": "melee_sword"})
+			stats.gain_skill("war", "swords", 1.0, {"action_hash": "melee_sword"})
 
 func _do_combat_ranged(_dt: float) -> void:
 	velocity.x = 0.0
@@ -275,12 +275,12 @@ func set_crouched(on: bool) -> void:
 				if _target_dir != Vector3.ZERO:
 					state = State.SWIM
 				else:
-		state = State.IDLE
+					state = State.IDLE
 			else:
-		if _target_dir != Vector3.ZERO:
+				if _target_dir != Vector3.ZERO:
 					state = State.MOVE
 				else:
-		state = State.IDLE
+					state = State.IDLE
 
 func set_sprinting(on: bool) -> void:
 	if sprint_enabled:
@@ -300,7 +300,7 @@ func set_in_water(on: bool) -> void:
 			elif _target_dir != Vector3.ZERO:
 				state = State.MOVE
 			else:
-		state = State.IDLE
+				state = State.IDLE
 
 func start_talking(seconds: float = -1.0) -> void:
 	if state == State.SIT:
