@@ -70,6 +70,8 @@ const SIMCLOCK_SCRIPT := preload("res://Singletons/SimClock.gd")
 @export_range(0.0, 1.0, 0.01) var fall_ramp_delay: float = 0.10
 @export_range(0.0, 1.0, 0.01) var fall_ramp_time: float = 0.20
 @export_range(1.0, 30.0, 0.5) var fall_blend_lerp: float = 12.0
+@export_range(1.0, 3.0, 0.05) var fall_gravity_multiplier: float = 1.5
+@export_range(1.0, 3.0, 0.05) var fast_fall_speed_multiplier: float = 1.5
 
 @export_group("Model Rotation")
 @export_range(0.0, 1.0, 0.01) var face_lerp: float = 0.18
@@ -422,6 +424,7 @@ func _update_module_stats() -> void:
 		m_movement.accel_air = accel_air
 		m_movement.ground_friction = decel
 		m_movement.sprint_speed = sprint_speed
+		m_movement.fast_fall_speed_multiplier = max(fast_fall_speed_multiplier, 1.0)
 	if m_movement and m_movement.has_method("set_speed_multiplier"):
 		m_movement.set_speed_multiplier(1.0)
 	if stats:
@@ -429,6 +432,8 @@ func _update_module_stats() -> void:
 		effective_sprint = stats.sprint_speed(effective_sprint)
 		if m_movement:
 			m_movement.sprint_speed = effective_sprint
+	if m_state:
+		m_state.fall_gravity_scale = max(fall_gravity_multiplier, 1.0)
 
 func _update_sprint_state(delta: float, input_dir: Vector3) -> bool:
 	if stamina == null:
