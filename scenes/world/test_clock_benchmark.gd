@@ -36,11 +36,11 @@ func _spawn_allies() -> void:
 	for index in range(allies_to_spawn):
 		var ally := ally_scene.instantiate()
 		if ally == null:
-		continue
+			continue
 		ally.name = "BenchmarkAlly_%03d" % index
 		_ally_container.add_child(ally)
-		var row := index / max(per_row, 1)
-		var col := index % max(per_row, 1)
+		var row: int = index / max(per_row, 1)
+		var col: int = index % max(per_row, 1)
 		var offset := Vector3(float(col) * spawn_spacing, 0.0, float(row) * spawn_spacing)
 		ally.global_position = offset
 
