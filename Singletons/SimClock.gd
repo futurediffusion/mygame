@@ -1,5 +1,5 @@
 extends Node
-class_name SimClock
+class_name SimClockAutoload
 
 const GROUP_LOCAL: StringName = &"local"
 const GROUP_REGIONAL: StringName = &"regional"

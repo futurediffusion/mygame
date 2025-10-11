@@ -79,10 +79,10 @@ func _update_ticks_label() -> void:
 		ticks_per_second = float(tick_count) / sim_time
 	_ticks_label.text = "Grupo %s → ticks: %d | sim_time: %.2f | ticks/s: %.2f | modo: SimClock" % [String(group), tick_count, sim_time, ticks_per_second]
 
-func _get_simclock() -> SimClock:
+func _get_simclock() -> SimClockAutoload:
 	if typeof(SimClock) != TYPE_NIL:
-		return SimClock
+		return SimClock as SimClockAutoload
 	var tree := get_tree()
 	if tree == null:
 		return null
-	return tree.get_root().get_node_or_null(^"/root/SimClock") as SimClock
+	return tree.get_root().get_node_or_null(^"/root/SimClock") as SimClockAutoload

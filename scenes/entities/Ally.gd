@@ -577,11 +577,11 @@ func _find_skeleton(root: Node) -> Skeleton3D:
 # ally.player_visual_preset = load("res://scenes/entities/PlayerModel.tscn")
 # jump_module.jump_started.connect(ally.notify_jump_started)
 
-func _get_simclock() -> SimClock:
+func _get_simclock() -> SimClockAutoload:
 	var tree := get_tree()
 	if tree == null:
 		return null
 	var autoload := tree.get_root().get_node_or_null("/root/SimClock")
 	if autoload == null:
 		return null
-	return autoload as SimClock
+	return autoload as SimClockAutoload
