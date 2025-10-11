@@ -10,7 +10,7 @@ enum ContextState {
 }
 
 signal context_state_changed(new_state: int, previous_state: int)
-signal talk_requested(target: Node)
+signal talk_requested()
 signal sit_toggled(is_sitting: bool)
 signal interact_requested()
 signal combat_mode_switched(mode: String)
@@ -81,8 +81,8 @@ const INPUT_ACTIONS := {
 @onready var stamina: Stamina = $Stamina
 @onready var camera_rig: Node = get_node_or_null(^"CameraRig")
 @onready var game_state: GameState = get_node_or_null(^"/root/GameState")
-
 @onready var sim_clock: SimClockScheduler = get_node_or_null(^"/root/SimClock")
+@onready var trigger_area: Area3D = $TriggerArea  # <-- tu hijo Area3D
 
 # --- MÓDULOS (nuevos onready) ---
 @onready var m_movement: MovementModule = $Modules/Movement
@@ -118,8 +118,6 @@ var _t_stamina_window := 0.0
 # ============================================================================
 # INITIALIZATION
 # ============================================================================
-@onready var trigger_area: Area3D = $TriggerArea  # <-- tu hijo Area3D
-
 func _ready() -> void:
 	if stats == null:
 		stats = AllyStats.new()
@@ -154,15 +152,6 @@ func _ready() -> void:
 			ratio = clampf(stamina.value / stamina.max_stamina, 0.0, 1.0)
 		_stamina_ratio_min = ratio
 		_stamina_ratio_max_since_min = ratio
-
-# Firmas correctas para las señales de Area3D:
-func _on_area_entered(area: Area3D) -> void:
-	# TODO: lógica cuando entra otra Area3D
-	pass
-
-func _on_area_exited(area: Area3D) -> void:
-	# TODO: lógica cuando sale otra Area3D
-	pass
 
 func _exit_tree() -> void:
 	if _use_sim_clock and sim_clock and is_instance_valid(sim_clock):
