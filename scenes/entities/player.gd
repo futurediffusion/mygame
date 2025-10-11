@@ -124,12 +124,17 @@ func _ready() -> void:
 		stats = AllyStats.new()
 	_initialize_input_cache()
 	_sprint_threshold = run_speed * 0.4
-	for m in [m_movement, m_jump, m_state, m_orientation, m_anim, m_audio]:
-		m.setup(self)
-
 	input_buffer = InputBuffer.new()
+	input_buffer.name = "InputBuffer"
 	input_buffer.jump_buffer_time = jump_buffer
 	add_child(input_buffer)
+
+	if m_state:
+		m_state.setup(self)
+	if m_jump:
+		m_jump.setup(self, m_state, input_buffer)
+	for m in [m_movement, m_orientation, m_anim, m_audio]:
+		m.setup(self)
 
 	if m_state and not m_state.landed.is_connected(_on_state_landed):
 		m_state.landed.connect(_on_state_landed)
@@ -173,13 +178,6 @@ func _ready() -> void:
 		_stamina_ratio_min = ratio
 		_stamina_ratio_max_since_min = ratio
 
-func _unhandled_input(event: InputEvent) -> void:
-	if input_buffer == null:
-		return
-	if event.is_action_pressed("jump"):
-		var now: float = Time.get_unix_time_from_system()
-		input_buffer.note_jump_pressed(now)
-
 func _on_clock_tick(group: StringName, dt: float) -> void:
 	if group == sim_group:
 		physics_tick(dt)
@@ -189,7 +187,6 @@ func _on_clock_tick(group: StringName, dt: float) -> void:
 # MAIN PHYSICS LOOP
 # ============================================================================
 func physics_tick(delta: float) -> void:
-	var on_floor_now := is_on_floor()
 	if combo and is_instance_valid(combo):
 		combo.physics_tick(delta)
 	var is_paused := false
@@ -216,13 +213,9 @@ func physics_tick(delta: float) -> void:
 	_skip_module_updates = is_paused or in_cinematic
 	_block_animation_updates = is_paused or in_cinematic
 	_evaluate_context_state(input_dir)
-	_manual_tick_modules(delta)
-	_finish_physics_step(delta, is_sprinting)
-
-func _manual_tick_modules(delta: float) -> void:
 	if not _skip_module_updates:
 		if m_state:
-			m_state.physics_tick(delta)
+			m_state.pre_move_update(delta)
 		if m_jump:
 			m_jump.physics_tick(delta)
 		if m_movement:
@@ -231,16 +224,15 @@ func _manual_tick_modules(delta: float) -> void:
 			m_orientation.physics_tick(delta)
 		if not _block_animation_updates and m_anim:
 			m_anim.physics_tick(delta)
-	if m_audio:
-		m_audio.physics_tick(delta)
-
-func _finish_physics_step(delta: float, is_sprinting: bool) -> void:
-	if _skip_module_updates:
+	else:
 		velocity = Vector3.ZERO
 	move_and_slide()
+	if m_state:
+		m_state.post_move_update()
+	if m_audio:
+		m_audio.physics_tick(delta)
 	_consume_sprint_stamina(delta, is_sprinting)
 	_track_stamina_cycle(delta, is_sprinting)
-
 
 func _on_state_landed(_is_hard: bool) -> void:
 	if combo and is_instance_valid(combo):
@@ -419,9 +411,9 @@ func _get_camera_relative_input() -> Vector3:
 func _update_module_stats() -> void:
 	if input_buffer:
 		input_buffer.jump_buffer_time = jump_buffer
-	if m_jump:
-		m_jump.jump_velocity = jump_velocity
-		m_jump.coyote_time = coyote_time
+if m_jump:
+m_jump.jump_speed = jump_velocity
+m_jump.coyote_time = coyote_time
 	if m_movement:
 		m_movement.max_speed_ground = run_speed
 		m_movement.max_speed_air = run_speed

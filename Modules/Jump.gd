@@ -1,153 +1,140 @@
 extends ModuleBase
 class_name JumpModule
 
-@export var jump_velocity: float = 6.5
-@export var coyote_time: float = 0.120
-@export var jump_hold_time: float = 0.150
-@export var extra_hold_gravity_scale: float = 0.6
-@export var uses_state_gravity: bool = true
+@export var jump_speed: float = 6.8
+@export var coyote_time: float = 0.12
+@export var max_hold_time: float = 0.15
+@export_range(0.0, 1.0, 0.01) var hold_gravity_scale: float = 0.45
 
 var player: CharacterBody3D
 var anim_tree: AnimationTree
 var camera_rig: Node
 
-const PARAM_JUMP: StringName = &"parameters/Jump/request"
-
-var _time_since_left_floor: float = 9999.0
-var _air_time: float = 0.0
-var _jump_held: bool = false
-var _hold_timer: float = 0.0
-var _was_on_floor: bool = true
-var _state_module: Node
+var _owner_body: CharacterBody3D
+var _state: StateModule
+var _input: InputBuffer
 var _combo: PerfectJumpCombo
 
-func setup(p: CharacterBody3D) -> void:
-	player = p
-	_was_on_floor = player.is_on_floor()
-	if _was_on_floor:
-		_time_since_left_floor = 9999.0
-	else:
-		_time_since_left_floor = 0.0
-	if "jump_velocity" in player:
-		jump_velocity = player.jump_velocity
-	if "coyote_time" in player:
-		coyote_time = player.coyote_time
-	if "anim_tree" in player:
-		anim_tree = player.anim_tree
-	if "camera_rig" in player:
-		camera_rig = player.camera_rig
-	_state_module = _locate_state_module()
+const PARAM_JUMP: StringName = &"parameters/Jump/request"
 
-func physics_tick(delta: float) -> void:
-	if player == null or not is_instance_valid(player):
-		return
-	if player.has_method("should_skip_module_updates") and player.should_skip_module_updates():
-		return
+var _jumping: bool = false
+var _hold_timer_s: float = 0.0
+var _last_on_floor_time_s: float = -1.0
+var _last_jump_time_s: float = -1.0
+var _air_time: float = 0.0
 
-	var on_floor: bool = player.is_on_floor()
+func _ready() -> void:
+	pass
+
+func setup(owner_body: CharacterBody3D, state: StateModule = null, input: InputBuffer = null) -> void:
+	player = owner_body
+	_owner_body = owner_body
+	_state = state
+	_input = input
+	if _owner_body == null or not is_instance_valid(_owner_body):
+		return
+	if "jump_velocity" in owner_body:
+		jump_speed = owner_body.jump_velocity
+	if "coyote_time" in owner_body:
+		coyote_time = owner_body.coyote_time
+	if "anim_tree" in owner_body:
+		anim_tree = owner_body.anim_tree
+	if "camera_rig" in owner_body:
+		camera_rig = owner_body.camera_rig
+	_last_on_floor_time_s = Time.get_ticks_msec() * 0.001 if _owner_body.is_on_floor() else -1.0
+	if _state == null and owner_body.has_node("Modules/State"):
+		_state = owner_body.get_node("Modules/State") as StateModule
+	elif _state == null and owner_body.has_node("State"):
+		_state = owner_body.get_node("State") as StateModule
+	_combo = _get_combo()
+
+func physics_tick(dt: float) -> void:
+	if _owner_body == null or not is_instance_valid(_owner_body):
+		return
+	if _owner_body.has_method("should_skip_module_updates") and _owner_body.should_skip_module_updates():
+		_jumping = false
+		_hold_timer_s = 0.0
+		return
+	var now_s := Time.get_ticks_msec() * 0.001
+	var on_floor := _owner_body.is_on_floor()
 	if on_floor:
-		if not _was_on_floor:
-			on_landed()
+		_last_on_floor_time_s = now_s
 		_air_time = 0.0
-		_time_since_left_floor = 9999.0
 	else:
-		if _was_on_floor:
-			on_left_ground()
-		_time_since_left_floor += delta
-		_air_time += delta
-	_was_on_floor = on_floor
-
-	var now: float = Time.get_unix_time_from_system()
-	var want_jump: bool = false
-	var ib: InputBuffer = _get_input_buffer()
-	if ib:
-		want_jump = ib.consume_jump(now)
+		_air_time += dt
+	var last_floor_time := _get_last_on_floor_time()
+	var buffered_jump := _input != null and _input.is_jump_buffered(now_s)
+	var wants_jump := buffered_jump
+	if _input == null and Input.is_action_just_pressed("jump"):
+		wants_jump = true
+	if wants_jump and _can_jump(on_floor, now_s, last_floor_time):
+		_do_jump(now_s)
+		if buffered_jump:
+			_input.consume_jump_buffer()
+	var still_holding := false
+	if _input != null:
+		still_holding = _input.jump_is_held
 	else:
-		want_jump = Input.is_action_just_pressed("jump")
-
-	var can_jump: bool = on_floor or (_time_since_left_floor <= coyote_time)
-	if want_jump and can_jump:
-		_perform_jump()
-		_jump_held = true
-		_hold_timer = 0.0
-
-	if _jump_held:
-		_hold_timer += delta
-		var still_pressed: bool = Input.is_action_pressed("jump")
-		if ib:
-			still_pressed = ib.is_jump_down()
-		if (_hold_timer >= jump_hold_time) or (not still_pressed):
-			_jump_held = false
-
-func on_left_ground() -> void:
-	_time_since_left_floor = 0.0
-
-func on_landed() -> void:
-	_time_since_left_floor = 9999.0
-	_hold_timer = 0.0
-	_jump_held = false
-	_air_time = 0.0
-
-func is_hold_active() -> bool:
-	return _jump_held
+		still_holding = Input.is_action_pressed("jump")
+	if _jumping:
+		if still_holding and _hold_timer_s < max_hold_time and _owner_body.velocity.y > 0.0:
+			var hold_scale := clampf(hold_gravity_scale, 0.0, 1.0)
+			var base_gravity := _state.gravity if _state != null and is_instance_valid(_state) else float(ProjectSettings.get_setting("physics/3d/default_gravity"))
+			var reduction := base_gravity * (1.0 - hold_scale)
+			_owner_body.velocity.y -= reduction * dt
+			_hold_timer_s += dt
+		else:
+			_jumping = false
 
 func get_air_time() -> float:
 	return _air_time
 
-func _perform_jump() -> void:
-	player.floor_snap_length = 0.0
-	var final_jump_velocity: float = jump_velocity
-	var combo: PerfectJumpCombo = _get_combo()
-	if combo:
-		final_jump_velocity *= combo.jump_multiplier()
-	player.velocity.y = max(player.velocity.y, final_jump_velocity)
+func _can_jump(on_floor: bool, now_s: float, last_floor_time: float) -> bool:
+	if on_floor:
+		return true
+	return last_floor_time >= 0.0 and (now_s - last_floor_time) <= coyote_time
+
+func _get_last_on_floor_time() -> float:
+	if _state != null and is_instance_valid(_state):
+		return _state.last_on_floor_time_s
+	return _last_on_floor_time_s
+
+func _do_jump(now_s: float) -> void:
+	var final_speed := jump_speed
+	var combo := _get_combo()
+	if combo != null:
+		final_speed *= combo.jump_multiplier()
+	_owner_body.floor_snap_length = 0.0
+	_owner_body.velocity.y = max(_owner_body.velocity.y, final_speed)
+	_jumping = true
+	_hold_timer_s = 0.0
+	_last_jump_time_s = now_s
+	_last_on_floor_time_s = -1.0
 	_air_time = 0.0
-	_was_on_floor = false
-	_time_since_left_floor = 0.0
+	if _state != null and is_instance_valid(_state):
+		_state.jumped.emit()
 	_trigger_jump_animation()
 	_play_jump_audio()
-	_notify_state_jump()
-	if camera_rig and camera_rig.has_method("_play_jump_kick"):
+	if camera_rig != null and is_instance_valid(camera_rig) and camera_rig.has_method("_play_jump_kick"):
 		camera_rig.call_deferred("_play_jump_kick")
-	if combo and combo.is_in_perfect_window():
+	if combo != null and combo.is_in_perfect_window():
 		combo.register_perfect()
 
-func _get_input_buffer() -> InputBuffer:
-	if player and "input_buffer" in player:
-		var ib: InputBuffer = player.input_buffer as InputBuffer
-		if ib is InputBuffer:
-			return ib
-	return null
-
 func _get_combo() -> PerfectJumpCombo:
-	if player == null or not is_instance_valid(player):
-		return null
-	if _combo and is_instance_valid(_combo):
+	if _combo != null and is_instance_valid(_combo):
 		return _combo
-	_combo = player.get_node_or_null("PerfectJumpCombo") as PerfectJumpCombo
+	if player != null and is_instance_valid(player):
+		_combo = player.get_node_or_null("PerfectJumpCombo") as PerfectJumpCombo
 	return _combo
 
 func _trigger_jump_animation() -> void:
-	if anim_tree:
+	if anim_tree != null:
 		anim_tree.set(PARAM_JUMP, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 
 func _play_jump_audio() -> void:
+	if player == null or not is_instance_valid(player):
+		return
 	if "m_audio" in player and is_instance_valid(player.m_audio):
 		player.m_audio.play_jump()
 	elif "jump_sfx" in player and is_instance_valid(player.jump_sfx):
 		player.jump_sfx.play()
-
-func _notify_state_jump() -> void:
-	if _state_module == null or not is_instance_valid(_state_module):
-		_state_module = _locate_state_module()
-	if _state_module and _state_module.has_signal("jumped"):
-		_state_module.emit_signal("jumped")
-
-func _locate_state_module() -> Node:
-	if player == null or not is_instance_valid(player):
-		return null
-	if player.has_node("Modules/State"):
-		return player.get_node("Modules/State")
-	if player.has_node("State"):
-		return player.get_node("State")
-	return null
