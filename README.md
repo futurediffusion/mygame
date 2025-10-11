@@ -26,6 +26,8 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Registro de mantenimiento reciente
+- Priorización FSM→movimiento: `Modules/AllyFSMModule.gd` pasa a prioridad 15 y ahora invoca `fsm_step(dt)`; `scenes/entities/Ally.gd` mantiene prioridad 20, aplica el `move_and_slide()` final y conserva un fallback interno para aliados sin módulo.
+- `Singletons/SimClock.gd` deja de usar `Dictionary.get_or_add` (inexistente en Godot 4.4), inicializa grupos con `_ensure_group_entry` y mantiene la iteración segura con `duplicate()` + limpieza en `tree_exited`.
 - Cierre R3 duro: `Singletons/SimClock.gd` queda como scheduler determinista con prioridades, contadores de ticks y limpieza automática en `tree_exited` para todos los grupos (`local`, `regional`, `global`).
 - Player y Allies migrados al `SimClock.register_module` con prioridades configurables; se eliminó `_physics_process` en aliados y módulos, consolidando el tick físico en `physics_tick(dt)`.
 - `Modules/ModuleBase.gd` se redujo a suscripción automática y `Modules/AllyFSMModule.gd` ahora reinyecta `physics_tick` directo sobre el Ally dueño.

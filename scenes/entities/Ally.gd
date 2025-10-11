@@ -58,6 +58,7 @@ var _t_stamina_window: float = 0.0
 var _current_seat: Node3D
 var _talk_timer: SceneTreeTimer
 var _last_state: State = State.IDLE
+var _fsm_tick_ran: bool = false
 
 func _ready() -> void:
 	if stats == null:
@@ -75,7 +76,7 @@ func _on_clock_tick(group: StringName, dt: float) -> void:
 	if group == sim_group:
 		physics_tick(dt)
 
-func physics_tick(dt: float) -> void:
+func fsm_step(dt: float) -> void:
 	if state != _last_state:
 		_on_state_changed(_last_state, state)
 		_last_state = state
@@ -102,8 +103,14 @@ func physics_tick(dt: float) -> void:
 			_do_talk(dt)
 		State.SIT:
 			_do_sit(dt)
+	_fsm_tick_ran = true
+
+func physics_tick(dt: float) -> void:
+	if not _fsm_tick_ran:
+		fsm_step(dt)
 	move_and_slide()
 	_track_stamina_cycle(dt)
+	_fsm_tick_ran = false
 
 func _do_idle(_dt: float) -> void:
 	velocity.x = 0.0
