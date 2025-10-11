@@ -56,6 +56,8 @@ func setup(p: CharacterBody3D) -> void:
 		fall_clip_name = p.fall_clip_name
 
 	if anim_tree:
+		if animation_tree_path == NodePath():
+			animation_tree_path = anim_tree.get_path()
 		anim_tree.anim_player = anim_player.get_path()
 		anim_tree.active = true
 		if _tree_has_param(PARAM_FALLANIM):
@@ -159,11 +161,12 @@ func _set_sprint_scale(value: float) -> void:
 		anim_tree.set(PARAM_SPRINTSCL, value)
 
 func _cache_state_machine() -> void:
-	# En 4.4, si _tree es @onready AnimationTree tipado, no hace falta check contra null.
-	# Mejor validar que el export path esté asignado, por si acaso.
-	if animation_tree_path == NodePath():
-		push_warning("Asigna 'animation_tree_path' en el inspector.")
+	# Garantiza que tengamos referencia válida al AnimationTree.
+	if anim_tree == null:
+		push_warning("AnimationTree no asignado; revisa que el módulo se configure en setup().")
 		return
+	if animation_tree_path == NodePath():
+		animation_tree_path = anim_tree.get_path()
 
 	# Recupera el playback con cast explícito
 	var playback := anim_tree.get("parameters/StateMachine/playback") as AnimationNodeStateMachinePlayback
@@ -173,10 +176,6 @@ func _cache_state_machine() -> void:
 
 	_state_machine = playback
 	_travel_to_state("Locomotion")
-
-
-
-
 
 func _connect_state_signals() -> void:
 	if player == null:

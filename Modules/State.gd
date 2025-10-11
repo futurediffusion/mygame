@@ -11,6 +11,7 @@ var gravity: float
 var _was_on_floor := true
 
 signal landed(is_hard: bool)
+@warning_ignore("unused_signal")
 signal jumped
 signal left_ground
 
