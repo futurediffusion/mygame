@@ -172,8 +172,8 @@ func _physics_process(delta: float) -> void:
 		_acc[GROUP_REGIONAL] -= regional_interval
 	# Global
 	while _acc[GROUP_GLOBAL] >= global_interval and global_interval > 0.0:
-	_tick_group(GROUP_GLOBAL, global_interval)
-	_acc[GROUP_GLOBAL] -= global_interval
+		_tick_group(GROUP_GLOBAL, global_interval)
+		_acc[GROUP_GLOBAL] -= global_interval
 
 
 func _tick_group(group_name: StringName, dt: float) -> void:
