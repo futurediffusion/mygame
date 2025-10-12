@@ -54,21 +54,27 @@ min_space = 0.0
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_yv3je"]
 advance_mode = 2
+xfade_time = 0.12
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_3hm5d"]
 advance_mode = 2
+xfade_time = 0.18
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_yw3xw"]
 advance_mode = 2
+xfade_time = 0.1
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_6gvyl"]
 advance_mode = 2
+xfade_time = 0.25
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_u2s01"]
 advance_mode = 2
+xfade_time = 0.18
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_tb0mf"]
 advance_mode = 2
+xfade_time = 0.25
 
 [sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_y2dek"]
 states/FallAnim/node = SubResource("AnimationNodeAnimation_yr3on")
