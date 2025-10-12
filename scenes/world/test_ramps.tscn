@@ -101,8 +101,6 @@ shape = SubResource("BoxShape3D_platform")
 
 [node name="Player" parent="." instance=ExtResource("1_11l7r")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 8, -20)
-fall_gravity_multiplier = 3.0
-fast_fall_speed_multiplier = 3.0
 
 [node name="Ally" parent="." instance=ExtResource("2_3d8dh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.4937, 0.1, 5.1199)
