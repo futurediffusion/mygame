@@ -27,6 +27,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 
 ### Log rápido (último cambio)
 - `Modules/Movement.gd` + `scenes/entities/player.gd`: el fast fall del jugador ahora aplica un multiplicador de 1.5× tanto a la velocidad aérea como a la gravedad en caída, garantizando que descender sea un 50% más rápido y responda al combo perfecto.
+- `Modules/Movement.gd` + `Modules/State.gd`: revalidado el fast fall tras la migración al StateMachine; `max_speed_air` se alinea con `run_speed`, `fall_gravity_scale` se clampa a ≥1.0 y `tests/TestFastFall.tscn` comprueba el 50% extra de caída.
 - `Modules/PerfectJumpCombo.gd` + `Modules/Jump.gd`: se restauró la ventana `perfect` sin decaimiento temporal, aplicando multiplicadores curvos y reiniciando el combo inmediatamente cuando fallas el timing.
 - `Modules/Jump.gd`: el salto variable ahora recorta la velocidad vertical con `release_velocity_scale` cuando sueltas antes del umbral, logrando saltos cortos consistentes sin romper el combo perfecto ni la ventana de coyote.
 - `Singletons/GameState.gd` renombra su `class_name` a `GameStateAutoload` para evitar la colisión "Class hides an autoload singleton" en Godot 4.4 y `scenes/entities/player.gd` actualiza el tipado del autoload.

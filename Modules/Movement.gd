@@ -19,7 +19,11 @@ var _combo: PerfectJumpCombo
 func setup(p: CharacterBody3D) -> void:
 	player = p
 	if "run_speed" in player:
-		max_speed_ground = player.run_speed
+		max_speed_ground = max(player.run_speed, 0.0)
+	if "max_speed_air" in player:
+		max_speed_air = max(player.max_speed_air, 0.0)
+	elif "run_speed" in player:
+		max_speed_air = max(player.run_speed, 0.0)
 	if "sprint_speed" in player:
 		sprint_speed = player.sprint_speed
 	if "accel_ground" in player:

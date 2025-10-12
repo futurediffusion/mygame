@@ -25,7 +25,7 @@ func setup(owner_body: CharacterBody3D) -> void:
 	if "gravity" in owner_body:
 		gravity = owner_body.gravity
 	if "fall_gravity_multiplier" in owner_body:
-		fall_gravity_scale = owner_body.fall_gravity_multiplier
+		fall_gravity_scale = max(owner_body.fall_gravity_multiplier, 1.0)
 	if "max_slope_deg" in owner_body:
 		floor_max_angle = deg_to_rad(owner_body.max_slope_deg)
 	if "snap_len" in owner_body:
