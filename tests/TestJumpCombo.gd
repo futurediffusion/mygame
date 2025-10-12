@@ -54,5 +54,20 @@ func _ready() -> void:
 	combo.register_failed_jump()
 	assert(combo.get_combo() == 0, "Failed jumps should reset combo counter.")
 
+	combo.reset_combo()
+	combo._was_on_floor = true
+	combo._landed_timer = combo.perfect_window
+	var previous_multiplier := combo.jump_multiplier()
+	for level in range(combo.get_max_jump_level()):
+		combo.register_jump(true)
+		var current_level := combo.get_jump_level()
+		var current_multiplier := combo.jump_multiplier()
+		assert(current_level == level + 1, "Jump level should advance sequentially.")
+		assert(current_multiplier >= previous_multiplier, "Jump multiplier must not decrease when the combo grows.")
+		previous_multiplier = current_multiplier
+		combo._landed_timer = combo.perfect_window
+	assert(is_equal_approx(combo.jump_multiplier(), combo.combo_jump_bonus_max), "Jump multiplier should reach the configured 200% cap at max level.")
+	assert(combo.get_jump_level() == combo.get_max_jump_level(), "Jump combo should max out at level %d." % combo.get_max_jump_level())
+
 	print("JUMP_COMBO_OK", combo.get_combo())
 	get_tree().quit()
