@@ -5,7 +5,7 @@ var player: CharacterBody3D
 var anim_tree: AnimationTree
 var anim_player: AnimationPlayer
 
-@export var animation_tree_path: NodePath  # <-- AÑADE ESTA LÍNEA
+@export var animation_tree_path: NodePath
 @export var state_module_path: NodePath   
 
 # Paths dentro del AnimationTree
@@ -75,7 +75,7 @@ func setup(p: CharacterBody3D) -> void:
 		anim_player = player.anim_player
 	if anim_tree:
 		if animation_tree_path == NodePath():
-		animation_tree_path = anim_tree.get_path()
+			animation_tree_path = anim_tree.get_path()
 		if anim_player != null and is_instance_valid(anim_player):
 			anim_tree.anim_player = anim_player.get_path()
 		anim_tree.active = true
