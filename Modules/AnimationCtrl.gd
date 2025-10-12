@@ -119,11 +119,15 @@ func _handle_airborne(delta: float) -> void:
 	_time_in_air += delta
 
 	var vel_y := player.velocity.y
-	var should_trigger_fall := _time_in_air >= min_air_time_to_fall or vel_y <= fall_speed_threshold
+	var should_trigger_fall := false
+	if vel_y <= fall_speed_threshold:
+		should_trigger_fall = true
+	elif _time_in_air >= min_air_time_to_fall:
+		if vel_y <= 0.0:
+			should_trigger_fall = true
 	if should_trigger_fall and not _fall_triggered:
 		_travel_to_state(STATE_FALL)
 		_fall_triggered = true
-
 	_set_air_blend(1.0 if _fall_triggered else 0.0)
 
 
