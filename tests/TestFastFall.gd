@@ -22,6 +22,14 @@ func _ready() -> void:
 	var expected_y := initial_y - player.gravity * state.fall_gravity_scale * dt
 	assert(is_equal_approx(player.velocity.y, expected_y), "Fast fall gravity multiplier was not applied.")
 
+	player.velocity = Vector3(0.0, 0.5, 0.0)
+	state.pre_move_update(dt)
+	var expected_cross := 0.5 - player.gravity * dt
+	if expected_cross < 0.0:
+		var fall_scale := max(state.fall_gravity_scale, 1.0)
+		expected_cross -= player.gravity * (fall_scale - 1.0) * dt
+	assert(is_equal_approx(player.velocity.y, expected_cross), "Fast fall multiplier should trigger even when transitioning from a held jump.")
+
 	var movement := MovementModule.new()
 	movement.setup(player)
 	movement.max_speed_air = player.run_speed
