@@ -2,10 +2,11 @@ extends Node
 class_name PerfectJumpCombo
 
 @export var perfect_window: float = 0.06
-@export var combo_max: int = 100
 @export var combo_curve_gamma: float = 0.5
 @export var combo_speed_bonus_max: float = 3.0
-@export var combo_jump_bonus_max: float = 2.0
+@export_range(1.0, 2.0, 0.01) var combo_jump_bonus_max: float = 2.0
+
+const MAX_JUMP_LEVEL: int = 100
 
 var _body: CharacterBody3D
 var _was_on_floor: bool = false
@@ -43,7 +44,7 @@ func on_landed() -> void:
 func register_jump(was_perfect: bool) -> void:
 	if was_perfect:
 		var previous := _combo_count
-		_combo_count = min(_combo_count + 1, combo_max)
+		_combo_count = min(_combo_count + 1, MAX_JUMP_LEVEL)
 		if _combo_count != previous:
 			combo_changed.emit(_combo_count)
 		perfect_jump.emit()
@@ -70,17 +71,21 @@ func reset_combo() -> void:
 func get_combo() -> int:
 	return _combo_count
 
+func get_jump_level() -> int:
+	return _combo_count
+
+func get_max_jump_level() -> int:
+	return MAX_JUMP_LEVEL
+
 func is_in_perfect_window() -> bool:
 	return _landed_timer > 0.0 and _was_on_floor
 
 func get_multipliers() -> Dictionary:
-	var ratio: float = 0.0
-	if combo_max > 0:
-		ratio = clamp(float(_combo_count) / float(combo_max), 0.0, 1.0)
-	var eased: float = pow(ratio, combo_curve_gamma)
+	var ratio := _progress_ratio()
+	var eased := _eased_speed_ratio(ratio)
 	return {
 		"speed_mult": lerp(1.0, combo_speed_bonus_max, eased),
-		"jump_mult": lerp(1.0, combo_jump_bonus_max, eased)
+		"jump_mult": lerp(1.0, combo_jump_bonus_max, ratio)
 	}
 
 func speed_multiplier() -> float:
@@ -88,6 +93,19 @@ func speed_multiplier() -> float:
 
 func jump_multiplier() -> float:
 	return get_multipliers().get("jump_mult", 1.0)
+
+func _progress_ratio() -> float:
+	if MAX_JUMP_LEVEL <= 0:
+		return 0.0
+	return clampf(float(_combo_count) / float(MAX_JUMP_LEVEL), 0.0, 1.0)
+
+func _eased_speed_ratio(ratio: float) -> float:
+	if ratio <= 0.0:
+		return 0.0
+	if ratio >= 1.0:
+		return 1.0
+	var gamma := maxf(combo_curve_gamma, 0.0001)
+	return clampf(pow(ratio, gamma), 0.0, 1.0)
 
 func _open_perfect_window() -> void:
 	_landed_timer = max(perfect_window, 0.0)

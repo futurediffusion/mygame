@@ -47,7 +47,7 @@ const SIMCLOCK_SCRIPT := preload("res://Singletons/SimClock.gd")
 @export_range(0.1, 10.0, 0.1) var walk_speed: float = 2.5
 @export_range(0.1, 15.0, 0.1) var run_speed: float = 6.0
 @export_range(0.1, 20.0, 0.1) var sprint_speed: float = 9.5
-@export_range(1.0, 15.0, 0.1) var jump_velocity: float = 8.5
+@export_range(1.0, 15.0, 0.1) var jump_velocity: float = 8.2
 
 @export_group("Physics")
 @export_range(1.0, 50.0, 0.5) var accel_ground: float = 26.0
