@@ -1,18 +1,22 @@
 extends ModuleBase
 class_name AnimationCtrlModule
 
+const STATE_LOCOMOTION := "Locomotion"
+const STATE_JUMP := "Jump"
+const STATE_FALL := "Fall"
+const STATE_LAND := "Land"
+
 var player: CharacterBody3D
 var anim_tree: AnimationTree
 var anim_player: AnimationPlayer
 
-@export var animation_tree_path: NodePath  # <-- AÑADE ESTA LÍNEA
-@export var state_module_path: NodePath   
+@export var animation_tree_path: NodePath
+@export var state_module_path: NodePath
 
 # Paths dentro del AnimationTree
-const PARAM_LOC: StringName = &"parameters/Locomotion/blend_position"
-const PARAM_AIRBLEND: StringName = &"parameters/AirBlend/blend_amount"
-const PARAM_FALLANIM: StringName = &"parameters/FallAnim/animation"
-const PARAM_SPRINTSCL: StringName = &"parameters/SprintScale/scale"
+const PARAM_LOC: StringName = &"parameters/StateMachine/nodes/Locomotion/node/nodes/Locomotion/blend_position"
+const PARAM_SPRINTSCL: StringName = &"parameters/StateMachine/nodes/Locomotion/node/nodes/SprintScale/scale"
+const PARAM_FALLANIM: StringName = &"parameters/StateMachine/nodes/Fall/animation"
 const PARAM_SM_PLAYBACK: StringName = &"parameters/StateMachine/playback"
 
 # Parámetros expuestos
@@ -38,8 +42,18 @@ var _state_machine: AnimationNodeStateMachinePlayback
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
-	anim_tree = p.anim_tree
-	anim_player = p.anim_player
+
+	if animation_tree_path != NodePath():
+		anim_tree = player.get_node_or_null(animation_tree_path) as AnimationTree
+	elif "anim_tree" in player:
+		anim_tree = player.anim_tree
+
+	if anim_tree:
+		var anim_path := anim_tree.anim_player
+		if anim_path != NodePath():
+			anim_player = anim_tree.get_node_or_null(anim_path) as AnimationPlayer
+	elif "anim_player" in player:
+		anim_player = player.anim_player
 
 	if "walk_speed" in p:
 		walk_speed = p.walk_speed
@@ -58,13 +72,13 @@ func setup(p: CharacterBody3D) -> void:
 	if anim_tree:
 		if animation_tree_path == NodePath():
 			animation_tree_path = anim_tree.get_path()
-		anim_tree.anim_player = anim_player.get_path()
+		if anim_player:
+			anim_tree.anim_player = anim_player.get_path()
 		anim_tree.active = true
 		if _tree_has_param(PARAM_FALLANIM):
 			anim_tree.set(PARAM_FALLANIM, fall_clip_name)
 		if _tree_has_param(PARAM_LOC):
 			anim_tree.set(PARAM_LOC, 0.0)
-		_set_air_blend(0.0)
 		_set_sprint_scale(1.0)
 		_cache_state_machine()
 
@@ -93,7 +107,7 @@ func _handle_airborne(delta: float) -> void:
 		_time_in_air = 0.0
 		_fall_triggered = false
 		if not _has_jumped:
-			_travel_to_state("Jump")
+			_travel_to_state(STATE_JUMP)
 		_set_locomotion_blend(0.0)
 		_set_sprint_scale(1.0)
 
@@ -102,11 +116,8 @@ func _handle_airborne(delta: float) -> void:
 	var vel_y := player.velocity.y
 	var should_trigger_fall := _time_in_air >= min_air_time_to_fall or vel_y <= fall_speed_threshold
 	if should_trigger_fall and not _fall_triggered:
-		_travel_to_state("Fall")
+		_travel_to_state(STATE_FALL)
 		_fall_triggered = true
-
-	_set_air_blend(1.0 if _fall_triggered else 0.0)
-
 
 func _handle_grounded() -> void:
 	if _airborne:
@@ -114,16 +125,15 @@ func _handle_grounded() -> void:
 		_time_in_air = 0.0
 		_fall_triggered = false
 		_has_jumped = false
-		if _state_machine and _state_machine.get_current_node() in ["Fall", "Jump"]:
-			if _has_state("Land"):
-				_travel_to_state("Land")
+		if _state_machine and _state_machine.get_current_node() in [STATE_FALL, STATE_JUMP]:
+			if _has_state(STATE_LAND):
+				_travel_to_state(STATE_LAND)
 			else:
-				_travel_to_state("Locomotion")
+				_travel_to_state(STATE_LOCOMOTION)
 
 	var blend := _calculate_locomotion_blend()
 	_set_locomotion_blend(blend)
 	_apply_sprint_scale(blend)
-	_set_air_blend(0.0)
 
 func _calculate_locomotion_blend() -> float:
 	var hspeed := Vector2(player.velocity.x, player.velocity.z).length()
@@ -152,30 +162,24 @@ func _set_locomotion_blend(value: float) -> void:
 	if _tree_has_param(PARAM_LOC):
 		anim_tree.set(PARAM_LOC, clampf(value, 0.0, 1.0))
 
-func _set_air_blend(value: float) -> void:
-	if _tree_has_param(PARAM_AIRBLEND):
-		anim_tree.set(PARAM_AIRBLEND, clampf(value, 0.0, 1.0))
-
 func _set_sprint_scale(value: float) -> void:
 	if _tree_has_param(PARAM_SPRINTSCL):
 		anim_tree.set(PARAM_SPRINTSCL, value)
 
 func _cache_state_machine() -> void:
-	# Garantiza que tengamos referencia válida al AnimationTree.
 	if anim_tree == null:
 		push_warning("AnimationTree no asignado; revisa que el módulo se configure en setup().")
 		return
 	if animation_tree_path == NodePath():
 		animation_tree_path = anim_tree.get_path()
 
-	# Recupera el playback con cast explícito
-	var playback := anim_tree.get("parameters/StateMachine/playback") as AnimationNodeStateMachinePlayback
+	var playback := anim_tree.get(PARAM_SM_PLAYBACK) as AnimationNodeStateMachinePlayback
 	if playback == null:
 		push_warning("No se encontró 'parameters/StateMachine/playback' en el AnimationTree. Revisa el nodo StateMachine y su path.")
 		return
 
 	_state_machine = playback
-	_travel_to_state("Locomotion")
+	_travel_to_state(STATE_LOCOMOTION)
 
 func _connect_state_signals() -> void:
 	if player == null:
@@ -183,11 +187,9 @@ func _connect_state_signals() -> void:
 
 	var state_mod: Node = null
 
-	# 1) si hay ruta exportada, úsala
 	if state_module_path != NodePath():
 		state_mod = get_node_or_null(state_module_path)
 
-	# 2) fallback: buscar por convención en la jerarquía del player
 	if state_mod == null and player.has_node("Modules/State"):
 		state_mod = player.get_node("Modules/State")
 	elif state_mod == null and player.has_node("State"):
@@ -196,7 +198,6 @@ func _connect_state_signals() -> void:
 	if state_mod == null:
 		return
 
-	# Conexiones seguras (evita duplicados)
 	if state_mod.has_signal("landed"):
 		if not state_mod.landed.is_connected(_on_landed):
 			state_mod.landed.connect(_on_landed)
@@ -207,16 +208,14 @@ func _connect_state_signals() -> void:
 		if not state_mod.left_ground.is_connected(_on_left_ground):
 			state_mod.left_ground.connect(_on_left_ground)
 
-
 func _on_jumped() -> void:
 	_has_jumped = true
 	_airborne = true
 	_time_in_air = 0.0
 	_fall_triggered = false
 	_set_locomotion_blend(0.0)
-	_set_air_blend(0.0)
 	_set_sprint_scale(1.0)
-	_travel_to_state("Jump")
+	_travel_to_state(STATE_JUMP)
 
 func _on_left_ground() -> void:
 	if _has_jumped:
@@ -225,20 +224,18 @@ func _on_left_ground() -> void:
 	_time_in_air = 0.0
 	_fall_triggered = false
 	_set_locomotion_blend(0.0)
-	_set_air_blend(0.0)
 	_set_sprint_scale(1.0)
-	_travel_to_state("Jump")
+	_travel_to_state(STATE_JUMP)
 
 func _on_landed(_is_hard: bool) -> void:
 	_airborne = false
 	_has_jumped = false
 	_time_in_air = 0.0
 	_fall_triggered = false
-	_set_air_blend(0.0)
-	if _has_state("Land"):
-		_travel_to_state("Land")
+	if _has_state(STATE_LAND):
+		_travel_to_state(STATE_LAND)
 	else:
-		_travel_to_state("Locomotion")
+		_travel_to_state(STATE_LOCOMOTION)
 
 func _travel_to_state(state_name: String) -> void:
 	if _state_machine == null:
@@ -250,8 +247,7 @@ func _travel_to_state(state_name: String) -> void:
 func _tree_has_param(param: StringName) -> bool:
 	if anim_tree == null:
 		return false
-	
-	# Verificar si el parámetro existe intentando leerlo
+
 	var param_list: Array = []
 	if anim_tree.has_method("get_property_list"):
 		param_list = anim_tree.get_property_list()
@@ -259,8 +255,7 @@ func _tree_has_param(param: StringName) -> bool:
 			if prop is Dictionary and prop.has("name"):
 				if String(prop["name"]) == String(param):
 					return true
-	
-	# Fallback: intentar acceder directamente
+
 	var value = anim_tree.get(param)
 	return value != null
 
