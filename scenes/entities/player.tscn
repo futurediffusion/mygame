@@ -22,7 +22,7 @@
 animation = &"fall air loop"
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_2ngu4"]
-animation = &"jump"
+animation = &"front jump"
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_jv5ih"]
 animation = &"idle"
@@ -64,6 +64,7 @@ advance_mode = 0
 advance_mode = 0
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_yw3xw"]
+xfade_time = 8.78
 advance_mode = 0
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_6gvyl"]
@@ -78,7 +79,7 @@ states/Jump/position = Vector2(262, 251)
 states/LocomotionSpeed/node = SubResource("AnimationNodeBlendTree_cwche")
 states/LocomotionSpeed/position = Vector2(409, -67)
 transitions = ["Jump", "FallAnim", SubResource("AnimationNodeStateMachineTransition_u2s01"), "Start", "LocomotionSpeed", SubResource("AnimationNodeStateMachineTransition_yv3je"), "LocomotionSpeed", "End", SubResource("AnimationNodeStateMachineTransition_3hm5d"), "LocomotionSpeed", "Jump", SubResource("AnimationNodeStateMachineTransition_yw3xw"), "FallAnim", "LocomotionSpeed", SubResource("AnimationNodeStateMachineTransition_6gvyl")]
-graph_offset = Vector2(-146, -168)
+graph_offset = Vector2(-144, -47)
 
 [sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_1ie0h"]
 
