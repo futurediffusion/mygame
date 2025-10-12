@@ -26,6 +26,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Log rápido (último cambio)
+- `Modules/AnimationCtrl.gd`: el estado de caída ahora solo se activa tras cruzar el apex (velocidad vertical ≤ 0) o alcanzar el umbral negativo configurado, permitiendo que la animación de salto se reproduzca completa antes de mezclar con la de caída.
 - `Modules/PerfectJumpCombo.gd` + `tests/TestJumpCombo.gd`: el combo perfecto ahora escala en 100 niveles lineales hasta duplicar la altura base (200%) y la prueba headless verifica la progresión completa sin reinicios tempranos.
 - `scenes/entities/player.gd`: la velocidad base de salto baja a 8.2 para suavizar el salto máximo cuando mantienes presionada la tecla.
 - `Modules/Movement.gd` + `Modules/Jump.gd`: tipado explícito del combo del jugador al resolver `player.combo`, evitando el error de inferencia de Godot 4.4 y asegurando que el PerfectJumpCombo siga activo tras los FX.
