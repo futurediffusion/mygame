@@ -26,6 +26,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Log rápido (último cambio)
+- `Modules/State.gd`: tipado explícito de la gravedad extra en caída para que Godot 4.4 deje de inferir `Variant` y desaparezca el error al compilar el script.
 - `Modules/State.gd` + `tests/TestFastFall.gd`: el fast fall ahora se activa en el mismo tick en que cruzas el apex incluso si mantienes pulsado el salto, y la prueba cubre la transición para evitar regresiones.
 - `Modules/Movement.gd` + `scenes/entities/player.gd`: el fast fall del jugador ahora aplica un multiplicador de 1.5× tanto a la velocidad aérea como a la gravedad en caída, garantizando que descender sea un 50% más rápido y responda al combo perfecto.
 - `Modules/Movement.gd` + `Modules/State.gd`: revalidado el fast fall tras la migración al StateMachine; `max_speed_air` se alinea con `run_speed`, `fall_gravity_scale` se clampa a ≥1.0 y `tests/TestFastFall.tscn` comprueba el 50% extra de caída.
