@@ -17,7 +17,7 @@ signal perfect_jump()
 signal combo_reset()
 
 func _ready() -> void:
-	_body = owner as CharacterBody3D
+	_body = _resolve_body()
 	if _body != null and _body.is_on_floor():
 		_was_on_floor = true
 
@@ -99,5 +99,14 @@ func _reset_timers() -> void:
 func _get_body() -> CharacterBody3D:
 	if _body != null and is_instance_valid(_body):
 		return _body
-	_body = owner as CharacterBody3D
+	_body = _resolve_body()
 	return _body
+
+func _resolve_body() -> CharacterBody3D:
+	var candidate: Object = owner
+	if candidate is CharacterBody3D and is_instance_valid(candidate):
+		return candidate
+	candidate = get_parent()
+	if candidate is CharacterBody3D and is_instance_valid(candidate):
+		return candidate
+	return null
