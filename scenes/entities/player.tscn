@@ -78,7 +78,7 @@ states/Jump/position = Vector2(349, 217)
 states/Locomotion/node = SubResource("AnimationNodeBlendSpace1D_cwche")
 states/Locomotion/position = Vector2(412, 34)
 transitions = ["Start", "Locomotion", SubResource("AnimationNodeStateMachineTransition_yv3je"), "Locomotion", "End", SubResource("AnimationNodeStateMachineTransition_3hm5d"), "Locomotion", "Jump", SubResource("AnimationNodeStateMachineTransition_yw3xw"), "Jump", "Locomotion", SubResource("AnimationNodeStateMachineTransition_6gvyl"), "Jump", "FallAnim", SubResource("AnimationNodeStateMachineTransition_u2s01"), "FallAnim", "Locomotion", SubResource("AnimationNodeStateMachineTransition_tb0mf")]
-graph_offset = Vector2(-26, -86)
+graph_offset = Vector2(-92, -62)
 
 [sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_1ie0h"]
 
@@ -162,7 +162,7 @@ transitions = ["Start", "sneak_enter", SubResource("AnimationNodeStateMachineTra
 graph_offset = Vector2(-142, -105)
 
 [sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_c5rqy"]
-graph_offset = Vector2(-325.639, 1556.27)
+graph_offset = Vector2(-325.639, 332.75)
 nodes/AirBlend/node = SubResource("AnimationNodeBlend2_1ie0h")
 nodes/AirBlend/position = Vector2(380, 820)
 nodes/Animation/node = SubResource("AnimationNodeAnimation_1ie0h")
