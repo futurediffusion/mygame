@@ -82,7 +82,7 @@ const SIMCLOCK_SCRIPT := preload("res://Singletons/SimClock.gd")
 # ============================================================================
 @onready var yaw: Node3D = $CameraRig/Yaw
 @onready var model: Node3D = $Pivot/Model
-@onready var anim_tree: AnimationTree = get_node_or_null(^"Pivot/Model/AnimationTree") as AnimationTree
+@onready var anim_tree: AnimationTree = get_node_or_null(^"Pivot/Model/StateMachine") as AnimationTree
 @onready var anim_player: AnimationPlayer = get_node_or_null(^"Pivot/Model/AnimationPlayer") as AnimationPlayer
 @onready var stamina: Stamina = $Stamina
 @onready var camera_rig: Node = get_node_or_null(^"CameraRig")

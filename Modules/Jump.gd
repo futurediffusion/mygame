@@ -143,8 +143,18 @@ func _get_combo() -> PerfectJumpCombo:
 	return _combo
 
 func _trigger_jump_animation() -> void:
-	if anim_tree != null:
-		anim_tree.set(PARAM_JUMP, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+	if not _tree_has_param(PARAM_JUMP):
+		return
+	anim_tree.set(PARAM_JUMP, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+
+func _tree_has_param(param: StringName) -> bool:
+	if anim_tree == null:
+		return false
+	if anim_tree.has_method("get_property_list"):
+		for prop in anim_tree.get_property_list():
+			if prop is Dictionary and prop.has("name") and String(prop["name"]) == String(param):
+				return true
+	return false
 
 func _play_jump_audio() -> void:
 	if player == null or not is_instance_valid(player):
