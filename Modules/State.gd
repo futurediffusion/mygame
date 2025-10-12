@@ -46,10 +46,15 @@ func pre_move_update(dt: float) -> void:
 		if _owner_body.velocity.y < 0.0:
 			_owner_body.velocity.y = 0.0
 		return
-	var gravity_scale := 1.0
+	var fall_scale := max(fall_gravity_scale, 1.0)
+	var base_gravity := gravity * dt
 	if _owner_body.velocity.y <= 0.0:
-		gravity_scale = fall_gravity_scale
-	_owner_body.velocity.y -= gravity * gravity_scale * dt
+		_owner_body.velocity.y -= base_gravity * fall_scale
+	else:
+		_owner_body.velocity.y -= base_gravity
+		if _owner_body.velocity.y < 0.0 and fall_scale > 1.0:
+			var extra_gravity := base_gravity * (fall_scale - 1.0)
+			_owner_body.velocity.y -= extra_gravity
 
 func post_move_update() -> void:
 	if _owner_body == null or not is_instance_valid(_owner_body):
