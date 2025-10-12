@@ -14,6 +14,7 @@ const PARAM_AIRBLEND: StringName = &"parameters/AirBlend/blend_amount"
 const PARAM_FALLANIM: StringName = &"parameters/FallAnim/animation"
 const PARAM_SPRINTSCL: StringName = &"parameters/SprintScale/scale"
 const PARAM_SM_PLAYBACK: StringName = &"parameters/StateMachine/playback"
+const PARAM_ROOT_PLAYBACK: StringName = &"parameters/playback"
 
 const STATE_LOCOMOTION: StringName = &"Locomotion"
 const STATE_JUMP: StringName = &"Jump"
@@ -179,14 +180,39 @@ func _cache_state_machine() -> void:
 	if animation_tree_path == NodePath():
 		animation_tree_path = anim_tree.get_path()
 
-	# Recupera el playback con cast explícito
-	var playback := anim_tree.get(PARAM_SM_PLAYBACK) as AnimationNodeStateMachinePlayback
+	var playback := _resolve_state_machine_playback()
 	if playback == null:
-		push_warning("No se encontró 'parameters/StateMachine/playback' en el AnimationTree. Revisa el nodo StateMachine y su path.")
+		push_warning("No se encontró un AnimationNodeStateMachinePlayback válido en el AnimationTree. Revisa que el root sea un StateMachine y que su 'playback' esté expuesto.")
 		return
 
 	_state_machine = playback
 	_travel_to_state(STATE_LOCOMOTION)
+
+func _resolve_state_machine_playback() -> AnimationNodeStateMachinePlayback:
+	if anim_tree == null:
+		return null
+
+	var playback := anim_tree.get(PARAM_SM_PLAYBACK) as AnimationNodeStateMachinePlayback
+	if playback != null:
+		return playback
+
+	playback = anim_tree.get(PARAM_ROOT_PLAYBACK) as AnimationNodeStateMachinePlayback
+	if playback != null:
+		return playback
+
+	if not anim_tree.has_method("get_property_list"):
+		return null
+
+	var properties := anim_tree.get_property_list()
+	for prop in properties:
+		if prop is Dictionary and prop.has("name"):
+			var name_str := String(prop["name"])
+			if name_str.ends_with("/playback"):
+				var candidate := anim_tree.get(StringName(name_str)) as AnimationNodeStateMachinePlayback
+				if candidate != null:
+					return candidate
+
+	return null
 
 func _connect_state_signals() -> void:
 	if player == null:
