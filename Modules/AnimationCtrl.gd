@@ -9,14 +9,17 @@ var anim_player: AnimationPlayer
 @export var state_module_path: NodePath   
 
 # Paths dentro del AnimationTree
-const PARAM_LOC: StringName = &"parameters/Locomotion/blend_position"
+const PARAM_LOC: StringName = &"parameters/LocomotionSpeed/Locomotion/blend_position"
+const PARAM_LOC_LEGACY: StringName = &"parameters/Locomotion/blend_position"
 const PARAM_AIRBLEND: StringName = &"parameters/AirBlend/blend_amount"
 const PARAM_FALLANIM: StringName = &"parameters/FallAnim/animation"
-const PARAM_SPRINTSCL: StringName = &"parameters/SprintScale/scale"
+const PARAM_SPRINTSCL: StringName = &"parameters/LocomotionSpeed/SprintSpeed/scale"
+const PARAM_SPRINTSCL_LEGACY: StringName = &"parameters/SprintScale/scale"
 const PARAM_SM_PLAYBACK: StringName = &"parameters/StateMachine/playback"
 const PARAM_ROOT_PLAYBACK: StringName = &"parameters/playback"
 
-const STATE_LOCOMOTION: StringName = &"Locomotion"
+const STATE_LOCOMOTION: StringName = &"LocomotionSpeed"
+const STATE_LOCOMOTION_LEGACY: StringName = &"Locomotion"
 const STATE_JUMP: StringName = &"Jump"
 const STATE_FALL: StringName = &"FallAnim"
 const STATE_LAND: StringName = &"Land"
@@ -42,6 +45,9 @@ var _time_in_air := 0.0
 
 var _state_machine: AnimationNodeStateMachinePlayback
 var _state_machine_graph: AnimationNodeStateMachine
+var _state_locomotion: StringName = STATE_LOCOMOTION
+var _locomotion_params: Array[StringName] = []
+var _sprint_scale_params: Array[StringName] = []
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
@@ -69,14 +75,14 @@ func setup(p: CharacterBody3D) -> void:
 		anim_player = player.anim_player
 	if anim_tree:
 		if animation_tree_path == NodePath():
-			animation_tree_path = anim_tree.get_path()
+		animation_tree_path = anim_tree.get_path()
 		if anim_player != null and is_instance_valid(anim_player):
 			anim_tree.anim_player = anim_player.get_path()
 		anim_tree.active = true
+		_refresh_parameter_cache()
 		if _tree_has_param(PARAM_FALLANIM):
 			anim_tree.set(PARAM_FALLANIM, fall_clip_name)
-		if _tree_has_param(PARAM_LOC):
-			anim_tree.set(PARAM_LOC, 0.0)
+		_set_locomotion_blend(0.0)
 		_set_air_blend(0.0)
 		_set_sprint_scale(1.0)
 		_cache_state_machine()
@@ -131,7 +137,7 @@ func _handle_grounded() -> void:
 			if _has_state(STATE_LAND):
 				_travel_to_state(STATE_LAND)
 			else:
-				_travel_to_state(STATE_LOCOMOTION)
+				_travel_to_state(_state_locomotion)
 
 	var blend := _calculate_locomotion_blend()
 	_set_locomotion_blend(blend)
@@ -162,16 +168,29 @@ func _apply_sprint_scale(blend: float) -> void:
 	_set_sprint_scale(scale)
 
 func _set_locomotion_blend(value: float) -> void:
-	if _tree_has_param(PARAM_LOC):
-		anim_tree.set(PARAM_LOC, clampf(value, 0.0, 1.0))
+	if anim_tree == null:
+		return
+	var clamped := clampf(value, 0.0, 1.0)
+	var applied := false
+	for param in _locomotion_params:
+		anim_tree.set(param, clamped)
+		applied = true
+	if not applied and _tree_has_param(PARAM_LOC_LEGACY):
+		anim_tree.set(PARAM_LOC_LEGACY, clamped)
 
 func _set_air_blend(value: float) -> void:
 	if _tree_has_param(PARAM_AIRBLEND):
 		anim_tree.set(PARAM_AIRBLEND, clampf(value, 0.0, 1.0))
 
 func _set_sprint_scale(value: float) -> void:
-	if _tree_has_param(PARAM_SPRINTSCL):
-		anim_tree.set(PARAM_SPRINTSCL, value)
+	if anim_tree == null:
+		return
+	var applied := false
+	for param in _sprint_scale_params:
+		anim_tree.set(param, value)
+		applied = true
+	if not applied and _tree_has_param(PARAM_SPRINTSCL_LEGACY):
+		anim_tree.set(PARAM_SPRINTSCL_LEGACY, value)
 
 func _cache_state_machine() -> void:
 	# Garantiza que tengamos referencia válida al AnimationTree.
@@ -182,6 +201,7 @@ func _cache_state_machine() -> void:
 		return
 	if animation_tree_path == NodePath():
 		animation_tree_path = anim_tree.get_path()
+		_refresh_parameter_cache()
 
 	var playback := _resolve_state_machine_playback()
 	if playback == null:
@@ -195,7 +215,8 @@ func _cache_state_machine() -> void:
 	else:
 		_state_machine_graph = null
 		push_warning("El AnimationTree configurado no expone un AnimationNodeStateMachine como raíz; no se puede validar la existencia de estados.")
-	_travel_to_state(STATE_LOCOMOTION)
+	_state_locomotion = _resolve_state_name(STATE_LOCOMOTION, STATE_LOCOMOTION_LEGACY)
+	_travel_to_state(_state_locomotion)
 
 func _resolve_state_machine_playback() -> AnimationNodeStateMachinePlayback:
 	if anim_tree == null:
@@ -284,7 +305,7 @@ func _on_landed(_is_hard: bool) -> void:
 	if _has_state(STATE_LAND):
 		_travel_to_state(STATE_LAND)
 	else:
-		_travel_to_state(STATE_LOCOMOTION)
+		_travel_to_state(_state_locomotion)
 
 func _travel_to_state(state_name: StringName) -> void:
 	if _state_machine == null:
@@ -295,10 +316,33 @@ func _travel_to_state(state_name: StringName) -> void:
 		return
 	_state_machine.travel(state_name)
 
+func _refresh_parameter_cache() -> void:
+	_locomotion_params.clear()
+	_sprint_scale_params.clear()
+	if anim_tree == null:
+		return
+	var loc_candidates: Array[StringName] = [PARAM_LOC, PARAM_LOC_LEGACY]
+	for param in loc_candidates:
+		if _tree_has_param(param) and not _locomotion_params.has(param):
+			_locomotion_params.append(param)
+	var sprint_candidates: Array[StringName] = [PARAM_SPRINTSCL, PARAM_SPRINTSCL_LEGACY]
+	for param in sprint_candidates:
+		if _tree_has_param(param) and not _sprint_scale_params.has(param):
+			_sprint_scale_params.append(param)
+
+func _resolve_state_name(preferred: StringName, fallback: StringName) -> StringName:
+	if _state_machine_graph == null:
+		return preferred
+	if not String(preferred).is_empty() and _state_machine_graph.has_node(preferred):
+		return preferred
+	if not String(fallback).is_empty() and _state_machine_graph.has_node(fallback):
+		return fallback
+	return preferred
+
 func _tree_has_param(param: StringName) -> bool:
 	if anim_tree == null:
 		return false
-	
+
 	# Verificar si el parámetro existe intentando leerlo
 	var param_list: Array = []
 	if anim_tree.has_method("get_property_list"):
@@ -307,7 +351,7 @@ func _tree_has_param(param: StringName) -> bool:
 			if prop is Dictionary and prop.has("name"):
 				if String(prop["name"]) == String(param):
 					return true
-	
+
 	# Fallback: intentar acceder directamente
 	var value = anim_tree.get(param)
 	return value != null
