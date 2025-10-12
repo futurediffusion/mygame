@@ -172,7 +172,7 @@ Gestiona el ciclo físico del jugador, cachea el input y propaga el contexto a l
 - **JumpModule (`Jump.gd`)**: administra coyote time, jump buffer, salto variable y disparo de animaciones/audio; emite efectos de cámara cuando procede.
 - **StateModule (`State.gd`)**: centraliza la gravedad (con multiplicador de caída), configura `floor_max_angle`/`floor_snap_length` y emite las señales `jumped`, `left_ground` y `landed` al detectar transiciones aéreas.
 - **OrientationModule (`Orientation.gd`)**: interpola la rotación del modelo hacia el input de locomoción respetando la corrección de forward.
-- **AnimationCtrlModule (`AnimationCtrl.gd`)**: actualiza el `AnimationTree` (`PARAM_LOC`, `PARAM_AIRBLEND`, `PARAM_SPRINTSCL`) y bloquea locomoción en aire mientras gobierna un StateMachine `Jump → Fall → Land/Locomotion`.
+- **AnimationCtrlModule (`AnimationCtrl.gd`)**: actualiza el `AnimationTree` (`LocomotionSpeed/Locomotion`, `AirBlend`, `LocomotionSpeed/SprintSpeed`) y bloquea locomoción en aire mientras gobierna un StateMachine `Jump → Fall → Land/LocomotionSpeed`.
 - **AudioCtrlModule (`AudioCtrl.gd`)**: toca SFX de salto, aterrizaje y pasos con random pitch; admite modo automático por timer para footfalls.
 - **PerfectJumpCombo (`Modules/PerfectJumpCombo.gd`)**: gestiona coyote time, jump buffer y la ventana de aterrizaje perfecta para escalar un combo que aumenta velocidad horizontal y potencia de salto; expone señales para UI/FX.
 
@@ -267,8 +267,9 @@ El nodo bootstrap se elimina tras registrar las acciones, evitando repetir bindi
 ---
 
 ## Animaciones y modelos
-- `player.tscn` instancia un `AnimationTree` con nodos `Locomotion`, `AirBlend`, `Jump`, `SprintScale` conectados al `AnimationPlayer` del modelo GLB (`art/characters/animations1.glb`).
+- `player.tscn` instancia un `AnimationTree` (nodo `StateMachine`) cuyo estado `LocomotionSpeed` es un `AnimationNodeBlendTree` que encapsula el `BlendSpace1D` `Locomotion` y el `TimeScale` `SprintSpeed`, además de los estados `Jump` y `FallAnim` conectados al `AnimationPlayer` del modelo GLB (`art/characters/animations1.glb`).
 - `AnimationCtrlModule` maneja los parámetros del árbol; comparte clips (`idle`, `walk`, `run`, `fall air loop`) con los aliados.
+- El módulo detecta automáticamente el BlendSpace original si existe (para backups) y ajusta el `SprintSpeed/scale` para conservar la aceleración de sprint en la animación de carrera.
 - `Ally.gd` busca automáticamente un `AnimationPlayer` en su jerarquía (`_bind_anim_player_from`), permitiendo reutilizar presets de Player. Las funciones `_swap_visual`, `_apply_material_overrides`, `_attach_gear` soportan hablar, sentarse, nadar, construir y atacar con animaciones específicas.
 - Actualmente no hay `AnimationTree` dedicado para los aliados; se planea introducirlo en R4 para soportar blends complejos.
 
