@@ -26,6 +26,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Log rápido (último cambio)
+- `Modules/Movement.gd` + `Modules/Jump.gd`: ajustado el acceso a `player.combo` usando variables sin inferencia para que Godot 4.4 deje de marcar error de tipado al resolver el combo perfecto.
 - `Modules/AnimationCtrl.gd`: restaurada la indentación con tabs, limpiado el export `animation_tree_path` y reordenada la inicialización del AnimationTree para que Godot 4.4 vuelva a parsear el módulo y exponga correctamente la clase global al jugador.
 - `Modules/State.gd`: tipado explícito de la gravedad extra en caída para que Godot 4.4 deje de inferir `Variant` y desaparezca el error al compilar el script.
 - `Modules/State.gd` + `tests/TestFastFall.gd`: el fast fall ahora se activa en el mismo tick en que cruzas el apex incluso si mantienes pulsado el salto, y la prueba cubre la transición para evitar regresiones.

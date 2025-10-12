@@ -140,7 +140,7 @@ func _get_combo() -> PerfectJumpCombo:
 		return _combo
 	if player != null and is_instance_valid(player):
 		if "combo" in player:
-			var player_combo := player.combo
+			var player_combo = player.combo
 			if player_combo is PerfectJumpCombo and is_instance_valid(player_combo):
 				_combo = player_combo
 				return _combo
