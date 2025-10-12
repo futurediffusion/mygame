@@ -41,6 +41,7 @@ var _fall_triggered := false
 var _time_in_air := 0.0
 
 var _state_machine: AnimationNodeStateMachinePlayback
+var _state_machine_graph: AnimationNodeStateMachine
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
@@ -174,6 +175,8 @@ func _set_sprint_scale(value: float) -> void:
 
 func _cache_state_machine() -> void:
 	# Garantiza que tengamos referencia válida al AnimationTree.
+	_state_machine = null
+	_state_machine_graph = null
 	if anim_tree == null:
 		push_warning("AnimationTree no asignado; revisa que el módulo se configure en setup().")
 		return
@@ -186,6 +189,12 @@ func _cache_state_machine() -> void:
 		return
 
 	_state_machine = playback
+	var tree_root := anim_tree.tree_root
+	if tree_root is AnimationNodeStateMachine:
+		_state_machine_graph = tree_root
+	else:
+		_state_machine_graph = null
+		push_warning("El AnimationTree configurado no expone un AnimationNodeStateMachine como raíz; no se puede validar la existencia de estados.")
 	_travel_to_state(STATE_LOCOMOTION)
 
 func _resolve_state_machine_playback() -> AnimationNodeStateMachinePlayback:
@@ -282,7 +291,7 @@ func _travel_to_state(state_name: StringName) -> void:
 		return
 	if String(state_name).is_empty():
 		return
-	if not _state_machine.has_node(state_name):
+	if _state_machine_graph != null and not _state_machine_graph.has_node(state_name):
 		return
 	_state_machine.travel(state_name)
 
@@ -304,6 +313,6 @@ func _tree_has_param(param: StringName) -> bool:
 	return value != null
 
 func _has_state(state_name: StringName) -> bool:
-	if _state_machine == null:
+	if _state_machine_graph == null:
 		return false
-	return _state_machine.has_node(state_name)
+	return _state_machine_graph.has_node(state_name)
