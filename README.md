@@ -32,6 +32,8 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - `Modules/Movement.gd` + `scenes/entities/player.gd`: el fast fall del jugador ahora aplica un multiplicador de 1.5× tanto a la velocidad aérea como a la gravedad en caída, garantizando que descender sea un 50% más rápido y responda al combo perfecto.
 - `Modules/Movement.gd` + `Modules/State.gd`: revalidado el fast fall tras la migración al StateMachine; `max_speed_air` se alinea con `run_speed`, `fall_gravity_scale` se clampa a ≥1.0 y `tests/TestFastFall.tscn` comprueba el 50% extra de caída.
 - `Modules/PerfectJumpCombo.gd` + `Modules/Jump.gd`: se restauró la ventana `perfect` sin decaimiento temporal, aplicando multiplicadores curvos y reiniciando el combo inmediatamente cuando fallas el timing.
+- `Modules/PerfectJumpCombo.gd` + `Modules/Jump.gd` + `Modules/Movement.gd`: referencias robustecidas al nodo `PerfectJumpCombo`, asegurando que el combo siga activo tras migrar el `AnimationTree` a StateMachine y que cualquier instancia hija pueda resolver su `CharacterBody3D` aunque el `owner` sea nulo.
+- `tests/TestJumpCombo.gd` + `tests/TestJumpCombo.tscn`: nueva prueba headless que valida incremento, multiplicador y reinicio del combo perfecto usando el orden de tick del SimClock.
 - `Modules/Jump.gd`: el salto variable ahora recorta la velocidad vertical con `release_velocity_scale` cuando sueltas antes del umbral, logrando saltos cortos consistentes sin romper el combo perfecto ni la ventana de coyote.
 - `Singletons/GameState.gd` renombra su `class_name` a `GameStateAutoload` para evitar la colisión "Class hides an autoload singleton" en Godot 4.4 y `scenes/entities/player.gd` actualiza el tipado del autoload.
 - `Singletons/GameState.gd`, `Modules/ModuleBase.gd`, `scenes/entities/player.gd`, `scenes/entities/Ally.gd` y `scenes/world/test_clock_benchmark.gd`: ahora precargan `SimClock.gd` antes de castear y validan el tipo del autoload para que Godot 4.4 registre `SimClockAutoload` sin advertencias ni errores de parseo.
@@ -76,6 +78,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 Pruebas:
 - Revalidado salto corto vs. largo al mantener/soltar salto con el recorte `release_velocity_scale`.
 - Verificado combo: incremento al acertar la ventana perfecta y reinicio inmediato al fallar el timing.
+- Test headless `res://tests/TestJumpCombo.tscn` garantiza que el módulo `PerfectJumpCombo` siga funcionando tras la migración al StateMachine.
 
 Checklist rápido para Codex
 
