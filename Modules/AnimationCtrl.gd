@@ -6,7 +6,7 @@ var anim_tree: AnimationTree
 var anim_player: AnimationPlayer
 
 @export var animation_tree_path: NodePath
-@export var state_module_path: NodePath   
+@export var state_module_path: NodePath
 
 # Paths dentro del AnimationTree
 const PARAM_LOC: StringName = &"parameters/LocomotionSpeed/Locomotion/blend_position"
@@ -27,6 +27,15 @@ const STATE_LAND: StringName = &"Land"
 # Parámetros expuestos
 @export var fall_speed_threshold: float = -1.5
 @export var min_air_time_to_fall: float = 0.10
+@export_range(0.0, 0.5, 0.01) var locomotion_to_jump_blend_time_min: float = 0.08
+@export_range(0.0, 0.5, 0.01) var locomotion_to_jump_blend_time_max: float = 0.18
+@export_range(0.0, 0.5, 0.01) var jump_to_fall_blend_time_min: float = 0.12
+@export_range(0.0, 0.5, 0.01) var jump_to_fall_blend_time_max: float = 0.32
+@export_range(0.0, 0.5, 0.01) var fall_to_locomotion_blend_time: float = 0.14
+@export_range(0.0, 0.5, 0.01) var fall_to_land_blend_time: float = 0.18
+@export_range(0.0, 1.0, 0.01) var fall_blend_ramp_delay: float = 0.10
+@export_range(0.0, 1.0, 0.01) var fall_blend_ramp_time: float = 0.20
+@export_range(0.0, 30.0, 0.5) var fall_blend_lerp_speed: float = 12.0
 
 # Copiados del Player para mantener fidelidad
 var walk_speed := 2.5
@@ -42,12 +51,14 @@ var _airborne := false
 var _has_jumped := false
 var _fall_triggered := false
 var _time_in_air := 0.0
+var _current_air_blend := 0.0
 
 var _state_machine: AnimationNodeStateMachinePlayback
 var _state_machine_graph: AnimationNodeStateMachine
 var _state_locomotion: StringName = STATE_LOCOMOTION
 var _locomotion_params: Array[StringName] = []
 var _sprint_scale_params: Array[StringName] = []
+var _transition_indices: Dictionary = {}
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
@@ -128,7 +139,11 @@ func _handle_airborne(delta: float) -> void:
 	if should_trigger_fall and not _fall_triggered:
 		_travel_to_state(STATE_FALL)
 		_fall_triggered = true
-	_set_air_blend(1.0 if _fall_triggered else 0.0)
+
+	var target_air_blend := _calculate_fall_blend_target()
+	_current_air_blend = lerpf(_current_air_blend, target_air_blend, clampf(delta * fall_blend_lerp_speed, 0.0, 1.0))
+	_update_jump_fall_transition_blend()
+	_set_air_blend(_current_air_blend)
 
 
 func _handle_grounded() -> void:
@@ -137,6 +152,8 @@ func _handle_grounded() -> void:
 		_time_in_air = 0.0
 		_fall_triggered = false
 		_has_jumped = false
+		_current_air_blend = 0.0
+		_update_jump_fall_transition_blend()
 		if _state_machine and _state_machine.get_current_node() in [STATE_FALL, STATE_JUMP]:
 			if _has_state(STATE_LAND):
 				_travel_to_state(STATE_LAND)
@@ -144,6 +161,7 @@ func _handle_grounded() -> void:
 				_travel_to_state(_state_locomotion)
 
 	var blend := _calculate_locomotion_blend()
+	_update_locomotion_jump_transition(blend)
 	_set_locomotion_blend(blend)
 	_apply_sprint_scale(blend)
 	_set_air_blend(0.0)
@@ -221,6 +239,8 @@ func _cache_state_machine() -> void:
 		push_warning("El AnimationTree configurado no expone un AnimationNodeStateMachine como raíz; no se puede validar la existencia de estados.")
 	_state_locomotion = _resolve_state_name(STATE_LOCOMOTION, STATE_LOCOMOTION_LEGACY)
 	_travel_to_state(_state_locomotion)
+	_cache_transition_indices()
+	_configure_transition_blends()
 
 func _resolve_state_machine_playback() -> AnimationNodeStateMachinePlayback:
 	if anim_tree == null:
@@ -284,6 +304,8 @@ func _on_jumped() -> void:
 	_airborne = true
 	_time_in_air = 0.0
 	_fall_triggered = false
+	_current_air_blend = 0.0
+	_update_jump_fall_transition_blend()
 	_set_locomotion_blend(0.0)
 	_set_air_blend(0.0)
 	_set_sprint_scale(1.0)
@@ -295,6 +317,8 @@ func _on_left_ground() -> void:
 	_airborne = true
 	_time_in_air = 0.0
 	_fall_triggered = false
+	_current_air_blend = 0.0
+	_update_jump_fall_transition_blend()
 	_set_locomotion_blend(0.0)
 	_set_air_blend(0.0)
 	_set_sprint_scale(1.0)
@@ -305,6 +329,8 @@ func _on_landed(_is_hard: bool) -> void:
 	_has_jumped = false
 	_time_in_air = 0.0
 	_fall_triggered = false
+	_current_air_blend = 0.0
+	_update_jump_fall_transition_blend()
 	_set_air_blend(0.0)
 	if _has_state(STATE_LAND):
 		_travel_to_state(STATE_LAND)
@@ -364,3 +390,72 @@ func _has_state(state_name: StringName) -> bool:
 	if _state_machine_graph == null:
 		return false
 	return _state_machine_graph.has_node(state_name)
+
+func _cache_transition_indices() -> void:
+	_transition_indices.clear()
+	if _state_machine_graph == null:
+		return
+	if not _state_machine_graph.has_method("get_transition_count"):
+		return
+	var count := _state_machine_graph.get_transition_count()
+	for i in range(count):
+		var from_state := _state_machine_graph.get_transition_from(i)
+		var to_state := _state_machine_graph.get_transition_to(i)
+		var key := _make_transition_key(from_state, to_state)
+		_transition_indices[key] = i
+
+func _configure_transition_blends() -> void:
+	if _state_machine_graph == null:
+		return
+	_update_locomotion_jump_transition(0.0)
+	_set_transition_blend_time(STATE_JUMP, STATE_FALL, jump_to_fall_blend_time_min)
+	_set_transition_blend_time(STATE_FALL, _state_locomotion, fall_to_locomotion_blend_time)
+	if _has_state(STATE_LAND):
+		_set_transition_blend_time(STATE_FALL, STATE_LAND, fall_to_land_blend_time)
+
+func _make_transition_key(from_state: StringName, to_state: StringName) -> StringName:
+	return StringName(String(from_state) + "->" + String(to_state))
+
+func _get_transition_index(from_state: StringName, to_state: StringName) -> int:
+	var key := _make_transition_key(from_state, to_state)
+	if not _transition_indices.has(key):
+		return -1
+	return int(_transition_indices[key])
+
+func _set_transition_blend_time(from_state: StringName, to_state: StringName, blend_time: float) -> void:
+	if _state_machine_graph == null:
+		return
+	if not _state_machine_graph.has_method("set_transition_blend_time"):
+		return
+	var index := _get_transition_index(from_state, to_state)
+	if index == -1:
+		return
+	var clamped := maxf(blend_time, 0.0)
+	if _state_machine_graph.has_method("get_transition_blend_time"):
+		var current := _state_machine_graph.get_transition_blend_time(index)
+		if is_equal_approx(current, clamped):
+			return
+	_state_machine_graph.set_transition_blend_time(index, clamped)
+
+func _update_locomotion_jump_transition(blend_factor: float) -> void:
+	var ratio := clampf(blend_factor, 0.0, 1.0)
+	var duration := lerpf(locomotion_to_jump_blend_time_min, locomotion_to_jump_blend_time_max, ratio)
+	_set_transition_blend_time(_state_locomotion, STATE_JUMP, duration)
+
+func _calculate_fall_blend_target() -> float:
+	if not _fall_triggered:
+		return 0.0
+	var elapsed := maxf(_time_in_air - fall_blend_ramp_delay, 0.0)
+	if elapsed <= 0.0:
+		return 0.0
+	if fall_blend_ramp_time <= 0.0:
+		return 1.0
+	var progress := clampf(elapsed / fall_blend_ramp_time, 0.0, 1.0)
+	return smoothstep(0.0, 1.0, progress)
+
+func _update_jump_fall_transition_blend() -> void:
+	var ratio := 0.0
+	if _fall_triggered:
+		ratio = clampf(_current_air_blend, 0.0, 1.0)
+	var duration := lerpf(jump_to_fall_blend_time_min, jump_to_fall_blend_time_max, ratio)
+	_set_transition_blend_time(STATE_JUMP, STATE_FALL, duration)
