@@ -1,30 +1,32 @@
 extends Node
 
 # Acciones y sus bindings por defecto (teclado/ratón)
-@onready var _actions := {
+const _ACTION_BINDINGS: Dictionary[StringName, Array[int]] = {
 	# Movimiento básico
-	"move_forward": [KEY_W],
-	"move_back":    [KEY_S],
-	"move_left":    [KEY_A],
-	"move_right":   [KEY_D],
+	&"move_forward": [KEY_W],
+	&"move_back": [KEY_S],
+	&"move_left": [KEY_A],
+	&"move_right": [KEY_D],
 
 	# Movimiento avanzado
-	"sprint": [KEY_SHIFT],
-	"jump":   [KEY_SPACE],
-	"crouch": [KEY_C],  # agacharse / sigilo
+	&"sprint": [KEY_SHIFT],
+	&"jump": [KEY_SPACE],
+	&"crouch": [KEY_C],  # agacharse / sigilo
 
 	# Interacción / contexto
-	"interact": [KEY_E],  # hablar/abrir/recoger/usar NPCs y objetos
-	"use":      [KEY_F],  # acción contextual secundaria (futuro)
-	"build":    [KEY_B],  # entrar/salir del modo construir
+	&"interact": [KEY_E],  # hablar/abrir/recoger/usar NPCs y objetos
+	&"use": [KEY_F],  # acción contextual secundaria (futuro)
+	&"build": [KEY_B],  # entrar/salir del modo construir
 
 	# Combate
-	"attack_primary":   [MOUSE_BUTTON_LEFT],   # click izq: ataque principal
-	"attack_secondary": [MOUSE_BUTTON_RIGHT],  # click der: defensa/apuntar
+	&"attack_primary": [MOUSE_BUTTON_LEFT],  # click izq: ataque principal
+	&"attack_secondary": [MOUSE_BUTTON_RIGHT],  # click der: defensa/apuntar
 
 	# Sistema
-	"pause": [KEY_ESCAPE]
+	&"pause": [KEY_ESCAPE]
 }
+
+@onready var _actions: Dictionary[StringName, Array[int]] = _ACTION_BINDINGS
 
 func _enter_tree() -> void:
 	# Limpia acción obsoleta si existe (se usará 'interact' para hablar)
@@ -33,15 +35,16 @@ func _enter_tree() -> void:
 
 	# Crea acciones y agrega eventos si faltan (sin duplicar)
 	for action in _actions.keys():
-		if not InputMap.has_action(action):
-			InputMap.add_action(action)
-		var desired_events := _actions[action]
+		var action_name := StringName(action)
+		if not InputMap.has_action(action_name):
+			InputMap.add_action(action_name)
+		var desired_events: Array[int] = _actions[action_name]
 		for key in desired_events:
 			var ev := _make_event_from_key(key)
 			if ev == null:
 				continue
-			if not _action_has_event(action, ev):
-				InputMap.action_add_event(action, ev)
+			if not _action_has_event(action_name, ev):
+				InputMap.action_add_event(action_name, ev)
 
 	# Este nodo sólo corre una vez al inicio
 	queue_free()
@@ -58,7 +61,7 @@ func _make_event_from_key(keycode: int) -> InputEvent:
 	return k
 
 # Evita duplicar bindings comparando tipo y código
-func _action_has_event(action: String, ev: InputEvent) -> bool:
+func _action_has_event(action: StringName, ev: InputEvent) -> bool:
 	var existing := InputMap.action_get_events(action)
 	for e in existing:
 		# Teclado
