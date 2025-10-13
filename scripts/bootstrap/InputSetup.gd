@@ -1,7 +1,7 @@
 extends Node
 
 # Acciones y sus bindings por defecto (teclado/ratón)
-const _ACTION_BINDINGS: Dictionary[StringName, Array[int]] = {
+const _ACTION_BINDINGS := {
 	# Movimiento básico
 	&"move_forward": [KEY_W],
 	&"move_back": [KEY_S],
@@ -26,7 +26,7 @@ const _ACTION_BINDINGS: Dictionary[StringName, Array[int]] = {
 	&"pause": [KEY_ESCAPE]
 }
 
-@onready var _actions: Dictionary[StringName, Array[int]] = _ACTION_BINDINGS
+@onready var _actions: Dictionary = _ACTION_BINDINGS
 
 func _enter_tree() -> void:
 	# Limpia acción obsoleta si existe (se usará 'interact' para hablar)
@@ -38,7 +38,7 @@ func _enter_tree() -> void:
 		var action_name := StringName(action)
 		if not InputMap.has_action(action_name):
 			InputMap.add_action(action_name)
-		var desired_events: Array[int] = _actions[action_name]
+		var desired_events := _actions[action_name] as Array
 		for key in desired_events:
 			var ev := _make_event_from_key(key)
 			if ev == null:
