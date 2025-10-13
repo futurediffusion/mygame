@@ -747,18 +747,25 @@ func _tree_has_param(param: StringName) -> bool:
 	if anim_tree == null:
 		return false
 
-	# Verificar si el parámetro existe intentando leerlo
-	var param_list: Array = []
+	# Godot 4 expone has_parameter() para rutas de AnimationTree.
+	if anim_tree.has_method("has_parameter"):
+		var has_param := anim_tree.call("has_parameter", param)
+		if has_param is bool:
+			if has_param:
+				return true
+		elif has_param == true:
+			return true
+
+	# Verificar si el parámetro existe intentando leerlo del property list
 	if anim_tree.has_method("get_property_list"):
-		param_list = anim_tree.get_property_list()
+		var param_list: Array = anim_tree.get_property_list()
+		var target_name := String(param)
 		for prop in param_list:
 			if prop is Dictionary and prop.has("name"):
-				if String(prop["name"]) == String(param):
+				if String(prop["name"]) == target_name:
 					return true
 
-	# Fallback: intentar acceder directamente
-	var value = anim_tree.get(param)
-	return value != null
+	return false
 
 func _has_state(state_name: StringName) -> bool:
 	if _state_machine_graph == null:
