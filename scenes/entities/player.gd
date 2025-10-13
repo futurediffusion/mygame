@@ -26,6 +26,8 @@ const INPUT_ACTIONS := {
 	"combat_switch": ["switch_weapon", "toggle_weapon", "melee_ranged_switch"],
 	"build": ["build", "toggle_build", "build_mode"]
 }
+const INPUT_BOOTSTRAP_SCRIPT := preload("res://scripts/bootstrap/InputSetup.gd")
+const TREE_META_INPUT_BOOTSTRAPPED: StringName = &"input_bootstrap_initialized"
 const SIMCLOCK_SCRIPT := preload("res://Singletons/SimClock.gd")
 
 # ============================================================================
@@ -126,6 +128,7 @@ var _t_stamina_window := 0.0
 func _ready() -> void:
 	if stats == null:
 		stats = AllyStats.new()
+	_ensure_input_bootstrap()
 	_initialize_input_cache()
 	_sprint_threshold = run_speed * 0.4
 	input_buffer = InputBuffer.new()
@@ -181,6 +184,23 @@ func _ready() -> void:
 			ratio = clampf(stamina.value / stamina.max_stamina, 0.0, 1.0)
 		_stamina_ratio_min = ratio
 		_stamina_ratio_max_since_min = ratio
+
+
+func _ensure_input_bootstrap() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	if tree.has_meta(TREE_META_INPUT_BOOTSTRAPPED):
+		var already_initialized := bool(tree.get_meta(TREE_META_INPUT_BOOTSTRAPPED))
+		if already_initialized:
+			return
+	var root := tree.get_root()
+	if root == null:
+		return
+	var bootstrap: Node = INPUT_BOOTSTRAP_SCRIPT.new()
+	root.add_child(bootstrap)
+	tree.set_meta(TREE_META_INPUT_BOOTSTRAPPED, true)
+
 
 func _on_clock_tick(group: StringName, dt: float) -> void:
 	if group == sim_group:
