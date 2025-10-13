@@ -588,8 +588,8 @@ func _update_exit_blend(delta: float) -> void:
 			_apply_exit_blend(next_value)
 		if is_equal_approx(_exit_blend_value, _exit_blend_target):
 			_exit_blend_value = _exit_blend_target
-                        if _exit_blend_target >= 1.0:
-                                var remaining := maxf(_sneak_exit_clip_length - _exit_blend_last_duration, 0.0)
+			if _exit_blend_target >= 1.0:
+				var remaining := maxf(_sneak_exit_clip_length - _exit_blend_last_duration, 0.0)
 				_exit_blend_hold_timer = remaining
 				if _exit_blend_hold_timer <= 0.0:
 					_schedule_exit_blend_reset()

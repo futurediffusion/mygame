@@ -27,6 +27,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Log rápido (último cambio)
+- `Modules/AnimationCtrl.gd`: corrige la indentación del bloque `_update_exit_blend()` para que Godot 4.4 vuelva a parsear `AnimationCtrlModule` y restablece el acceso tipado desde `player.gd`.
 - `scenes/entities/player.gd` + `Modules/AnimationCtrl.gd`: Sneak se vuelve un toggle (tecla `C`), desactiva el sprint, reproduce `SneakEnter` vía OneShot y mezcla `SneakIdleWalk`/`SneakExit` antes de regresar a `LocomotionSpeed`.
 - `Modules/AnimationCtrl.gd`: ahora dispara el `OneShot` de salto con el parámetro `Jump/request`, cachea los blends dentro de `LocomotionSpeed` y apaga el clip al aterrizar, manteniendo la mezcla Jump→Fall aun sin estados dedicados.
 - `scenes/entities/player.tscn`: depurada la `AnimationTree` duplicada, se conserva un solo `LocomotionSpeed` con OneShot de salto (fade-in/out) y se eliminan subrecursos redundantes para que AirBlend responda al controlador.
