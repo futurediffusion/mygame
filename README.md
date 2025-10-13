@@ -26,6 +26,8 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Log rápido (último cambio)
+- `Modules/AnimationCtrl.gd`: ahora dispara el `OneShot` de salto con el parámetro `Jump/request`, cachea los blends dentro de `LocomotionSpeed` y apaga el clip al aterrizar, manteniendo la mezcla Jump→Fall aun sin estados dedicados.
+- `scenes/entities/player.tscn`: depurada la `AnimationTree` duplicada, se conserva un solo `LocomotionSpeed` con OneShot de salto (fade-in/out) y se eliminan subrecursos redundantes para que AirBlend responda al controlador.
 - `scripts/player/CameraOrbit.gd`: el SpringArm compone la máscara con `PhysicsLayers` para conservar la capa por defecto sin invocar `set_collision_mask_value`, evitando el error en Godot 4.4.
 - `Modules/AnimationCtrl.gd`: restaura los tiempos de crossfade dinámicos usando tanto `set_transition_blend_time` como `set_transition_duration`, garantizando que las transiciones Locomotion→Jump y Jump→Fall se suavicen en Godot 4.4.
 - `Modules/AnimationCtrl.gd`: el estado de caída ahora solo se activa tras cruzar el apex (velocidad vertical ≤ 0) o alcanzar el umbral negativo configurado, permitiendo que la animación de salto se reproduzca completa antes de mezclar con la de caída.

@@ -12,11 +12,14 @@ var anim_player: AnimationPlayer
 const PARAM_LOC: StringName = &"parameters/LocomotionSpeed/Locomotion/blend_position"
 const PARAM_LOC_LEGACY: StringName = &"parameters/Locomotion/blend_position"
 const PARAM_AIRBLEND: StringName = &"parameters/AirBlend/blend_amount"
+const PARAM_AIRBLEND_STATE: StringName = &"parameters/LocomotionSpeed/AirBlend/blend_amount"
 const PARAM_FALLANIM: StringName = &"parameters/FallAnim/animation"
 const PARAM_SPRINTSCL: StringName = &"parameters/LocomotionSpeed/SprintSpeed/scale"
 const PARAM_SPRINTSCL_LEGACY: StringName = &"parameters/SprintScale/scale"
 const PARAM_SM_PLAYBACK: StringName = &"parameters/StateMachine/playback"
 const PARAM_ROOT_PLAYBACK: StringName = &"parameters/playback"
+const PARAM_JUMP_REQUEST: StringName = &"parameters/LocomotionSpeed/Jump/request"
+const PARAM_JUMP_REQUEST_LEGACY: StringName = &"parameters/Jump/request"
 
 const STATE_LOCOMOTION: StringName = &"LocomotionSpeed"
 const STATE_LOCOMOTION_LEGACY: StringName = &"Locomotion"
@@ -58,7 +61,10 @@ var _state_machine_graph: AnimationNodeStateMachine
 var _state_locomotion: StringName = STATE_LOCOMOTION
 var _locomotion_params: Array[StringName] = []
 var _sprint_scale_params: Array[StringName] = []
+var _air_blend_params: Array[StringName] = []
+var _jump_request_params: Array[StringName] = []
 var _transition_indices: Dictionary = {}
+var _jump_fired := false
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
@@ -153,6 +159,7 @@ func _handle_grounded() -> void:
 		_fall_triggered = false
 		_has_jumped = false
 		_current_air_blend = 0.0
+		_stop_jump_one_shot()
 		_update_jump_fall_transition_blend()
 		if _state_machine and _state_machine.get_current_node() in [STATE_FALL, STATE_JUMP]:
 			if _has_state(STATE_LAND):
@@ -201,8 +208,15 @@ func _set_locomotion_blend(value: float) -> void:
 		anim_tree.set(PARAM_LOC_LEGACY, clamped)
 
 func _set_air_blend(value: float) -> void:
-	if _tree_has_param(PARAM_AIRBLEND):
-		anim_tree.set(PARAM_AIRBLEND, clampf(value, 0.0, 1.0))
+	if anim_tree == null:
+		return
+	var clamped := clampf(value, 0.0, 1.0)
+	var applied := false
+	for param in _air_blend_params:
+		anim_tree.set(param, clamped)
+		applied = true
+	if not applied and _tree_has_param(PARAM_AIRBLEND):
+		anim_tree.set(PARAM_AIRBLEND, clamped)
 
 func _set_sprint_scale(value: float) -> void:
 	if anim_tree == null:
@@ -213,6 +227,26 @@ func _set_sprint_scale(value: float) -> void:
 		applied = true
 	if not applied and _tree_has_param(PARAM_SPRINTSCL_LEGACY):
 		anim_tree.set(PARAM_SPRINTSCL_LEGACY, value)
+
+func _fire_jump_one_shot() -> bool:
+	if anim_tree == null:
+		return false
+	var requested := false
+	for param in _jump_request_params:
+		anim_tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+		requested = true
+	if requested:
+		_jump_fired = true
+	return requested
+
+func _stop_jump_one_shot() -> void:
+	if anim_tree == null:
+		return
+	if not _jump_fired:
+		return
+	for param in _jump_request_params:
+		anim_tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
+	_jump_fired = false
 
 func _cache_state_machine() -> void:
 	# Garantiza que tengamos referencia válida al AnimationTree.
@@ -330,6 +364,7 @@ func _on_landed(_is_hard: bool) -> void:
 	_time_in_air = 0.0
 	_fall_triggered = false
 	_current_air_blend = 0.0
+	_stop_jump_one_shot()
 	_update_jump_fall_transition_blend()
 	_set_air_blend(0.0)
 	if _has_state(STATE_LAND):
@@ -338,6 +373,10 @@ func _on_landed(_is_hard: bool) -> void:
 		_travel_to_state(_state_locomotion)
 
 func _travel_to_state(state_name: StringName) -> void:
+	if state_name == STATE_JUMP:
+		_fire_jump_one_shot()
+	elif state_name == _state_locomotion or state_name == STATE_LAND:
+		_stop_jump_one_shot()
 	if _state_machine == null:
 		return
 	if String(state_name).is_empty():
@@ -349,6 +388,8 @@ func _travel_to_state(state_name: StringName) -> void:
 func _refresh_parameter_cache() -> void:
 	_locomotion_params.clear()
 	_sprint_scale_params.clear()
+	_air_blend_params.clear()
+	_jump_request_params.clear()
 	if anim_tree == null:
 		return
 	var loc_candidates: Array[StringName] = [PARAM_LOC, PARAM_LOC_LEGACY]
@@ -359,6 +400,14 @@ func _refresh_parameter_cache() -> void:
 	for param in sprint_candidates:
 		if _tree_has_param(param) and not _sprint_scale_params.has(param):
 			_sprint_scale_params.append(param)
+	var air_candidates: Array[StringName] = [PARAM_AIRBLEND_STATE, PARAM_AIRBLEND]
+	for param in air_candidates:
+		if _tree_has_param(param) and not _air_blend_params.has(param):
+			_air_blend_params.append(param)
+	var jump_candidates: Array[StringName] = [PARAM_JUMP_REQUEST, PARAM_JUMP_REQUEST_LEGACY]
+	for param in jump_candidates:
+		if _tree_has_param(param) and not _jump_request_params.has(param):
+			_jump_request_params.append(param)
 
 func _resolve_state_name(preferred: StringName, fallback: StringName) -> StringName:
 	if _state_machine_graph == null:

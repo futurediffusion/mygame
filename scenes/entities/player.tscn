@@ -27,6 +27,8 @@ animation = &"front jump"
 animation = &"fall air loop"
 
 [sub_resource type="AnimationNodeOneShot" id="AnimationNodeOneShot_jv5ih"]
+fadein_time = 0.05
+fadeout_time = 0.35
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_jv5ih"]
 animation = &"idle"
@@ -78,38 +80,6 @@ states/LocomotionSpeed/position = Vector2(534, 82)
 transitions = ["Start", "LocomotionSpeed", SubResource("AnimationNodeStateMachineTransition_yv3je"), "LocomotionSpeed", "End", SubResource("AnimationNodeStateMachineTransition_3hm5d")]
 graph_offset = Vector2(-203, -228)
 
-[sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_1ie0h"]
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_1ie0h"]
-animation = &"front jump"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_42nxq"]
-animation = &"fall air loop"
-
-[sub_resource type="AnimationNodeOneShot" id="AnimationNodeOneShot_42nxq"]
-fadein_time = 0.05
-fadeout_time = 0.35
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_5u6hq"]
-animation = &"idle"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_d4qa6"]
-animation = &"walk"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_ss7kx"]
-animation = &"run"
-
-[sub_resource type="AnimationNodeBlendSpace1D" id="AnimationNodeBlendSpace1D_dnykm"]
-blend_point_0/node = SubResource("AnimationNodeAnimation_5u6hq")
-blend_point_0/pos = 0.0
-blend_point_1/node = SubResource("AnimationNodeAnimation_d4qa6")
-blend_point_1/pos = 0.4
-blend_point_2/node = SubResource("AnimationNodeAnimation_ss7kx")
-blend_point_2/pos = 1.0
-min_space = 0.0
-
-[sub_resource type="AnimationNodeTimeScale" id="AnimationNodeTimeScale_1ie0h"]
-
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_ogpgs"]
 animation = &"sneak_enter"
 
@@ -158,25 +128,6 @@ states/sneakwalk/node = SubResource("AnimationNodeAnimation_1yk18")
 states/sneakwalk/position = Vector2(567, 20)
 transitions = ["Start", "sneak_enter", SubResource("AnimationNodeStateMachineTransition_b4o2o"), "sneak_enter", "sneakwalk", SubResource("AnimationNodeStateMachineTransition_yr3on"), "sneakwalk", "sneak_exit", SubResource("AnimationNodeStateMachineTransition_2ngu4"), "sneak_exit", "End", SubResource("AnimationNodeStateMachineTransition_jv5ih"), "sneak_enter", "sneak_idle", SubResource("AnimationNodeStateMachineTransition_n36er"), "sneak_idle", "sneakwalk", SubResource("AnimationNodeStateMachineTransition_d745t"), "sneakwalk", "sneak_idle", SubResource("AnimationNodeStateMachineTransition_qc1tv"), "sneak_idle", "sneak_exit", SubResource("AnimationNodeStateMachineTransition_xe83n")]
 graph_offset = Vector2(-142, -105)
-
-[sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_c5rqy"]
-graph_offset = Vector2(-325.639, 332.75)
-nodes/AirBlend/node = SubResource("AnimationNodeBlend2_1ie0h")
-nodes/AirBlend/position = Vector2(380, 820)
-nodes/Animation/node = SubResource("AnimationNodeAnimation_1ie0h")
-nodes/Animation/position = Vector2(-20, 420)
-nodes/FallAnim/node = SubResource("AnimationNodeAnimation_42nxq")
-nodes/FallAnim/position = Vector2(100, 1000)
-nodes/Jump/node = SubResource("AnimationNodeOneShot_42nxq")
-nodes/Jump/position = Vector2(640, 600)
-nodes/Locomotion/node = SubResource("AnimationNodeBlendSpace1D_dnykm")
-nodes/Locomotion/position = Vector2(-460, 880)
-nodes/SprintScale/node = SubResource("AnimationNodeTimeScale_1ie0h")
-nodes/SprintScale/position = Vector2(180, 660)
-nodes/output/position = Vector2(1480, 700)
-nodes/sneak/node = SubResource("AnimationNodeStateMachine_ogpgs")
-nodes/sneak/position = Vector2(880, 820)
-node_connections = [&"AirBlend", 0, &"SprintScale", &"AirBlend", 1, &"FallAnim", &"Jump", 0, &"AirBlend", &"Jump", 1, &"Animation", &"SprintScale", 0, &"Locomotion", &"output", 0, &"Jump"]
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_ogpgs"]
 
@@ -235,17 +186,6 @@ parameters/LocomotionSpeed/Jump/internal_active = false
 parameters/LocomotionSpeed/Jump/request = 0
 parameters/LocomotionSpeed/Locomotion/blend_position = 0
 parameters/LocomotionSpeed/SprintSpeed/scale = 1.0
-
-[node name="AnimationTree2" type="AnimationTree" parent="Pivot/Model"]
-reset_on_save = false
-tree_root = SubResource("AnimationNodeBlendTree_c5rqy")
-advance_expression_base_node = NodePath("")
-parameters/AirBlend/blend_amount = 0.0
-parameters/Jump/active = false
-parameters/Jump/internal_active = 0.9
-parameters/Jump/request = 0
-parameters/Locomotion/blend_position = 0.531984
-parameters/SprintScale/scale = 0.006901
 
 [node name="CameraRig" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
