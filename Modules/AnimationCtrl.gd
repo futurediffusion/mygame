@@ -20,12 +20,22 @@ const PARAM_SM_PLAYBACK: StringName = &"parameters/StateMachine/playback"
 const PARAM_ROOT_PLAYBACK: StringName = &"parameters/playback"
 const PARAM_JUMP_REQUEST: StringName = &"parameters/LocomotionSpeed/Jump/request"
 const PARAM_JUMP_REQUEST_LEGACY: StringName = &"parameters/Jump/request"
+const PARAM_SNEAK_BLEND: StringName = &"parameters/Sneak/SneakIdleWalk/blend_position"
+const PARAM_SNEAK_REQUEST: StringName = &"parameters/Sneak/SneakEnter/request"
 
 const STATE_LOCOMOTION: StringName = &"LocomotionSpeed"
 const STATE_LOCOMOTION_LEGACY: StringName = &"Locomotion"
 const STATE_JUMP: StringName = &"Jump"
 const STATE_FALL: StringName = &"FallAnim"
 const STATE_LAND: StringName = &"Land"
+const STATE_SNEAK: StringName = &"Sneak"
+const STATE_SNEAK_EXIT: StringName = &"SneakExit"
+
+const CONTEXT_DEFAULT := 0
+const CONTEXT_SNEAK := 1
+const CONTEXT_SWIM := 2
+const CONTEXT_TALK := 3
+const CONTEXT_SIT := 4
 
 # Parámetros expuestos
 @export var fall_speed_threshold: float = -1.5
@@ -63,8 +73,12 @@ var _locomotion_params: Array[StringName] = []
 var _sprint_scale_params: Array[StringName] = []
 var _air_blend_params: Array[StringName] = []
 var _jump_request_params: Array[StringName] = []
+var _sneak_blend_params: Array[StringName] = []
+var _sneak_request_params: Array[StringName] = []
 var _transition_indices: Dictionary = {}
 var _jump_fired := false
+var _sneak_active := false
+var _current_context_state: int = CONTEXT_DEFAULT
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
@@ -105,6 +119,7 @@ func setup(p: CharacterBody3D) -> void:
 		_cache_state_machine()
 
 	_connect_state_signals()
+	_initialize_context_state()
 
 func set_frame_anim_inputs(is_sprinting: bool, _air_time: float) -> void:
 	_is_sprinting = is_sprinting
@@ -122,6 +137,7 @@ func physics_tick(delta: float) -> void:
 		_handle_airborne(delta)
 	else:
 		_handle_grounded()
+	_update_sneak_blend()
 
 func _handle_airborne(delta: float) -> void:
 	if not _airborne:
@@ -166,6 +182,10 @@ func _handle_grounded() -> void:
 				_travel_to_state(STATE_LAND)
 			else:
 				_travel_to_state(_state_locomotion)
+	if _sneak_active:
+		_set_sprint_scale(1.0)
+		_set_air_blend(0.0)
+		return
 
 	var blend := _calculate_locomotion_blend()
 	_update_locomotion_jump_transition(blend)
@@ -332,6 +352,95 @@ func _connect_state_signals() -> void:
 		if not state_mod.left_ground.is_connected(_on_left_ground):
 			state_mod.left_ground.connect(_on_left_ground)
 
+func _initialize_context_state() -> void:
+	_current_context_state = CONTEXT_DEFAULT
+	_sneak_active = false
+	if player != null and is_instance_valid(player):
+		if player.has_method("get_context_state"):
+			var ctx_value: Variant = player.get_context_state()
+			if typeof(ctx_value) == TYPE_INT:
+				_current_context_state = int(ctx_value)
+				_sneak_active = _current_context_state == CONTEXT_SNEAK
+		if player.has_signal("context_state_changed"):
+			if not player.context_state_changed.is_connected(_on_player_context_state_changed):
+				player.context_state_changed.connect(_on_player_context_state_changed)
+	_apply_context_state(_current_context_state, true)
+
+func _on_player_context_state_changed(new_state: int, _previous: int) -> void:
+	_apply_context_state(new_state)
+
+func _apply_context_state(state: int, force: bool = false) -> void:
+	_current_context_state = state
+	var wants_sneak := state == CONTEXT_SNEAK
+	if wants_sneak:
+		if force or not _sneak_active:
+			_activate_sneak()
+	else:
+		if _sneak_active:
+			_deactivate_sneak()
+		elif force:
+			_set_sneak_blend(0.0)
+
+func _activate_sneak() -> void:
+	if _sneak_active:
+		return
+	_sneak_active = true
+	_travel_to_state(STATE_SNEAK)
+
+func _deactivate_sneak() -> void:
+	if not _sneak_active:
+		_set_sneak_blend(0.0)
+		return
+	_sneak_active = false
+	_stop_sneak_one_shot()
+	if _has_state(STATE_SNEAK_EXIT):
+		_travel_to_state(STATE_SNEAK_EXIT)
+	else:
+		_travel_to_state(_state_locomotion)
+	_set_sneak_blend(0.0)
+
+func _update_sneak_blend() -> void:
+	if not _sneak_active:
+		_set_sneak_blend(0.0)
+		return
+	if player == null or not is_instance_valid(player):
+		return
+	var hspeed := Vector2(player.velocity.x, player.velocity.z).length()
+	var target := 0.0
+	if walk_speed > 0.0:
+		target = clampf(hspeed / maxf(walk_speed, 0.001), 0.0, 1.0)
+	_set_sneak_blend(target)
+
+func _set_sneak_blend(value: float) -> void:
+	if anim_tree == null:
+		return
+	var clamped := clampf(value, 0.0, 1.0)
+	var applied := false
+	for param in _sneak_blend_params:
+		anim_tree.set(param, clamped)
+		applied = true
+	if not applied and _tree_has_param(PARAM_SNEAK_BLEND):
+		anim_tree.set(PARAM_SNEAK_BLEND, clamped)
+
+func _fire_sneak_one_shot() -> void:
+	if anim_tree == null:
+		return
+	var requested := false
+	for param in _sneak_request_params:
+		anim_tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+		requested = true
+	if not requested and _tree_has_param(PARAM_SNEAK_REQUEST):
+		anim_tree.set(PARAM_SNEAK_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+
+func _stop_sneak_one_shot() -> void:
+	if anim_tree == null:
+		return
+	var requested := false
+	for param in _sneak_request_params:
+		anim_tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
+		requested = true
+	if not requested and _tree_has_param(PARAM_SNEAK_REQUEST):
+		anim_tree.set(PARAM_SNEAK_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
 
 func _on_jumped() -> void:
 	_has_jumped = true
@@ -377,6 +486,10 @@ func _travel_to_state(state_name: StringName) -> void:
 		_fire_jump_one_shot()
 	elif state_name == _state_locomotion or state_name == STATE_LAND:
 		_stop_jump_one_shot()
+	if state_name == STATE_SNEAK:
+		_fire_sneak_one_shot()
+	elif state_name == STATE_SNEAK_EXIT or state_name == _state_locomotion or state_name == STATE_LAND:
+		_stop_sneak_one_shot()
 	if _state_machine == null:
 		return
 	if String(state_name).is_empty():
@@ -390,6 +503,8 @@ func _refresh_parameter_cache() -> void:
 	_sprint_scale_params.clear()
 	_air_blend_params.clear()
 	_jump_request_params.clear()
+	_sneak_blend_params.clear()
+	_sneak_request_params.clear()
 	if anim_tree == null:
 		return
 	var loc_candidates: Array[StringName] = [PARAM_LOC, PARAM_LOC_LEGACY]
@@ -408,6 +523,14 @@ func _refresh_parameter_cache() -> void:
 	for param in jump_candidates:
 		if _tree_has_param(param) and not _jump_request_params.has(param):
 			_jump_request_params.append(param)
+	var sneak_blends: Array[StringName] = [PARAM_SNEAK_BLEND]
+	for param in sneak_blends:
+		if _tree_has_param(param) and not _sneak_blend_params.has(param):
+			_sneak_blend_params.append(param)
+	var sneak_requests: Array[StringName] = [PARAM_SNEAK_REQUEST]
+	for param in sneak_requests:
+		if _tree_has_param(param) and not _sneak_request_params.has(param):
+			_sneak_request_params.append(param)
 
 func _resolve_state_name(preferred: StringName, fallback: StringName) -> StringName:
 	if _state_machine_graph == null:

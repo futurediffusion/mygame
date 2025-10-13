@@ -114,6 +114,7 @@ var _talk_active := false
 var _is_sitting := false
 var _is_build_mode := false
 var _using_ranged := false
+var _is_sneaking := false
 var _stamina_ratio_min := 1.0
 var _stamina_ratio_max_since_min := 1.0
 var _stamina_cycle_window := 12.0
@@ -254,6 +255,9 @@ func get_input_cache() -> Dictionary:
 func get_context_state() -> ContextState:
 	return _context_state
 
+func is_sneaking() -> bool:
+	return _is_sneaking
+
 # ============================================================================
 # INPUT PROCESSING
 # ============================================================================
@@ -297,6 +301,9 @@ func _cache_input_states(allow_input: bool, move_dir: Vector3) -> void:
 		_talk_active = false
 	talk_record["active"] = _talk_active
 	_input_cache["talk"] = talk_record
+	if allow_input and crouch_record.get("just_pressed", false):
+		_is_sneaking = not _is_sneaking
+	crouch_record["active"] = _is_sneaking
 	if allow_input and sit_record.get("just_pressed", false):
 		var previous := _is_sitting
 		_is_sitting = not _is_sitting
@@ -378,12 +385,8 @@ func _evaluate_context_state(move_dir: Vector3) -> void:
 	elif _is_in_water:
 		desired = ContextState.SWIM
 	else:
-		var crouch_record: Dictionary = _input_cache.get("crouch", {})
-		var crouch_pressed := false
-		if crouch_record.has("pressed"):
-			crouch_pressed = crouch_record["pressed"]
-		var has_movement := move_dir.length_squared() > 0.0001
-		if crouch_pressed and has_movement:
+		var can_sneak := _is_sneaking and is_on_floor()
+		if can_sneak:
 			desired = ContextState.SNEAK
 	_set_context_state(desired)
 
@@ -445,10 +448,11 @@ func _update_sprint_state(delta: float, input_dir: Vector3) -> bool:
 		wants_sprint = sprint_record["pressed"]
 	if not wants_sprint:
 		return false
+	if _is_sneaking:
+		return false
 	if input_dir.length_squared() <= 0.0001:
 		return false
 	return stamina.can_sprint()
-
 
 func _consume_sprint_stamina(delta: float, is_sprinting: bool) -> void:
 	if not is_sprinting:

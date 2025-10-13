@@ -11,6 +11,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 ### ¿Qué funciona en R3?
 - Captura de input y bindings automáticos (`scripts/bootstrap/InputSetup.gd`).
 - Controlador del jugador con módulos de movimiento, salto, orientación, animación y audio (`Modules/*.gd`, `scenes/entities/player.gd`).
+- Toggle de sigilo con la tecla `C` que activa el blend Sneak (`SneakEnter` → `SneakIdleWalk` → `SneakExit`) y bloquea el sprint mientras dura.
 - Stamina jugable y seguimiento de ciclos de uso (`scripts/player/Stamina.gd`, `scenes/entities/player.gd`).
 - FSM completa de aliados con progresión de habilidades, animaciones y personalización visual (`scenes/entities/Ally.gd`).
 - Progresión basada en `AllyStats` y arquetipos data-driven (`Resources/AllyStats.gd`, `data/ally_archetypes.json`, `Singletons/Data.gd`).
@@ -26,6 +27,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Log rápido (último cambio)
+- `scenes/entities/player.gd` + `Modules/AnimationCtrl.gd`: Sneak se vuelve un toggle (tecla `C`), desactiva el sprint, reproduce `SneakEnter` vía OneShot y mezcla `SneakIdleWalk`/`SneakExit` antes de regresar a `LocomotionSpeed`.
 - `Modules/AnimationCtrl.gd`: ahora dispara el `OneShot` de salto con el parámetro `Jump/request`, cachea los blends dentro de `LocomotionSpeed` y apaga el clip al aterrizar, manteniendo la mezcla Jump→Fall aun sin estados dedicados.
 - `scenes/entities/player.tscn`: depurada la `AnimationTree` duplicada, se conserva un solo `LocomotionSpeed` con OneShot de salto (fade-in/out) y se eliminan subrecursos redundantes para que AirBlend responda al controlador.
 - `scripts/player/CameraOrbit.gd`: el SpringArm compone la máscara con `PhysicsLayers` para conservar la capa por defecto sin invocar `set_collision_mask_value`, evitando el error en Godot 4.4.
