@@ -432,7 +432,7 @@ func _set_transition_blend_time(from_state: StringName, to_state: StringName, bl
 		return
 	var clamped := maxf(blend_time, 0.0)
 	if _state_machine_graph.has_method("get_transition_blend_time"):
-		var current := _state_machine_graph.get_transition_blend_time(index)
+		var current: float = _state_machine_graph.get_transition_blend_time(index)
 		if is_equal_approx(current, clamped):
 			return
 	_state_machine_graph.set_transition_blend_time(index, clamped)
