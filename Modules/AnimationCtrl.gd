@@ -207,6 +207,9 @@ func _handle_airborne(delta: float) -> void:
 
 func _handle_grounded() -> void:
 	if _airborne:
+		if _has_jumped and player != null and is_instance_valid(player):
+			if player.velocity.y > 0.0:
+				return
 		_airborne = false
 		_time_in_air = 0.0
 		_fall_triggered = false
@@ -229,6 +232,7 @@ func _handle_grounded() -> void:
 	_set_locomotion_blend(blend)
 	_apply_sprint_scale(blend)
 	_set_air_blend(0.0)
+
 
 func _calculate_locomotion_blend() -> float:
 	var hspeed := Vector2(player.velocity.x, player.velocity.z).length()
