@@ -1,4 +1,4 @@
-[gd_scene load_steps=32 format=3 uid="uid://l4e1k3jkgu8s"]
+[gd_scene load_steps=42 format=3 uid="uid://l4e1k3jkgu8s"]
 
 [ext_resource type="Script" uid="uid://wgpmntr5gt2u" path="res://scenes/entities/player.gd" id="1_08t41"]
 [ext_resource type="PackedScene" uid="uid://cvgcaefwbrg4n" path="res://art/characters/animations1.glb" id="1_ucweq"]
@@ -51,7 +51,7 @@ min_space = 0.0
 [sub_resource type="AnimationNodeTimeScale" id="AnimationNodeTimeScale_xe83n"]
 
 [sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_cwche"]
-graph_offset = Vector2(-558.278, -75.1108)
+graph_offset = Vector2(-413.775, -152.9)
 nodes/AirBlend/node = SubResource("AnimationNodeBlend2_ogpgs")
 nodes/AirBlend/position = Vector2(240, 200)
 nodes/Animation/node = SubResource("AnimationNodeAnimation_yr3on")
@@ -67,18 +67,64 @@ nodes/SprintSpeed/position = Vector2(-40, 80)
 nodes/output/position = Vector2(760, 160)
 node_connections = [&"AirBlend", 0, &"SprintSpeed", &"AirBlend", 1, &"FallAnim", &"Jump", 0, &"AirBlend", &"Jump", 1, &"Animation", &"SprintSpeed", 0, &"Locomotion", &"output", 0, &"Jump"]
 
+[sub_resource type="AnimationNodeOneShot" id="AnimationNodeOneShot_ogpgs"]
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_spk56"]
+animation = &"sneak_idle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_1yk18"]
+animation = &"sneakwalk"
+
+[sub_resource type="AnimationNodeBlendSpace1D" id="AnimationNodeBlendSpace1D_b4o2o"]
+blend_point_0/node = SubResource("AnimationNodeAnimation_spk56")
+blend_point_0/pos = 0.0
+blend_point_1/node = SubResource("AnimationNodeAnimation_1yk18")
+blend_point_1/pos = 1.0
+min_space = 0.0
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_qc1tv"]
+animation = &"sneak_enter"
+
+[sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_xe83n"]
+graph_offset = Vector2(-851, -161.727)
+nodes/SneakEnter/node = SubResource("AnimationNodeOneShot_ogpgs")
+nodes/SneakEnter/position = Vector2(-400, 40)
+nodes/SneakIdleWalk/node = SubResource("AnimationNodeBlendSpace1D_b4o2o")
+nodes/SneakIdleWalk/position = Vector2(-960, -120)
+nodes/sneakenter/node = SubResource("AnimationNodeAnimation_qc1tv")
+nodes/sneakenter/position = Vector2(-980, 160)
+node_connections = [&"SneakEnter", 0, &"SneakIdleWalk", &"SneakEnter", 1, &"sneakenter", &"output", 0, &"SneakEnter"]
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_cwche"]
+animation = &"sneak_exit"
+
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_yv3je"]
 advance_mode = 0
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_3hm5d"]
 advance_mode = 0
 
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_yw3xw"]
+advance_mode = 0
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_6gvyl"]
+xfade_time = 0.12
+advance_mode = 0
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_u2s01"]
+xfade_time = 0.12
+advance_mode = 0
+
 [sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_y2dek"]
 reset_ends = true
 states/LocomotionSpeed/node = SubResource("AnimationNodeBlendTree_cwche")
 states/LocomotionSpeed/position = Vector2(534, 82)
-transitions = ["Start", "LocomotionSpeed", SubResource("AnimationNodeStateMachineTransition_yv3je"), "LocomotionSpeed", "End", SubResource("AnimationNodeStateMachineTransition_3hm5d")]
-graph_offset = Vector2(-202, -46)
+states/Sneak/node = SubResource("AnimationNodeBlendTree_xe83n")
+states/Sneak/position = Vector2(398, 226)
+states/SneakExit/node = SubResource("AnimationNodeAnimation_cwche")
+states/SneakExit/position = Vector2(572, 221)
+transitions = ["Start", "LocomotionSpeed", SubResource("AnimationNodeStateMachineTransition_yv3je"), "LocomotionSpeed", "End", SubResource("AnimationNodeStateMachineTransition_3hm5d"), "LocomotionSpeed", "Sneak", SubResource("AnimationNodeStateMachineTransition_yw3xw"), "SneakExit", "LocomotionSpeed", SubResource("AnimationNodeStateMachineTransition_6gvyl"), "Sneak", "SneakExit", SubResource("AnimationNodeStateMachineTransition_u2s01")]
+graph_offset = Vector2(-114, -101)
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_ogpgs"]
 
@@ -137,6 +183,10 @@ parameters/LocomotionSpeed/Jump/internal_active = false
 parameters/LocomotionSpeed/Jump/request = 0
 parameters/LocomotionSpeed/Locomotion/blend_position = 0
 parameters/LocomotionSpeed/SprintSpeed/scale = 1.0
+parameters/Sneak/SneakEnter/active = false
+parameters/Sneak/SneakEnter/internal_active = false
+parameters/Sneak/SneakEnter/request = 0
+parameters/Sneak/SneakIdleWalk/blend_position = -0.00728745
 
 [node name="CameraRig" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
