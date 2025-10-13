@@ -749,11 +749,11 @@ func _tree_has_param(param: StringName) -> bool:
 
 	# Godot 4 expone has_parameter() para rutas de AnimationTree.
 	if anim_tree.has_method("has_parameter"):
-		var has_param := anim_tree.call("has_parameter", param)
-		if has_param is bool:
-			if has_param:
+		var has_param_variant: Variant = anim_tree.call("has_parameter", param)
+		if has_param_variant is bool:
+			if has_param_variant:
 				return true
-		elif has_param == true:
+		elif has_param_variant == true:
 			return true
 
 	# Verificar si el parámetro existe intentando leerlo del property list
