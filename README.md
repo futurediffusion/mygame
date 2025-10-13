@@ -27,6 +27,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Log rápido (último cambio)
+- `scripts/bootstrap/InputSetup.gd` + `scenes/entities/player.gd`: retira los tipos anidados del diccionario de acciones para que Godot 4.4 vuelva a cargar el bootstrap de input y restablezca la precarga desde el Player.
 - `Modules/AnimationCtrl.gd`: reorganiza `_update_exit_blend()` para eliminar el `else` problemático, Godot 4.4 vuelve a parsear `AnimationCtrlModule` y el toggle Sneak (tecla `C`) recupera su blend completo.
 - `Modules/AnimationCtrl.gd`: corrige la indentación del bloque `_update_exit_blend()` para que Godot 4.4 vuelva a parsear `AnimationCtrlModule` y restablece el acceso tipado desde `player.gd`.
 - `scenes/entities/player.gd` + `Modules/AnimationCtrl.gd`: Sneak se vuelve un toggle (tecla `C`), desactiva el sprint, reproduce `SneakEnter` vía OneShot y mezcla `SneakIdleWalk`/`SneakExit` antes de regresar a `LocomotionSpeed`.
