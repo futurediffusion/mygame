@@ -9,12 +9,24 @@ var anim_player: AnimationPlayer
 @export var state_module_path: NodePath
 
 # Paths dentro del AnimationTree
-const PARAM_LOC: StringName = &"parameters/LocomotionSpeed/Locomotion/blend_position"
-const PARAM_LOC_LEGACY: StringName = &"parameters/Locomotion/blend_position"
-const PARAM_AIRBLEND: StringName = &"parameters/AirBlend/blend_amount"
-const PARAM_FALLANIM: StringName = &"parameters/FallAnim/animation"
-const PARAM_SPRINTSCL: StringName = &"parameters/LocomotionSpeed/SprintSpeed/scale"
-const PARAM_SPRINTSCL_LEGACY: StringName = &"parameters/SprintScale/scale"
+const PARAM_LOC_PATHS: Array[StringName] = [
+&"parameters/LocomotionSpeed/Locomotion/blend_position",
+&"parameters/Locomotion/blend_position"
+]
+const PARAM_AIRBLEND_PATHS: Array[StringName] = [
+&"parameters/LocomotionSpeed/AirBlend/blend_amount",
+&"parameters/AirBlend/blend_amount"
+]
+const PARAM_FALLANIM_PATHS: Array[StringName] = [
+&"parameters/LocomotionSpeed/FallAnim/animation",
+&"parameters/FallAnim/animation"
+]
+const PARAM_SPRINTSCALE_PATHS: Array[StringName] = [
+&"parameters/LocomotionSpeed/SprintSpeed/scale",
+&"parameters/LocomotionSpeed/SprintScale/scale",
+&"parameters/SprintScale/scale",
+&"parameters/SprintSpeed/scale"
+]
 const PARAM_SM_PLAYBACK: StringName = &"parameters/StateMachine/playback"
 const PARAM_ROOT_PLAYBACK: StringName = &"parameters/playback"
 
@@ -58,6 +70,8 @@ var _state_machine_graph: AnimationNodeStateMachine
 var _state_locomotion: StringName = STATE_LOCOMOTION
 var _locomotion_params: Array[StringName] = []
 var _sprint_scale_params: Array[StringName] = []
+var _air_blend_params: Array[StringName] = []
+var _fall_anim_params: Array[StringName] = []
 var _transition_indices: Dictionary = {}
 
 func setup(p: CharacterBody3D) -> void:
@@ -91,8 +105,8 @@ func setup(p: CharacterBody3D) -> void:
 			anim_tree.anim_player = anim_player.get_path()
 		anim_tree.active = true
 		_refresh_parameter_cache()
-		if _tree_has_param(PARAM_FALLANIM):
-			anim_tree.set(PARAM_FALLANIM, fall_clip_name)
+		for param in _fall_anim_params:
+			anim_tree.set(param, fall_clip_name)
 		_set_locomotion_blend(0.0)
 		_set_air_blend(0.0)
 		_set_sprint_scale(1.0)
@@ -197,12 +211,27 @@ func _set_locomotion_blend(value: float) -> void:
 	for param in _locomotion_params:
 		anim_tree.set(param, clamped)
 		applied = true
-	if not applied and _tree_has_param(PARAM_LOC_LEGACY):
-		anim_tree.set(PARAM_LOC_LEGACY, clamped)
+	if applied:
+		return
+	for param in PARAM_LOC_PATHS:
+		if _tree_has_param(param):
+			anim_tree.set(param, clamped)
+			return
 
 func _set_air_blend(value: float) -> void:
-	if _tree_has_param(PARAM_AIRBLEND):
-		anim_tree.set(PARAM_AIRBLEND, clampf(value, 0.0, 1.0))
+	if anim_tree == null:
+		return
+	var clamped := clampf(value, 0.0, 1.0)
+	var applied := false
+	for param in _air_blend_params:
+		anim_tree.set(param, clamped)
+		applied = true
+	if applied:
+		return
+	for param in PARAM_AIRBLEND_PATHS:
+		if _tree_has_param(param):
+			anim_tree.set(param, clamped)
+			return
 
 func _set_sprint_scale(value: float) -> void:
 	if anim_tree == null:
@@ -211,8 +240,12 @@ func _set_sprint_scale(value: float) -> void:
 	for param in _sprint_scale_params:
 		anim_tree.set(param, value)
 		applied = true
-	if not applied and _tree_has_param(PARAM_SPRINTSCL_LEGACY):
-		anim_tree.set(PARAM_SPRINTSCL_LEGACY, value)
+	if applied:
+		return
+	for param in PARAM_SPRINTSCALE_PATHS:
+		if _tree_has_param(param):
+			anim_tree.set(param, value)
+			return
 
 func _cache_state_machine() -> void:
 	# Garantiza que tengamos referencia válida al AnimationTree.
@@ -349,16 +382,22 @@ func _travel_to_state(state_name: StringName) -> void:
 func _refresh_parameter_cache() -> void:
 	_locomotion_params.clear()
 	_sprint_scale_params.clear()
+	_air_blend_params.clear()
+	_fall_anim_params.clear()
 	if anim_tree == null:
 		return
-	var loc_candidates: Array[StringName] = [PARAM_LOC, PARAM_LOC_LEGACY]
-	for param in loc_candidates:
+	for param in PARAM_LOC_PATHS:
 		if _tree_has_param(param) and not _locomotion_params.has(param):
 			_locomotion_params.append(param)
-	var sprint_candidates: Array[StringName] = [PARAM_SPRINTSCL, PARAM_SPRINTSCL_LEGACY]
-	for param in sprint_candidates:
+	for param in PARAM_SPRINTSCALE_PATHS:
 		if _tree_has_param(param) and not _sprint_scale_params.has(param):
 			_sprint_scale_params.append(param)
+	for param in PARAM_AIRBLEND_PATHS:
+		if _tree_has_param(param) and not _air_blend_params.has(param):
+			_air_blend_params.append(param)
+	for param in PARAM_FALLANIM_PATHS:
+		if _tree_has_param(param) and not _fall_anim_params.has(param):
+			_fall_anim_params.append(param)
 
 func _resolve_state_name(preferred: StringName, fallback: StringName) -> StringName:
 	if _state_machine_graph == null:

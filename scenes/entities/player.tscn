@@ -42,17 +42,6 @@ blend_point_2/node = SubResource("AnimationNodeAnimation_d745t")
 blend_point_2/pos = 1.0
 min_space = 0.0
 
-[sub_resource type="AnimationNodeTimeScale" id="AnimationNodeTimeScale_xe83n"]
-
-[sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_cwche"]
-graph_offset = Vector2(5.29999, 28.6)
-nodes/Locomotion/node = SubResource("AnimationNodeBlendSpace1D_qc1tv")
-nodes/Locomotion/position = Vector2(180, 120)
-nodes/SprintSpeed/node = SubResource("AnimationNodeTimeScale_xe83n")
-nodes/SprintSpeed/position = Vector2(480, 100)
-nodes/output/position = Vector2(760, 160)
-node_connections = [&"SprintSpeed", 0, &"Locomotion", &"output", 0, &"SprintSpeed"]
-
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_u2s01"]
 xfade_time = 0.18
 advance_mode = 0
@@ -76,7 +65,7 @@ states/FallAnim/node = SubResource("AnimationNodeAnimation_yr3on")
 states/FallAnim/position = Vector2(508, 217)
 states/Jump/node = SubResource("AnimationNodeAnimation_2ngu4")
 states/Jump/position = Vector2(262, 251)
-states/LocomotionSpeed/node = SubResource("AnimationNodeBlendTree_cwche")
+states/LocomotionSpeed/node = SubResource("AnimationNodeBlendTree_c5rqy")
 states/LocomotionSpeed/position = Vector2(409, -67)
 transitions = ["Jump", "FallAnim", SubResource("AnimationNodeStateMachineTransition_u2s01"), "Start", "LocomotionSpeed", SubResource("AnimationNodeStateMachineTransition_yv3je"), "LocomotionSpeed", "End", SubResource("AnimationNodeStateMachineTransition_3hm5d"), "LocomotionSpeed", "Jump", SubResource("AnimationNodeStateMachineTransition_yw3xw"), "FallAnim", "LocomotionSpeed", SubResource("AnimationNodeStateMachineTransition_6gvyl")]
 graph_offset = Vector2(-144, -47)
@@ -229,19 +218,12 @@ autoplay = "idle"
 [node name="StateMachine" type="AnimationTree" parent="Pivot/Model"]
 tree_root = SubResource("AnimationNodeStateMachine_y2dek")
 anim_player = NodePath("../AnimationPlayer")
-parameters/LocomotionSpeed/Locomotion/blend_position = 0
-parameters/LocomotionSpeed/SprintSpeed/scale = 1.0
+parameters/LocomotionSpeed/AirBlend/blend_amount = 0.0
+parameters/LocomotionSpeed/Jump/active = false
+parameters/LocomotionSpeed/Jump/request = 0
+parameters/LocomotionSpeed/Locomotion/blend_position = 0.0
+parameters/LocomotionSpeed/SprintScale/scale = 1.0
 
-[node name="AnimationTree2" type="AnimationTree" parent="Pivot/Model"]
-reset_on_save = false
-tree_root = SubResource("AnimationNodeBlendTree_c5rqy")
-advance_expression_base_node = NodePath("")
-parameters/AirBlend/blend_amount = 0.0
-parameters/Jump/active = false
-parameters/Jump/internal_active = 0.9
-parameters/Jump/request = 0
-parameters/Locomotion/blend_position = 0.531984
-parameters/SprintScale/scale = 0.006901
 
 [node name="CameraRig" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
