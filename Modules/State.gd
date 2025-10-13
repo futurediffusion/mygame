@@ -6,6 +6,7 @@ class_name StateModule
 @export var floor_max_angle: float = 0.785398
 @export var floor_snap_length: float = 0.3
 
+@warning_ignore("unused_signal")
 signal jumped
 signal left_ground
 signal landed(is_hard: bool)

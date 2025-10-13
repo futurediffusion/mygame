@@ -26,6 +26,10 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Log rápido (último cambio)
+- `Modules/State.gd`: añade `@warning_ignore("unused_signal")` al evento `jumped` para evitar la advertencia del editor sin
+  alterar el flujo actual de salto.
+- Escenas `scenes/entities/player.tscn` y `scenes/world/test_*`: se eliminaron copias `*.tmp` con UIDs duplicados que impedían
+  cargar `player.tscn` en Godot 4.4, restaurando la instancia del jugador en `test_ramps.tscn`.
 - `Modules/Jump.gd`: restaura la activación del OneShot de salto detectando tanto el parámetro nuevo `parameters/LocomotionSpeed/Jump/request` como el legado, arreglando el Player `player.tscn` tras la migración al StateMachine.
 - `Modules/AnimationCtrl.gd`: restaura los tiempos de crossfade dinámicos usando tanto `set_transition_blend_time` como `set_transition_duration`, garantizando que las transiciones Locomotion→Jump y Jump→Fall se suavicen en Godot 4.4.
 - `Modules/AnimationCtrl.gd`: el estado de caída ahora solo se activa tras cruzar el apex (velocidad vertical ≤ 0) o alcanzar el umbral negativo configurado, permitiendo que la animación de salto se reproduzca completa antes de mezclar con la de caída.
