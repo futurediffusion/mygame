@@ -70,3 +70,6 @@ func post_move_update() -> void:
 		var is_hard := impact_velocity > 10.0
 		landed.emit(is_hard)
 	_was_on_floor = on_floor
+
+func emit_jumped() -> void:
+	jumped.emit()

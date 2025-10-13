@@ -127,7 +127,7 @@ func _do_jump(now_s: float) -> void:
 	_last_on_floor_time_s = -1.0
 	_air_time = 0.0
 	if _state != null and is_instance_valid(_state):
-		_state.jumped.emit()
+		_state.emit_jumped()
 	_trigger_jump_animation()
 	_play_jump_audio()
 	if camera_rig != null and is_instance_valid(camera_rig) and camera_rig.has_method("_play_jump_kick"):
