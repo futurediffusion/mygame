@@ -26,6 +26,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Log rápido (último cambio)
+- `scripts/player/CameraOrbit.gd`: el SpringArm ahora usa la capa 8 de terreno (máscara `LAYER_TERRAIN`) y mantiene activa la capa por defecto para evitar que la cámara atraviese pisos u objetos sólidos.
 - `Modules/AnimationCtrl.gd`: restaura los tiempos de crossfade dinámicos usando tanto `set_transition_blend_time` como `set_transition_duration`, garantizando que las transiciones Locomotion→Jump y Jump→Fall se suavicen en Godot 4.4.
 - `Modules/AnimationCtrl.gd`: el estado de caída ahora solo se activa tras cruzar el apex (velocidad vertical ≤ 0) o alcanzar el umbral negativo configurado, permitiendo que la animación de salto se reproduzca completa antes de mezclar con la de caída.
 - `Modules/PerfectJumpCombo.gd` + `tests/TestJumpCombo.gd`: el combo perfecto ahora escala en 100 niveles lineales hasta duplicar la altura base (200%) y la prueba headless verifica la progresión completa sin reinicios tempranos.
@@ -161,6 +162,10 @@ res://
          ├─ InputBuffer.gd (buffer de salto desacoplado del tick)
          └─ Stamina.gd (recurso de resistencia del jugador)
 ```
+
+### Capas de física (World Layers)
+- `L_TERRAIN` corresponde al slot 4 y su máscara binaria es `1 << 3` (= 8). Todas las colisiones del mundo (`scenes/world/*.tscn`) usan esta capa.
+- El jugador y aliados conservan la capa por defecto (`L_PLAYER`, `L_ALLY`) para detectar interacciones locales, pero los volúmenes auxiliares (como el SpringArm de cámara) deben incluir `LAYER_TERRAIN` cuando requieran bloquearse contra el entorno.
 
 ---
 
