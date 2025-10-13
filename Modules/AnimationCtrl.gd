@@ -425,17 +425,27 @@ func _get_transition_index(from_state: StringName, to_state: StringName) -> int:
 func _set_transition_blend_time(from_state: StringName, to_state: StringName, blend_time: float) -> void:
 	if _state_machine_graph == null:
 		return
-	if not _state_machine_graph.has_method("set_transition_blend_time"):
-		return
 	var index := _get_transition_index(from_state, to_state)
 	if index == -1:
 		return
 	var clamped := maxf(blend_time, 0.0)
-	if _state_machine_graph.has_method("get_transition_blend_time"):
-		var current: float = _state_machine_graph.get_transition_blend_time(index)
+	var setter := ""
+	var getter := ""
+	if _state_machine_graph.has_method("set_transition_blend_time"):
+		setter = "set_transition_blend_time"
+		if _state_machine_graph.has_method("get_transition_blend_time"):
+			getter = "get_transition_blend_time"
+	elif _state_machine_graph.has_method("set_transition_duration"):
+		setter = "set_transition_duration"
+		if _state_machine_graph.has_method("get_transition_duration"):
+			getter = "get_transition_duration"
+	if setter.is_empty():
+		return
+	if not getter.is_empty():
+		var current: float = _state_machine_graph.call(getter, index)
 		if is_equal_approx(current, clamped):
 			return
-	_state_machine_graph.set_transition_blend_time(index, clamped)
+	_state_machine_graph.call(setter, index, clamped)
 
 func _update_locomotion_jump_transition(blend_factor: float) -> void:
 	var ratio := clampf(blend_factor, 0.0, 1.0)
