@@ -21,9 +21,11 @@ const PARAM_ROOT_PLAYBACK: StringName = &"parameters/playback"
 const PARAM_JUMP_REQUEST: StringName = &"parameters/LocomotionSpeed/Jump/request"
 const PARAM_JUMP_REQUEST_LEGACY: StringName = &"parameters/Jump/request"
 const PARAM_SNEAK_MOVE_BLEND: StringName = &"parameters/Sneak/SneakIdleWalk/blend_position"
-const PARAM_SNEAK_ENTRY_BLEND: StringName = &"parameters/Sneak/SneakBlend/blend"
+const PARAM_SNEAK_ENTRY_BLEND: StringName = &"parameters/Sneak/SneakBlend/blend_amount"
+const PARAM_SNEAK_ENTRY_BLEND_LEGACY: StringName = &"parameters/Sneak/SneakBlend/blend"
 const PARAM_SNEAK_REQUEST: StringName = &"parameters/Sneak/SneakEnter/request"
-const PARAM_EXIT_BLEND: StringName = &"parameters/LocomotionSpeed/ExitBlend/blend"
+const PARAM_EXIT_BLEND: StringName = &"parameters/LocomotionSpeed/ExitBlend/blend_amount"
+const PARAM_EXIT_BLEND_LEGACY: StringName = &"parameters/LocomotionSpeed/ExitBlend/blend"
 
 const STATE_LOCOMOTION: StringName = &"LocomotionSpeed"
 const STATE_LOCOMOTION_LEGACY: StringName = &"Locomotion"
@@ -508,8 +510,11 @@ func _set_sneak_entry_blend_param(value: float) -> void:
 	for param in _sneak_entry_params:
 		anim_tree.set(param, value)
 		applied = true
-	if not applied and _tree_has_param(PARAM_SNEAK_ENTRY_BLEND):
-		anim_tree.set(PARAM_SNEAK_ENTRY_BLEND, value)
+	if not applied:
+		if _tree_has_param(PARAM_SNEAK_ENTRY_BLEND):
+			anim_tree.set(PARAM_SNEAK_ENTRY_BLEND, value)
+		elif _tree_has_param(PARAM_SNEAK_ENTRY_BLEND_LEGACY):
+			anim_tree.set(PARAM_SNEAK_ENTRY_BLEND_LEGACY, value)
 
 func _update_sneak_entry_blend(delta: float) -> void:
 	if is_equal_approx(_sneak_entry_value, _sneak_entry_target):
@@ -567,8 +572,11 @@ func _set_exit_blend_param(value: float) -> void:
 	for param in _exit_blend_params:
 		anim_tree.set(param, value)
 		applied = true
-	if not applied and _tree_has_param(PARAM_EXIT_BLEND):
-		anim_tree.set(PARAM_EXIT_BLEND, value)
+	if not applied:
+		if _tree_has_param(PARAM_EXIT_BLEND):
+			anim_tree.set(PARAM_EXIT_BLEND, value)
+		elif _tree_has_param(PARAM_EXIT_BLEND_LEGACY):
+			anim_tree.set(PARAM_EXIT_BLEND_LEGACY, value)
 
 func _schedule_exit_blend_reset() -> void:
 	var duration := maxf(sneak_exit_blend_out_time, 0.0)
@@ -709,7 +717,7 @@ func _refresh_parameter_cache() -> void:
 	for param in sneak_blends:
 		if _tree_has_param(param) and not _sneak_move_params.has(param):
 			_sneak_move_params.append(param)
-	var sneak_entry_candidates: Array[StringName] = [PARAM_SNEAK_ENTRY_BLEND]
+	var sneak_entry_candidates: Array[StringName] = [PARAM_SNEAK_ENTRY_BLEND, PARAM_SNEAK_ENTRY_BLEND_LEGACY]
 	for param in sneak_entry_candidates:
 		if _tree_has_param(param) and not _sneak_entry_params.has(param):
 			_sneak_entry_params.append(param)
@@ -717,7 +725,7 @@ func _refresh_parameter_cache() -> void:
 	for param in sneak_requests:
 		if _tree_has_param(param) and not _sneak_request_params.has(param):
 			_sneak_request_params.append(param)
-	var exit_candidates: Array[StringName] = [PARAM_EXIT_BLEND]
+	var exit_candidates: Array[StringName] = [PARAM_EXIT_BLEND, PARAM_EXIT_BLEND_LEGACY]
 	for param in exit_candidates:
 		if _tree_has_param(param) and not _exit_blend_params.has(param):
 			_exit_blend_params.append(param)
