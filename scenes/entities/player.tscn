@@ -1,4 +1,4 @@
-[gd_scene load_steps=55 format=3 uid="uid://l4e1k3jkgu8s"]
+[gd_scene load_steps=32 format=3 uid="uid://l4e1k3jkgu8s"]
 
 [ext_resource type="Script" uid="uid://wgpmntr5gt2u" path="res://scenes/entities/player.gd" id="1_08t41"]
 [ext_resource type="PackedScene" uid="uid://cvgcaefwbrg4n" path="res://art/characters/animations1.glb" id="1_ucweq"]
@@ -51,7 +51,7 @@ min_space = 0.0
 [sub_resource type="AnimationNodeTimeScale" id="AnimationNodeTimeScale_xe83n"]
 
 [sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_cwche"]
-graph_offset = Vector2(-430.216, -111.45)
+graph_offset = Vector2(-558.278, -75.1108)
 nodes/AirBlend/node = SubResource("AnimationNodeBlend2_ogpgs")
 nodes/AirBlend/position = Vector2(240, 200)
 nodes/Animation/node = SubResource("AnimationNodeAnimation_yr3on")
@@ -78,56 +78,7 @@ reset_ends = true
 states/LocomotionSpeed/node = SubResource("AnimationNodeBlendTree_cwche")
 states/LocomotionSpeed/position = Vector2(534, 82)
 transitions = ["Start", "LocomotionSpeed", SubResource("AnimationNodeStateMachineTransition_yv3je"), "LocomotionSpeed", "End", SubResource("AnimationNodeStateMachineTransition_3hm5d")]
-graph_offset = Vector2(-203, -228)
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_ogpgs"]
-animation = &"sneak_enter"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_spk56"]
-animation = &"sneak_exit"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_b4o2o"]
-animation = &"sneak_idle"
-
-[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_1yk18"]
-animation = &"sneakwalk"
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_b4o2o"]
-advance_mode = 2
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_yr3on"]
-advance_mode = 2
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_2ngu4"]
-advance_mode = 2
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_jv5ih"]
-advance_mode = 2
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_n36er"]
-advance_mode = 2
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_d745t"]
-advance_mode = 2
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_qc1tv"]
-advance_mode = 2
-
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_xe83n"]
-advance_mode = 2
-
-[sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_ogpgs"]
-states/Start/position = Vector2(241, 100)
-states/sneak_enter/node = SubResource("AnimationNodeAnimation_ogpgs")
-states/sneak_enter/position = Vector2(378, 4)
-states/sneak_exit/node = SubResource("AnimationNodeAnimation_spk56")
-states/sneak_exit/position = Vector2(733, 57)
-states/sneak_idle/node = SubResource("AnimationNodeAnimation_b4o2o")
-states/sneak_idle/position = Vector2(501, 92)
-states/sneakwalk/node = SubResource("AnimationNodeAnimation_1yk18")
-states/sneakwalk/position = Vector2(567, 20)
-transitions = ["Start", "sneak_enter", SubResource("AnimationNodeStateMachineTransition_b4o2o"), "sneak_enter", "sneakwalk", SubResource("AnimationNodeStateMachineTransition_yr3on"), "sneakwalk", "sneak_exit", SubResource("AnimationNodeStateMachineTransition_2ngu4"), "sneak_exit", "End", SubResource("AnimationNodeStateMachineTransition_jv5ih"), "sneak_enter", "sneak_idle", SubResource("AnimationNodeStateMachineTransition_n36er"), "sneak_idle", "sneakwalk", SubResource("AnimationNodeStateMachineTransition_d745t"), "sneakwalk", "sneak_idle", SubResource("AnimationNodeStateMachineTransition_qc1tv"), "sneak_idle", "sneak_exit", SubResource("AnimationNodeStateMachineTransition_xe83n")]
-graph_offset = Vector2(-142, -105)
+graph_offset = Vector2(-202, -46)
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_ogpgs"]
 
