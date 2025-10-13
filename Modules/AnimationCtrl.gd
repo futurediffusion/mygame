@@ -593,7 +593,7 @@ func _update_exit_blend(delta: float) -> void:
 				_exit_blend_hold_timer = remaining
 				if _exit_blend_hold_timer <= 0.0:
 					_schedule_exit_blend_reset()
-			else:
+			if _exit_blend_target < 1.0:
 				_exit_blend_hold_timer = 0.0
 			_exit_blend_velocity = 0.0
 		return
