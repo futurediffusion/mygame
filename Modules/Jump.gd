@@ -16,7 +16,10 @@ var _state: StateModule
 var _input: InputBuffer
 var _combo: PerfectJumpCombo
 
-const PARAM_JUMP: StringName = &"parameters/Jump/request"
+const PARAM_JUMP_PATHS: Array[StringName] = [
+&"parameters/LocomotionSpeed/Jump/request",
+&"parameters/Jump/request"
+]
 
 var _jumping: bool = false
 var _hold_timer_s: float = 0.0
@@ -24,6 +27,7 @@ var _last_on_floor_time_s: float = -1.0
 var _last_jump_time_s: float = -1.0
 var _air_time: float = 0.0
 var _last_jump_velocity: float = 0.0
+var _jump_param_cache: Array[StringName] = []
 
 func _ready() -> void:
 	pass
@@ -49,6 +53,7 @@ func setup(owner_body: CharacterBody3D, state: StateModule = null, input: InputB
 	elif _state == null and owner_body.has_node("State"):
 		_state = owner_body.get_node("State") as StateModule
 	_combo = _get_combo()
+	_refresh_jump_param_cache()
 
 func physics_tick(dt: float) -> void:
 	if _owner_body == null or not is_instance_valid(_owner_body):
@@ -148,9 +153,18 @@ func _get_combo() -> PerfectJumpCombo:
 	return _combo
 
 func _trigger_jump_animation() -> void:
-	if not _tree_has_param(PARAM_JUMP):
+	if anim_tree == null:
 		return
-	anim_tree.set(PARAM_JUMP, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+	if _jump_param_cache.is_empty():
+		_refresh_jump_param_cache()
+	for param in _jump_param_cache:
+		anim_tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+		return
+	for param in PARAM_JUMP_PATHS:
+		if _tree_has_param(param):
+			anim_tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+			_jump_param_cache.append(param)
+			return
 
 func _tree_has_param(param: StringName) -> bool:
 	if anim_tree == null:
@@ -159,7 +173,18 @@ func _tree_has_param(param: StringName) -> bool:
 		for prop in anim_tree.get_property_list():
 			if prop is Dictionary and prop.has("name") and String(prop["name"]) == String(param):
 				return true
+	var value = anim_tree.get(param)
+	if value != null:
+		return true
 	return false
+
+func _refresh_jump_param_cache() -> void:
+	_jump_param_cache.clear()
+	if anim_tree == null:
+		return
+	for param in PARAM_JUMP_PATHS:
+		if _tree_has_param(param):
+			_jump_param_cache.append(param)
 
 func _play_jump_audio() -> void:
 	if player == null or not is_instance_valid(player):
