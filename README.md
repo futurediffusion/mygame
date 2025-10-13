@@ -26,7 +26,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Log rápido (último cambio)
-- `scripts/player/CameraOrbit.gd`: el SpringArm ahora usa la capa 8 de terreno (máscara `LAYER_TERRAIN`) y mantiene activa la capa por defecto para evitar que la cámara atraviese pisos u objetos sólidos.
+- `scripts/player/CameraOrbit.gd`: el SpringArm compone la máscara con `PhysicsLayers` para conservar la capa por defecto sin invocar `set_collision_mask_value`, evitando el error en Godot 4.4.
 - `Modules/AnimationCtrl.gd`: restaura los tiempos de crossfade dinámicos usando tanto `set_transition_blend_time` como `set_transition_duration`, garantizando que las transiciones Locomotion→Jump y Jump→Fall se suavicen en Godot 4.4.
 - `Modules/AnimationCtrl.gd`: el estado de caída ahora solo se activa tras cruzar el apex (velocidad vertical ≤ 0) o alcanzar el umbral negativo configurado, permitiendo que la animación de salto se reproduzca completa antes de mezclar con la de caída.
 - `Modules/PerfectJumpCombo.gd` + `tests/TestJumpCombo.gd`: el combo perfecto ahora escala en 100 niveles lineales hasta duplicar la altura base (200%) y la prueba headless verifica la progresión completa sin reinicios tempranos.

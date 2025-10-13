@@ -85,9 +85,8 @@ func _initialize_camera() -> void:
 func _configure_spring_arm() -> void:
 	# CRÍTICO: El SpringArm3D necesita collision_mask configurado
 	# para detectar geometría del mundo y evitar atravesar paredes
-	# Capa 8 = geometría del mundo (ver README.md -> World Layers)
-	spring.collision_mask = 1 << 7
-	spring.set_collision_mask_value(1, true)  # Conserva detección en capa por defecto
+	# Incluye L_TERRAIN (slot 4) y la capa por defecto del jugador para bloquear paredes
+	spring.collision_mask = PhysicsLayers.LAYER_TERRAIN | PhysicsLayers.LAYER_PLAYER
 	spring.spring_length = radius
 	spring.margin = 0.2  # Pequeño margen para evitar clipping
 	
