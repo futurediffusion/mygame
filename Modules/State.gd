@@ -99,13 +99,13 @@ func set_active_floor_snap_length(length: float) -> void:
         _apply_floor_snap_length(length)
 
 func _on_owner_context_state_changed(new_state: int, _previous_state: int) -> void:
-        var target := _default_floor_snap_length
-        var context_enum: Dictionary = {}
-        if _owner_body != null and is_instance_valid(_owner_body):
-                var ctx_enum: Variant = _owner_body.get("ContextState")
-                if ctx_enum is Dictionary:
-                        context_enum = ctx_enum
-        var sneak_state := context_enum.get("SNEAK", 1)
-        if int(new_state) == int(sneak_state):
-                target = floor_snap_length_sneak
-        _apply_floor_snap_length(target)
+	var target := _default_floor_snap_length
+	var context_enum: Dictionary = {}
+	if _owner_body != null and is_instance_valid(_owner_body):
+		var ctx_enum: Variant = _owner_body.get("ContextState")
+		if ctx_enum is Dictionary:
+			context_enum = ctx_enum
+	var sneak_state: int = int(context_enum.get("SNEAK", 1))
+	if int(new_state) == int(sneak_state):
+		target = floor_snap_length_sneak
+	_apply_floor_snap_length(target)
