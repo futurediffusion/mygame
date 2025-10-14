@@ -297,37 +297,27 @@ func _apply_sprint_scale(blend: float) -> void:
 		scale = lerp(1.0, sprint_anim_speed_scale, blend)
 	_set_sprint_scale(scale)
 
-func _set_locomotion_blend(value: float) -> void:
+func _set_tree_params(params: Array[StringName], fallback: StringName, value: float, clamp_01 := false) -> void:
 	if anim_tree == null:
 		return
-	var clamped := clampf(value, 0.0, 1.0)
+	var final_value := value
+	if clamp_01:
+		final_value = clampf(value, 0.0, 1.0)
 	var applied := false
-	for param in _locomotion_params:
-		anim_tree.set(param, clamped)
+	for param in params:
+		anim_tree.set(param, final_value)
 		applied = true
-	if not applied and _tree_has_param(PARAM_LOC_LEGACY):
-		anim_tree.set(PARAM_LOC_LEGACY, clamped)
+	if not applied and not String(fallback).is_empty() and _tree_has_param(fallback):
+		anim_tree.set(fallback, final_value)
+
+func _set_locomotion_blend(value: float) -> void:
+	_set_tree_params(_locomotion_params, PARAM_LOC_LEGACY, value, true)
 
 func _set_air_blend(value: float) -> void:
-	if anim_tree == null:
-		return
-	var clamped := clampf(value, 0.0, 1.0)
-	var applied := false
-	for param in _air_blend_params:
-		anim_tree.set(param, clamped)
-		applied = true
-	if not applied and _tree_has_param(PARAM_AIRBLEND):
-		anim_tree.set(PARAM_AIRBLEND, clamped)
+	_set_tree_params(_air_blend_params, PARAM_AIRBLEND, value, true)
 
 func _set_sprint_scale(value: float) -> void:
-	if anim_tree == null:
-		return
-	var applied := false
-	for param in _sprint_scale_params:
-		anim_tree.set(param, value)
-		applied = true
-	if not applied and _tree_has_param(PARAM_SPRINTSCL_LEGACY):
-		anim_tree.set(PARAM_SPRINTSCL_LEGACY, value)
+	_set_tree_params(_sprint_scale_params, PARAM_SPRINTSCL_LEGACY, value)
 
 func _fire_jump_one_shot() -> bool:
 	if anim_tree == null:
