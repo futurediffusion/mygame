@@ -6,6 +6,10 @@ var jump_sfx: AudioStreamPlayer3D
 var land_sfx: AudioStreamPlayer3D
 var footstep_sfx: AudioStreamPlayer3D
 
+const FOOTSTEP_PITCH_WALK := pow(2.0, -2.0 / 12.0)
+const FOOTSTEP_PITCH_SNEAK := pow(2.0, -4.0 / 12.0)
+# Pitch values derived from semitone offsets: walk/run at -2, sneak at -4.
+
 @export var use_timer_footsteps := false
 @export_range(0.0, 5.0, 0.05) var footstep_min_speed: float = 0.5
 @export_range(0.0, 5.0, 0.05) var footstep_min_speed_sneak: float = 0.2
@@ -15,8 +19,8 @@ var footstep_sfx: AudioStreamPlayer3D
 @export_range(1.0, 3.0, 0.01) var footstep_sneak_period_multiplier: float = 1.6
 @export_range(-80.0, 24.0, 0.1) var footstep_volume_walk_db: float = -5.0
 @export_range(-80.0, 24.0, 0.1) var footstep_volume_sneak_db: float = -12.0
-@export var footstep_pitch_range_walk := Vector2.ONE
-@export var footstep_pitch_range_sneak := Vector2(0.87, 0.9)
+@export var footstep_pitch_range_walk := Vector2(FOOTSTEP_PITCH_WALK - 0.01, FOOTSTEP_PITCH_WALK + 0.01)
+@export var footstep_pitch_range_sneak := Vector2(FOOTSTEP_PITCH_SNEAK - 0.01, FOOTSTEP_PITCH_SNEAK + 0.01)
 var _footstep_timer := 0.0
 
 func setup(p: CharacterBody3D) -> void:
