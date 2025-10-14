@@ -6,9 +6,9 @@ var jump_sfx: AudioStreamPlayer3D
 var land_sfx: AudioStreamPlayer3D
 var footstep_sfx: AudioStreamPlayer3D
 
-const FOOTSTEP_PITCH_WALK := pow(2.0, -2.0 / 12.0)
+const FOOTSTEP_PITCH_WALK := 1.0
 const FOOTSTEP_PITCH_SNEAK := pow(2.0, -4.0 / 12.0)
-# Pitch values derived from semitone offsets: walk/run at -2, sneak at -4.
+# Keep regular footsteps at neutral pitch; sneaking remains slightly lower at -4 semitones.
 
 @export var use_timer_footsteps := false
 @export_range(0.0, 5.0, 0.05) var footstep_min_speed: float = 0.5
