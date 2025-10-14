@@ -56,7 +56,7 @@ func archetype_exists(id: String) -> bool:
 func get_archetype_entry(id: String) -> Dictionary:
 	if not archetype_exists(id):
 		return {}
-	return _archetypes[id]
+	return _archetypes[id].duplicate(true)
 
 func get_capabilities(id: String) -> PackedStringArray:
 	if not archetype_exists(id):
@@ -76,7 +76,7 @@ func get_archetype_visual(id: String) -> Dictionary:
 	if typeof(visual_any) != TYPE_DICTIONARY:
 		return {}
 	var visual: Dictionary = visual_any
-	return visual
+	return visual.duplicate(true)
 
 # ---------------------------
 # Fábrica de Stats
