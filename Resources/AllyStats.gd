@@ -171,6 +171,9 @@ var _allow_stamina_gain := false
 func _init() -> void:
 	_reset_skill_tree_defaults()
 
+func _push_warning(message: String) -> void:
+	push_warning(message)
+
 func gain_skill(tree: String, skill: String, amount: float = 1.0, context: Dictionary = {}) -> void:
 	var skills_tree: Dictionary = _get_skill_tree(tree)
 	if skills_tree.is_empty():
@@ -225,7 +228,7 @@ func gain_base_stat(stat: String, amount := 1.0) -> bool:
 	if is_zero_approx(sanitized):
 		return false
 	if not VALID_BASE_STATS.has(stat):
-		push_warning("gain_base_stat(): clave desconocida '%s'" % stat)
+		_push_warning("gain_base_stat(): clave desconocida '%s'" % stat)
 		return false
 	var has_range := STAT_RANGES.has(stat)
 	var range := STAT_RANGES.get(stat, Vector2.ZERO)
