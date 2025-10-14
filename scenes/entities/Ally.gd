@@ -1,5 +1,6 @@
 extends CharacterBody3D
 const SIMCLOCK_SCRIPT := preload("res://Singletons/SimClock.gd")
+const ALLY_STATE_SCRIPT := preload("res://scripts/ally_fsm/AllyState.gd")
 
 enum State {
 	IDLE,
@@ -62,6 +63,8 @@ var _last_state: State = State.IDLE
 var _fsm_tick_ran: bool = false
 var _last_tick_counter: int = -1
 var _moved_this_tick: bool = false
+var _states: Dictionary = {}
+var _active_state: AllyState = null
 
 func _ready() -> void:
 	if stats == null:
@@ -73,6 +76,7 @@ func _ready() -> void:
 			_bind_anim_player_from(self)
 	else:
 		_bind_anim_player_from(self)
+	_setup_states()
 	var clock := _get_simclock()
 	if clock:
 		clock.register_module(self, sim_group, priority)
@@ -85,32 +89,16 @@ func _on_clock_tick(group: StringName, dt: float) -> void:
 
 func fsm_step(dt: float) -> void:
 	# Lee sensores y decide velocidad deseada; no llames move_and_slide() aquí.
+	if _states.is_empty():
+		_setup_states()
 	if state != _last_state:
-		_on_state_changed(_last_state, state)
-		_last_state = state
+		_change_state(state)
 	if _is_in_water:
 		velocity.y = lerpf(velocity.y, 0.0, dt * 2.0)
 	else:
 		velocity.y -= gravity * dt
-	match state:
-		State.IDLE:
-			_do_idle(dt)
-		State.MOVE:
-			_do_move(dt)
-		State.COMBAT_MELEE:
-			_do_combat_melee(dt)
-		State.COMBAT_RANGED:
-			_do_combat_ranged(dt)
-		State.BUILD:
-			_do_build(dt)
-		State.SNEAK:
-			_do_sneak(dt)
-		State.SWIM:
-			_do_swim(dt)
-		State.TALK:
-			_do_talk(dt)
-		State.SIT:
-			_do_sit(dt)
+	if _active_state != null:
+		_active_state.update(dt)
 
 func physics_tick(dt: float) -> void:
 	var tick_counter := -1
@@ -132,55 +120,41 @@ func physics_tick(dt: float) -> void:
 	if OS.is_debug_build() and tick_counter == -1:
 		_moved_this_tick = false
 
-func _do_idle(_dt: float) -> void:
-	velocity.x = 0.0
-	velocity.z = 0.0
-	_play_anim(anim_idle)
-
-func _do_move(dt: float) -> void:
-	var flat_dir := _flat_dir(_target_dir)
-	if flat_dir == Vector3.ZERO:
-		state = State.IDLE
+func _setup_states() -> void:
+	if not _states.is_empty():
 		return
-	var speed := move_speed_base
-	if _is_sprinting and sprint_enabled:
-		if stats:
-			speed = stats.sprint_speed(move_speed_base)
-		else:
-			speed = move_speed_base * 1.2
-	var desired_velocity := flat_dir * speed
-	velocity.x = desired_velocity.x
-	velocity.z = desired_velocity.z
-	if _is_sprinting and sprint_enabled:
-		_play_anim(anim_run)
-	else:
-		_play_anim(anim_walk)
-	_t_move_accum += dt
-	if _t_move_accum >= 3.0:
-		_t_move_accum = 0.0
-		if stats:
-			stats.gain_base_stat("athletics", 0.5)
+	_states = {
+		State.IDLE: ALLY_STATE_SCRIPT.IdleState.new(self),
+		State.MOVE: ALLY_STATE_SCRIPT.MoveState.new(self),
+		State.COMBAT_MELEE: ALLY_STATE_SCRIPT.CombatMeleeState.new(self),
+		State.COMBAT_RANGED: ALLY_STATE_SCRIPT.CombatRangedState.new(self),
+		State.BUILD: ALLY_STATE_SCRIPT.BuildState.new(self),
+		State.SNEAK: ALLY_STATE_SCRIPT.SneakState.new(self),
+		State.SWIM: ALLY_STATE_SCRIPT.SwimState.new(self),
+		State.TALK: ALLY_STATE_SCRIPT.TalkState.new(self),
+		State.SIT: ALLY_STATE_SCRIPT.SitState.new(self),
+	}
+	_active_state = _states.get(state, null)
+	if _active_state != null:
+		_active_state.enter(null)
+	_last_state = state
 
-func _do_combat_melee(_dt: float) -> void:
-	if _combat_target == null or not is_instance_valid(_combat_target):
-		state = State.IDLE
-		return
-	var to_target := _combat_target.global_transform.origin - global_transform.origin
-	var flat := _flat_dir(to_target)
-	var speed := move_speed_base * 0.8
-	velocity.x = flat.x * speed
-	velocity.z = flat.z * speed
-	_play_anim(anim_attack_melee)
-	if stats:
-		if weapon_kind == "unarmed":
-			stats.gain_skill("war", "unarmed", 1.0, {"action_hash": "melee_unarmed"})
-		else:
-			stats.gain_skill("war", "swords", 1.0, {"action_hash": "melee_sword"})
-
-func _do_combat_ranged(_dt: float) -> void:
-	velocity.x = 0.0
-	velocity.z = 0.0
-	_play_anim(anim_aim_ranged)
+func _change_state(new_state: State) -> void:
+	if _states.is_empty():
+		_setup_states()
+	var previous_state_enum := _last_state
+	var previous_state := _active_state
+	var next_state: AllyState = _states.get(new_state, null)
+	if previous_state != null:
+		previous_state.exit(next_state)
+	_active_state = next_state
+	if Engine.is_editor_hint():
+		var previous_name := _state_enum_name(previous_state_enum)
+		var current_name := _state_enum_name(new_state)
+		print_verbose("[FSM] Ally %s: %s → %s" % [name, previous_name, current_name])
+	if _active_state != null:
+		_active_state.enter(previous_state)
+	_last_state = new_state
 
 func register_ranged_attack() -> void:
 	if not stats:
@@ -189,54 +163,6 @@ func register_ranged_attack() -> void:
 
 func notify_jump_started() -> void:
 	_play_anim("jump")
-
-func _do_build(dt: float) -> void:
-	velocity.x = 0.0
-	velocity.z = 0.0
-	_play_anim(anim_build)
-	_t_build_accum += dt
-	if _t_build_accum >= 2.0:
-		_t_build_accum = 0.0
-		if stats:
-			stats.gain_skill("science", "engineering", 1.0, {"action_hash": "build"})
-
-func _do_sneak(dt: float) -> void:
-	var flat_dir := _flat_dir(_target_dir)
-	var speed := move_speed_base * 0.6
-	velocity.x = flat_dir.x * speed
-	velocity.z = flat_dir.z * speed
-	_play_anim(anim_sneak)
-	_t_stealth_accum += dt
-	if _t_stealth_accum >= 4.0:
-		_t_stealth_accum = 0.0
-		if stats:
-			stats.gain_skill("stealth", "stealth", 1.0, {"action_hash": "sneak"})
-
-func _do_swim(dt: float) -> void:
-	var flat_dir := _flat_dir(_target_dir)
-	var swim_factor := 0.0
-	if stats:
-		swim_factor = clampf(float(stats.swimming) / 100.0, 0.0, 1.0)
-	var speed_multiplier := lerpf(0.5, 1.8, swim_factor)
-	var speed := move_speed_base * speed_multiplier
-	velocity.x = flat_dir.x * speed
-	velocity.z = flat_dir.z * speed
-	_play_anim(anim_swim)
-	_t_swim_accum += dt
-	if _t_swim_accum >= 3.0:
-		_t_swim_accum = 0.0
-		if stats:
-			stats.gain_base_stat("swimming", 1.0)
-
-func _do_talk(_dt: float) -> void:
-	velocity.x = 0.0
-	velocity.z = 0.0
-	_play_anim(anim_talk_loop)
-
-func _do_sit(_dt: float) -> void:
-	velocity = Vector3.ZERO
-	_snap_to_seat()
-	_play_anim(anim_sit_loop)
 
 func set_move_dir(dir: Vector3) -> void:
 	if state == State.SIT or state == State.TALK:
@@ -378,29 +304,8 @@ func _track_stamina_cycle(dt: float) -> void:
 		_stamina_ratio_max_since_min = 1.0
 		_t_stamina_window = 0.0
 
-func _on_state_changed(_previous: State, current: State) -> void:
-	if Engine.is_editor_hint():
-		var previous_name := _state_enum_name(_previous)
-		var current_name := _state_enum_name(current)
-		print_verbose("[FSM] Ally %s: %s → %s" % [name, previous_name, current_name]) # R3→R4 MIGRATION
-	match current:
-		State.MOVE:
-			_t_move_accum = 0.0
-		State.SNEAK:
-			_t_stealth_accum = 0.0
-		State.SWIM:
-			_t_swim_accum = 0.0
-		State.BUILD:
-			_t_build_accum = 0.0
-		State.SIT:
-			_snap_to_seat()
-		State.TALK:
-			velocity = Vector3.ZERO
-	if current != State.COMBAT_MELEE:
-		_combat_target = null
-
 func _ally_physics_update(dt: float) -> void:
-	_track_stamina_cycle(dt)
+_track_stamina_cycle(dt)
 
 # R3→R4 MIGRATION: Utilidad de logging para FSM Ally.
 func _state_enum_name(value: State) -> String:
