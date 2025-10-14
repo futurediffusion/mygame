@@ -231,7 +231,7 @@ func gain_base_stat(stat: String, amount := 1.0) -> bool:
 		_push_warning("gain_base_stat(): clave desconocida '%s'" % stat)
 		return false
 	var has_range := STAT_RANGES.has(stat)
-	var range := STAT_RANGES.get(stat, Vector2.ZERO)
+	var range: Vector2 = STAT_RANGES.get(stat, Vector2.ZERO)
 	match stat:
 		"hp_max":
 			var previous := _hp_store
