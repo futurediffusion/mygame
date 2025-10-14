@@ -1,77 +1,38 @@
-# AGENTS.md — Notas operativas para Codex (MyGame R3)
-
-## 1. Auditoría rápida del repositorio
-- Los módulos del jugador derivan de `ModuleBase`, que se suscribe solo al `SimClock` y enruta `_on_clock_tick` hacia `physics_tick(dt)`; no hay `_physics_process` en estos scripts. 【F:Modules/ModuleBase.gd†L1-L35】【F:README.md†L38-L41】
-- El `SimClock` autoload gobierna la cadencia por grupos (`local`, `regional`, `global`), ordena por prioridad y expone contadores para debug. 【F:Singletons/SimClock.gd†L1-L99】【F:README.md†L174-L181】
-- El HUD está desacoplado por `EventBus.hud_message`; los mensajes pasan por `EventBus.post_hud` y `HUD.gd` gestiona visibilidad con timers. 【F:Singletons/EventBus.gd†L3-L16】【F:scenes/ui/HUD.gd†L1-L28】
-- El bootstrap de input vive en `scripts/bootstrap/InputSetup.gd`, limpia acciones obsoletas y evita duplicados al registrar bindings. 【F:scripts/bootstrap/InputSetup.gd†L3-L75】
-- Las estadísticas y progresión de aliados se controlan desde `Resources/AllyStats.gd`, con saneado de árboles de skills y diminishing returns; `Data.gd` + `ally_archetypes.json` siguen siendo la fuente de verdad. 【F:Resources/AllyStats.gd†L1-L199】【F:README.md†L16-L173】
+# AGENTS.md — Guía operativa tras auditoría R3
 
 ## 2. Reglas imprescindibles
-1. **Motor objetivo: Godot 4.4 (Forward+).** Revisa APIs antes de usar funciones nuevas o sintaxis de 4.5+. 【F:README.md†L4-L9】
-2. **Indentación con tabs en GDScript.** Evita mezclar espacios; el proyecto ya se normalizó así. 【F:README.md†L42-L44】
-3. **Mantén `class_name` en scripts reutilizables** (módulos, recursos, autoloads) para conservar el autocompletado. 【F:Modules/ModuleBase.gd†L1-L35】【F:Singletons/SimClock.gd†L1-L57】
-4. **Nada de `_physics_process` en módulos/aliados.** Usa `physics_tick(dt)` registrado en `SimClock`. 【F:Modules/ModuleBase.gd†L11-L35】【F:README.md†L38-L41】
-5. **Evita el operador ternario compacto (`?:`).** Prefiere `a if cond else b` para mantener compatibilidad 4.4. 【F:README.md†L30-L33】
-6. **Propaga HUD/UI vía `EventBus.post_hud` o señales existentes.** No acoples escenas directas. 【F:Singletons/EventBus.gd†L3-L16】【F:scenes/ui/HUD.gd†L6-L28】
-7. **Datos primero.** Cambios de stats o arquetipos pasan por JSON + `Data.gd`, no hardcodees en lógica. 【F:README.md†L16-L173】
-8. **Orden del tick del Player:** `State.pre_move_update(dt)` → `Jump.physics_tick(dt)` → resto de módulos → `move_and_slide()` → `State.post_move_update()`. Mantén este flujo para que coyote/hold usen el mismo reloj. 【F:scenes/entities/player.gd†L190-L233】
+1. **Motor objetivo: Godot 4.4 (Forward+).** Revisa APIs antes de usar funciones nuevas o sintaxis de 4.5+. Evita dependencias que requieran ramas nightly.
+2. **Indentación con tabs en GDScript.** Evita mezclar espacios; el proyecto ya se normalizó así y los linters internos lo exigen.
+3. **Mantén compatibilidad con `SimClock`.** Los módulos deben seguir heredando `ModuleBase` y usar `physics_tick(dt)` en lugar de `_physics_process`.
 
-## 3. Patrones y plantillas útiles
-- **Nuevo módulo de jugador/NPC**
-  1. Extiende `ModuleBase`, define `class_name`, exports (`sim_group`, `priority`) y dependencias (ej. `@export var player: Player`).
-  2. Registra lógica en `physics_tick(dt)` y comenta el coste si corre cada tick.
-  3. Para pruebas de orden usa `tests/TestClock.tscn` (Godot headless). `godot --headless --run res://tests/TestClock.tscn`. 【F:README.md†L38-L41】
-- **Integrar con SimClock manualmente**
-  - Si un nodo no puede heredar `ModuleBase`, llama `SimClock.register_module(self, group, priority)` en `_ready()` y respeta `group`/`priority` definidos en `Singletons/SimClock.gd`. 【F:Singletons/SimClock.gd†L25-L99】
-- **Aliados y FSM**
-  - Usa la API pública (`set_move_dir`, `engage_melee`, etc.) y añade nuevos estados como `_do_state(dt)` que actualicen animación + stats mediante `AllyStats`. 【F:README.md†L143-L170】
-- **Balance y progresión**
-  - Para stamina/skills reutiliza `AllyStats.note_stamina_cycle` y `gain_skill` con `action_hash` para aprovechar los factores de repetición. 【F:Resources/AllyStats.gd†L152-L199】
-- **Input adicional**
-  - Nuevas acciones deben agregarse en `InputSetup.gd`, cuidando `queue_free()` al final y evitando reinstanciar el nodo legacy. 【F:scripts/bootstrap/InputSetup.gd†L29-L75】
+## Arquitectura clave
+- Todo módulo derivado de `ModuleBase` se registra en `SimClock` y recibe ticks por grupo/priority. No reintroduzcas `_physics_process` en módulos; usa `physics_tick(dt)` y deja que el `SimClock` llame al flujo correcto.【F:Modules/ModuleBase.gd†L1-L47】【F:Singletons/SimClock.gd†L1-L82】
+- El jugador orquesta a sus módulos en este orden: `State.pre_move_update()` → `Jump.physics_tick()` → `Movement.physics_tick()` → `Orientation.physics_tick()` → `AnimationCtrl.physics_tick()` → `move_and_slide()` → `State.post_move_update()` → `AudioCtrl.physics_tick()`. Respeta el orden para conservar coyote, fast fall y sincronía de animaciones.【F:scenes/entities/player.gd†L200-L286】
+- Aliados ejecutan su FSM en `fsm_step(dt)` y recién después hacen `move_and_slide()` en `physics_tick()`. No llames `move_and_slide()` desde la FSM.【F:scenes/entities/Ally.gd†L60-L160】
 
-## 4. Checklist mental antes de comitear
-- Tabs consistentes y tipado explícito (`float`, `Vector3`, etc.) en nuevas variables.
-- `class_name` + export paths revisados en inspector.
-- Registro correcto en `SimClock` (grupo/priority esperados, sin `await`).
-- HUD/eventos pasan por `EventBus`.
-- Cambios en datos reflejados en JSON + `Data.gd`.
-- Ejecuta al menos el test de reloj o la escena relevante en modo headless cuando alteres prioridades/ticks.
+## Buenas prácticas a mantener
+- Usa `class_name` en scripts reutilizables (módulos, recursos, autoloads) y conserva la indentación con tabs en GDScript.【F:Modules/Movement.gd†L1-L86】【F:Resources/AllyStats.gd†L1-L120】
+- Bootstrap de input: cualquier acción nueva debe agregarse en `scripts/bootstrap/InputSetup.gd`. El Player invoca este nodo diferido; evita duplicar lógica de InputMap en otros sitios.【F:scripts/bootstrap/InputSetup.gd†L1-L64】【F:scenes/entities/player.gd†L95-L140】
+- La UI se comunica por `EventBus`; conecta nuevas capas al bus y evita referencias directas entre HUD y gameplay.【F:Singletons/EventBus.gd†L1-L16】【F:scenes/ui/HUD.gd†L1-L28】
+- Stats y progresión vienen de `AllyStats` + `Data.gd`. Si ajustas atributos/skills, modifica `ally_archetypes.json` y deja que `Data.make_stats_from_archetype()` aplique defaults y overrides.【F:Singletons/Data.gd†L1-L160】【F:data/ally_archetypes.json†L1-L120】
+- Mantén el combo de salto (`PerfectJumpCombo`) conectado cuando cambies saltos/velocidades: Player delega a `combo.register_jump()` y las pruebas headless lo cubren.【F:Modules/PerfectJumpCombo.gd†L1-L120】【F:tests/TestJumpCombo.gd†L1-L80】
+- Usa `Flags.ALLY_TICK_GROUP` para módulos de aliados y valida prioridades antes de registrar nuevos nodos en el reloj.【F:scripts/core/Flags.gd†L1-L4】【F:Modules/AllyFSMModule.gd†L1-L35】
 
-## 5. Snippet recordatorio (copiar/pegar)
-```gdscript
-extends ModuleBase
-class_name ExampleModule
+## Prácticas a evitar
+- No accedas a autoloads sin validar su tipo: precarga el script (`preload("res://Singletons/SimClock.gd")`) y verifica con `is`. Evita castings directos sin checar.【F:Modules/ModuleBase.gd†L1-L47】【F:scenes/entities/player.gd†L45-L94】
+- Evita hardcodear animaciones/blends fuera de `AnimationCtrlModule`; usa sus helpers (`_set_sprint_scale`, `_set_sneak_blend_target`) en vez de setear parámetros manualmente.【F:Modules/AnimationCtrl.gd†L1-L200】
+- No manipules stamina ni stats desde scripts externos si ya existe API (`Stamina.consume_for_sprint`, `AllyStats.note_stamina_cycle`, `gain_skill`). Usa los métodos públicos.【F:scripts/player/Stamina.gd†L1-L24】【F:Resources/AllyStats.gd†L120-L220】
+- No omitas el bootstrap de input ni borres acciones en caliente; `InputSetup` se destruye después de configurar bindings para evitar fugas.【F:scripts/bootstrap/InputSetup.gd†L1-L64】
 
-@export var owner_ref: Node
+## Pruebas recomendadas
+- `godot --headless --run res://tests/TestFastFall.tscn` — valida fast fall, gravedad y velocidades.【F:tests/TestFastFall.gd†L1-L70】
+- `godot --headless --run res://tests/TestJumpCombo.tscn` — comprueba la progresión del combo perfecto.【F:tests/TestJumpCombo.gd†L1-L80】
+- `godot --headless --run res://tests/TestClock.tscn` — confirma prioridades de `SimClock`.【F:tests/TestClock.gd†L1-L28】
 
-func _ready() -> void:
-	super._ready()
-
-func physics_tick(dt: float) -> void:
-	# CPU: O(1) por tick, sin asignaciones complejas
-	if owner_ref == null:
-		return
-	owner_ref.some_method(dt)
-```
-
-> Mantén este archivo sincronizado si detectas nuevas invariantes (ej. métricas de SimClock, AnimationTree compartido) para que el agente siempre tenga el mapa actualizado.
-
-## 6. Notas recientes
-- Los helpers de tween en AnimationCtrl deben usar `maxf` y tipado explícito (`var duration: float`) para que Godot 4.4 no infiera `Variant` y dispare advertencias como error.
-- Godot 4.4 aún no soporta `Dictionary[StringName, Array[int]]`; usa diccionarios sin tipado genérico y castea a `Array` cuando necesites leer bindings en `InputSetup.gd` para mantener el bootstrap parseable.
-- Cuando ajustes PerfectJumpCombo, resetea el combo al fallar la ventana perfecta y evita decaimientos ocultos; Godot 4.4 detecta mejor los regresos si el contador pasa por 0 explícito.
-- Al implementar salto variable, corta la velocidad ascendente al soltar (usa `release_velocity_scale`) en lugar de añadir `velocity +=` múltiples veces; evita micro saltos inconsistentes en Godot 4.4.
-- Godot 4.4 falla con "Unexpected indent" si se cuelan espacios en `scenes/entities/player.gd`; mantén tabs estrictos al ajustar `_update_module_stats()` o cualquier bloque que sincronice exports con módulos.
-- Evita retirar `class_name` de los autoloads (`SimClockAutoload`, `GameStateAutoload`): Godot 4.4 deja de exponerlos y los casts tipados en escenas (`player.gd`, módulos) empiezan a marcar errores de parseo.
-- Cuando un script tipado necesita castear `SimClockAutoload`, precarga `res://Singletons/SimClock.gd` (`const SIMCLOCK_SCRIPT := preload(...)`) y valida `autoload is SIMCLOCK_SCRIPT` antes de usar `as`; así Godot 4.4 registra la clase global incluso en escenas que cargan antes del autoload.
-- No reutilices un `class_name` idéntico al nombre del autoload (ej. `GameState` → `/root/GameState`); Godot 4.4 reporta "Class <name> hides an autoload singleton". Usa un sufijo como `Autoload` y actualiza los type hints en nodos consumidores.
-- Fast fall depende de dos módulos: `MovementModule` multiplica `max_speed_air` por `fast_fall_speed_multiplier` sólo durante la caída y `StateModule` aplica `fall_gravity_scale` ≥ 1.0; mantén ambos exports sincronizados desde `player.gd` para conservar el 50 % extra de velocidad en descenso.
-- El `AnimationCtrl` ya reconoce parámetros anidados dentro de `LocomotionSpeed` (`AirBlend`, `SprintSpeed`, `Jump/request`). Si duplicas el árbol, conserva esos paths o actualiza el caché para que el blend de salto/caída siga funcionando.
-- Sneak ahora es un contexto toggleado (tecla `C`): `player.gd` guarda `crouch_record["active"]`, expone `is_sneaking()` y emite `context_state_changed`; `Modules/AnimationCtrl.gd` sólo anima `parameters/LocomotionSpeed/SneakBlend/blend`, dispara `SneakEnter/request` al entrar, `SneakExit/request` al salir y actualiza `SneakIdleWalk/blend_position` con la velocidad de sigilo. No reintroduzcas `ExitBlend` ni estados adicionales en el AnimationTree.
-- Mantén tabs estrictos en `Modules/AnimationCtrl.gd`; Godot 4.4 sigue marcando "Unexpected indent" si se cuelan espacios en los nuevos helpers de sigilo o en la inicialización del AnimationTree.
-- Cuando consultes `AnimationTree.has_parameter` desde `_tree_has_param()`, almacena el resultado en una variable tipada (`Variant` o `bool`) antes de validarlo; evita inferencias automáticas desde `call()` porque Godot 4.4 las eleva a error.
-- Los bindings de `InputSetup.gd` deben usar `Key.KEY_*` y `MOUSE_BUTTON_*`, asignando los enteros directos a `physical_keycode`/`button_index` sin invocar `Key()`/`MouseButton()`; así Godot 4.4 acepta los eventos sin errores de enumeración.
-- Cuando instancies el bootstrap de input desde `player.gd`, usa `root.call_deferred("add_child", bootstrap)` para evitar el error `Parent node is busy setting up children`.
-- Evita nombrar parámetros `ease` en helpers de Tween; Godot 4.4 lo considera un identificador global sombreado y emite `SHADOWED_GLOBAL_IDENTIFIER`. Usa `ease_mode` u otro alias.
+## Checklist antes de comitear
+1. Tabs consistentes en GDScript y `class_name` presente cuando aplique.【F:Modules/Movement.gd†L1-L86】
+2. `SimClock.register_module()` llamado con grupo/prioridad correctos, sin `await` ni `yield`.【F:Modules/ModuleBase.gd†L1-L47】
+3. HUD y eventos pasan por `EventBus`; no hay acoplamientos directos.【F:Singletons/EventBus.gd†L1-L16】
+4. Cambios en estadísticas reflejados en JSON + `Data.gd`; sin hardcodear valores en lógica.【F:Singletons/Data.gd†L1-L160】
+5. Pruebas headless relevantes ejecutadas si se tocó física, SimClock o combo.【F:tests/TestFastFall.gd†L1-L70】【F:tests/TestJumpCombo.gd†L1-L80】
+6. Player y aliados siguen registrándose al `SimClock`; valida orden de módulos en `player.gd` tras cualquier refactor.【F:scenes/entities/player.gd†L168-L286】
