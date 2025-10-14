@@ -37,7 +37,13 @@ func setup(p: CharacterBody3D) -> void:
 	if "fast_fall_speed_multiplier" in player:
 		fast_fall_speed_multiplier = max(player.fast_fall_speed_multiplier, 1.0)
 
+## Registra el input de movimiento del frame actual.
+## - `input_dir`: Vector3 (normalizado o cercano a 1) que indica la dirección deseada en el plano XZ.
+## - `is_sprinting`: `true` si el jugador intenta esprintar en este frame.
+## Efectos: almacena los parámetros para que `physics_tick` acelere el cuerpo acorde en el próximo tick.
 func set_frame_input(input_dir: Vector3, is_sprinting: bool) -> void:
+	assert(input_dir.is_finite(), "MovementModule.set_frame_input recibió un input_dir no finito.")
+	assert(absf(input_dir.length()) <= 1.1, "MovementModule.set_frame_input espera un vector normalizado (<= 1.1).")
 	_move_dir = input_dir
 	_is_sprinting = is_sprinting
 
@@ -90,3 +96,4 @@ func _get_combo() -> PerfectJumpCombo:
 			return _combo
 	_combo = player.get_node_or_null("PerfectJumpCombo") as PerfectJumpCombo
 	return _combo
+

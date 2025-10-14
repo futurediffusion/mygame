@@ -15,7 +15,12 @@ func setup(p: CharacterBody3D) -> void:
 	model_forward_correction_deg = p.model_forward_correction_deg
 	_model_correction_rad = deg_to_rad(model_forward_correction_deg)
 
+## Registra el input direccional que usará la orientación en el siguiente tick.
+## - `input_dir`: Vector3 normalizado en XZ que representa la dirección objetivo del modelo.
+## Efectos: almacena el vector para que `physics_tick` gire al modelo cuando el input supere el umbral mínimo.
 func set_frame_input(input_dir: Vector3) -> void:
+	assert(input_dir.is_finite(), "OrientationModule.set_frame_input recibió un input_dir no finito.")
+	assert(absf(input_dir.length()) <= 1.1, "OrientationModule.set_frame_input espera un vector normalizado (<= 1.1).")
 	_input_dir = input_dir
 
 func physics_tick(delta: float) -> void:
@@ -30,3 +35,4 @@ func update_model_rotation(_delta: float, input_dir: Vector3) -> void:
 		return
 	var target_yaw: float = atan2(input_dir.x, input_dir.z) + _model_correction_rad
 	model.rotation.y = lerp_angle(model.rotation.y, target_yaw, face_lerp)
+
