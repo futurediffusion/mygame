@@ -8,6 +8,8 @@ var anim_player: AnimationPlayer
 @export var animation_tree_path: NodePath
 @export var state_module_path: NodePath
 
+const LOGGER_CONTEXT := "AnimationCtrl"
+
 # Paths dentro del AnimationTree
 const PARAM_LOC: StringName = &"parameters/LocomotionSpeed/Locomotion/blend_position"
 const PARAM_LOC_LEGACY: StringName = &"parameters/Locomotion/blend_position"
@@ -353,7 +355,7 @@ func _cache_state_machine() -> void:
 	_state_machine_graph = null
 	_state_machine_started = false
 	if anim_tree == null:
-		push_warning("AnimationTree no asignado; revisa que el módulo se configure en setup().")
+		Logger.warn(LOGGER_CONTEXT, "AnimationTree no asignado; revisa que el módulo se configure en setup().")
 		return
 	if animation_tree_path == NodePath():
 		animation_tree_path = anim_tree.get_path()
@@ -361,7 +363,7 @@ func _cache_state_machine() -> void:
 
 	var playback := _resolve_state_machine_playback()
 	if playback == null:
-		push_warning("No se encontró un AnimationNodeStateMachinePlayback válido en el AnimationTree. Revisa que el root sea un StateMachine y que su 'playback' esté expuesto.")
+		Logger.warn(LOGGER_CONTEXT, "No se encontró un AnimationNodeStateMachinePlayback válido en el AnimationTree. Revisa que el root sea un StateMachine y que su 'playback' esté expuesto.")
 		return
 
 	_state_machine = playback
@@ -370,7 +372,7 @@ func _cache_state_machine() -> void:
 		_state_machine_graph = tree_root
 	else:
 		_state_machine_graph = null
-		push_warning("El AnimationTree configurado no expone un AnimationNodeStateMachine como raíz; no se puede validar la existencia de estados.")
+		Logger.warn(LOGGER_CONTEXT, "El AnimationTree configurado no expone un AnimationNodeStateMachine como raíz; no se puede validar la existencia de estados.")
 	_state_locomotion = _resolve_state_name(STATE_LOCOMOTION, STATE_LOCOMOTION_LEGACY)
 	_start_state_machine(_state_locomotion)
 	_cache_transition_indices()
