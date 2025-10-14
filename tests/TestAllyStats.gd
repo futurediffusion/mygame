@@ -5,9 +5,9 @@ class StatsSpy:
 
 	var warnings: Array = []
 
-	func push_warning(message: String) -> void:
+	func _push_warning(message: String) -> void:
 		warnings.append(message)
-		super.push_warning(message)
+		super._push_warning(message)
 
 func _ready() -> void:
 	var stats := StatsSpy.new()
