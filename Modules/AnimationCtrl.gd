@@ -174,14 +174,14 @@ func physics_tick(delta: float) -> void:
 	else:
 		_handle_grounded()
 
-if _sneak_active:
-_update_sneak_move_blend()
-_set_air_blend(0.0)
-_set_sprint_scale(1.0)
-else:
-_set_sneak_move_blend(0.0)
-_update_sneak_blend(delta)
-_update_sneak_exit_state(delta)
+	_update_sneak_blend(delta)
+	_update_sneak_exit_state(delta)
+	if _sneak_active:
+		_update_sneak_move_blend()
+		_set_air_blend(0.0)
+		_set_sprint_scale(1.0)
+	else:
+		_set_sneak_move_blend(0.0)
 
 func _handle_airborne(delta: float) -> void:
 	if not _airborne:
