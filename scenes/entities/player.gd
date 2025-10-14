@@ -164,23 +164,23 @@ func _ready() -> void:
 	if anim_player == null:
 		LoggerService.warn(LOGGER_CONTEXT, "AnimationPlayer no encontrado; animaciones desactivadas en este modo.")
 
-        var missing_audio_nodes: Array[String] = []
-        if jump_sfx == null:
-                missing_audio_nodes.append("JumpSFX")
-        if land_sfx == null:
-                missing_audio_nodes.append("LandSFX")
-        if footstep_sfx == null:
-                missing_audio_nodes.append("FootstepSFX")
-        if not missing_audio_nodes.is_empty():
-                LoggerService.warn(LOGGER_CONTEXT, "Nodos de audio faltantes (%s); SFX de jugador desactivados." % ", ".join(missing_audio_nodes))
+	var missing_audio_nodes: Array[String] = []
+	if jump_sfx == null:
+		missing_audio_nodes.append("JumpSFX")
+	if land_sfx == null:
+		missing_audio_nodes.append("LandSFX")
+	if footstep_sfx == null:
+		missing_audio_nodes.append("FootstepSFX")
+	if not missing_audio_nodes.is_empty():
+		LoggerService.warn(LOGGER_CONTEXT, "Nodos de audio faltantes (%s); SFX de jugador desactivados." % ", ".join(missing_audio_nodes))
 
-        _cache_collider_defaults()
+	_cache_collider_defaults()
 
-        var clock := _get_simclock()
-        if clock:
-                clock.register_module(self, sim_group, priority)
-        else:
-                LoggerService.warn(LOGGER_CONTEXT, "SimClock autoload no disponible; Player no se registró en el scheduler.")
+	var clock := _get_simclock()
+	if clock:
+		clock.register_module(self, sim_group, priority)
+	else:
+		LoggerService.warn(LOGGER_CONTEXT, "SimClock autoload no disponible; Player no se registró en el scheduler.")
 
 	# ⬇️ CONECTA LAS SEÑALES EN EL Area3D, NO EN EL PLAYER
 	if trigger_area and is_instance_valid(trigger_area):
@@ -193,14 +193,14 @@ func _ready() -> void:
 
 	_update_module_stats()
 
-		if stamina:
-			var ratio: float = 1.0
-			if stamina.max_stamina > 0.0:
-				ratio = clampf(stamina.value / stamina.max_stamina, 0.0, 1.0)
-			_stamina_ratio_min = ratio
-			_stamina_ratio_max_since_min = ratio
+	if stamina:
+		var ratio: float = 1.0
+		if stamina.max_stamina > 0.0:
+			ratio = clampf(stamina.value / stamina.max_stamina, 0.0, 1.0)
+		_stamina_ratio_min = ratio
+		_stamina_ratio_max_since_min = ratio
 
-		_sync_collider_to_context()
+	_sync_collider_to_context()
 
 
 func _ensure_input_bootstrap() -> void:
