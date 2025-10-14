@@ -59,10 +59,12 @@ func _make_event_from_key(keycode: int) -> InputEvent:
 	# Rango simple para distinguir mouse vs teclado
 	if _MOUSE_BUTTON_CODES.has(keycode):
 		var mb := InputEventMouseButton.new()
-		mb.button_index = keycode
+		# Usa asignación dinámica para conservar los códigos enteros sin castear.
+		mb.set("button_index", keycode)
 		return mb
 	var k := InputEventKey.new()
-	k.physical_keycode = keycode
+	# Igual que con el ratón, se mantiene el entero original para evitar casts.
+	k.set("physical_keycode", keycode)
 	return k
 
 # Evita duplicar bindings comparando tipo y código
