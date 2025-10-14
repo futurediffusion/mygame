@@ -97,7 +97,8 @@ func _start_enter_tween() -> void:
 		return
 	for path in PARAM_ENTER_HANDOFF_PATHS:
 		if animation_tree.has_parameter(path):
-			_enter_tween.tween_property(animation_tree, path, 1.0, enter_blend_time)
+			var property_path: NodePath = NodePath(String(path))
+			_enter_tween.tween_property(animation_tree, property_path, 1.0, enter_blend_time)
 	_enter_tween.finished.connect(_on_enter_tween_finished)
 
 func _stop_enter_tween() -> void:

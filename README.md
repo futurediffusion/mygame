@@ -27,6 +27,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Log rápido (último cambio)
+- `scenes/entities/SneakAnimController.gd`: convierte las rutas de parámetros a `NodePath` antes de tweenear `EnterHandoff`, eliminando el error de Godot 4.4 que exigía `NodePath` en `tween_property`.
 - `scenes/entities/SneakAnimController.gd` + `scenes/entities/player.gd` + `Modules/AnimationCtrl.gd`: controlador ligero de sigilo mueve únicamente `SneakBlend`, interpola `EnterHandoff` con tween y delega el blend desde el módulo para reducir carga en cada tick.
 - `scripts/bootstrap/InputSetup.gd` + `scenes/entities/player.tscn`: nueva acción `toggle_sneak` en la tecla C y nodo `SneakAnimController` exportado hacia el `AnimationTree` del Player.
 - `Modules/AnimationCtrl.gd` + `scenes/entities/player.tscn`: el árbol `LocomotionSpeed` ahora encadena `Locomotion → SprintSpeed → SneakBlend → SneakExit → AirBlend → Jump`, dispara `SneakEnter`/`SneakExit` vía `request` y sólo necesita animar `SneakBlend.blend` para alternar entre locomoción normal y sigilo.
