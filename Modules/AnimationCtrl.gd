@@ -25,6 +25,9 @@ const PARAM_SNEAK_BLEND: StringName = &"parameters/LocomotionSpeed/SneakBlend/bl
 const PARAM_SNEAK_BLEND_ALT: StringName = &"parameters/LocomotionSpeed/SneakBlend/blend"
 const PARAM_SNEAK_ENTER_REQUEST: StringName = &"parameters/LocomotionSpeed/SneakEnter/request"
 const PARAM_SNEAK_EXIT_REQUEST: StringName = &"parameters/LocomotionSpeed/SneakExit/request"
+const PARAM_SNEAK_ENTER_FADE_IN: StringName = &"parameters/LocomotionSpeed/SneakEnter/fadein_time"
+const PARAM_SNEAK_ENTER_FADE_OUT: StringName = &"parameters/LocomotionSpeed/SneakEnter/fadeout_time"
+const PARAM_SNEAK_ENTER_MIX: StringName = &"parameters/LocomotionSpeed/SneakEnter/mix"
 
 const STATE_LOCOMOTION: StringName = &"LocomotionSpeed"
 const STATE_LOCOMOTION_LEGACY: StringName = &"Locomotion"
@@ -53,6 +56,7 @@ const CONTEXT_SIT := 4
 @export_range(0.0, 1.0, 0.01) var fall_blend_ramp_time: float = 0.20
 @export_range(0.0, 30.0, 0.5) var fall_blend_lerp_speed: float = 12.0
 @export_range(0.05, 1.5, 0.01) var sneak_enter_blend_time: float = 0.35
+@export_range(0.0, 1.0, 0.01) var sneak_enter_idle_mix: float = 0.8
 @export_range(0.05, 1.5, 0.01) var sneak_exit_blend_in_time: float = 0.35
 @export_range(0.05, 1.5, 0.01) var sneak_exit_blend_out_time: float = 0.35
 
@@ -84,6 +88,9 @@ var _sneak_enter_request_params: Array[StringName] = []
 var _sneak_exit_request_params: Array[StringName] = []
 var _sneak_move_params: Array[StringName] = []
 var _sneak_blend_params: Array[StringName] = []
+var _sneak_enter_fadein_params: Array[StringName] = []
+var _sneak_enter_fadeout_params: Array[StringName] = []
+var _sneak_enter_mix_params: Array[StringName] = []
 var _transition_indices: Dictionary = {}
 var _jump_fired := false
 var _sneak_active := false
@@ -97,6 +104,8 @@ var _sneak_exit_duration := 0.0
 var _sneak_exit_timer := 0.0
 var _sneak_enter_playing := false
 var _sneak_exit_playing := false
+
+const SNEAK_ENTER_IDLE_PRE_BLEND := 0.2
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
@@ -159,6 +168,8 @@ func _cache_sneak_animation_lengths() -> void:
 	var exit_anim: Animation = anim_player.get_animation(CLIP_SNEAK_EXIT)
 	if exit_anim != null:
 		_sneak_exit_clip_length = maxf(exit_anim.length, 0.0)
+	var enter_duration := _calculate_sneak_enter_duration()
+	_apply_sneak_enter_settings(enter_duration)
 
 func physics_tick(delta: float) -> void:
 	if player == null or not is_instance_valid(player):
@@ -514,6 +525,49 @@ func _set_sneak_blend_param(value: float) -> void:
 		elif _tree_has_param(PARAM_SNEAK_BLEND_ALT):
 			anim_tree.set(PARAM_SNEAK_BLEND_ALT, value)
 
+func _apply_cached_param(params: Array[StringName], fallback: StringName, value: Variant) -> void:
+	if anim_tree == null:
+		return
+	var applied := false
+	for param in params:
+		anim_tree.set(param, value)
+		applied = true
+	if not applied and _tree_has_param(fallback):
+		anim_tree.set(fallback, value)
+
+func _set_sneak_enter_fade_in(value: float) -> void:
+	_apply_cached_param(_sneak_enter_fadein_params, PARAM_SNEAK_ENTER_FADE_IN, value)
+
+func _set_sneak_enter_fade_out(value: float) -> void:
+	_apply_cached_param(_sneak_enter_fadeout_params, PARAM_SNEAK_ENTER_FADE_OUT, value)
+
+func _set_sneak_enter_mix(value: float) -> void:
+	_apply_cached_param(_sneak_enter_mix_params, PARAM_SNEAK_ENTER_MIX, value)
+
+func _apply_sneak_enter_fade_settings(duration: float) -> void:
+	var clamped_duration := maxf(duration, 0.0)
+	if clamped_duration <= 0.0:
+		_set_sneak_enter_fade_in(0.0)
+		_set_sneak_enter_fade_out(0.0)
+		return
+	var fade_time := clampf(sneak_enter_blend_time, 0.0, clamped_duration)
+	if fade_time <= 0.0:
+		fade_time = clamped_duration
+	var min_window := minf(clamped_duration, 0.05)
+	if fade_time < min_window:
+		fade_time = min_window
+	_set_sneak_enter_fade_in(fade_time)
+	_set_sneak_enter_fade_out(fade_time)
+
+func _apply_sneak_enter_settings(duration: float) -> void:
+	_apply_sneak_enter_fade_settings(duration)
+	_set_sneak_enter_mix(clampf(sneak_enter_idle_mix, 0.0, 1.0))
+
+func _prime_sneak_idle_blend() -> void:
+	if _sneak_blend_value >= SNEAK_ENTER_IDLE_PRE_BLEND:
+		return
+	_apply_sneak_blend(SNEAK_ENTER_IDLE_PRE_BLEND)
+
 func _update_sneak_blend(delta: float) -> void:
 	if is_equal_approx(_sneak_blend_value, _sneak_blend_target):
 		_sneak_blend_value = _sneak_blend_target
@@ -537,8 +591,11 @@ func _activate_sneak() -> void:
 	_sneak_exit_playing = false
 	_sneak_exit_timer = 0.0
 	_stop_sneak_exit_one_shot()
+	var enter_duration := _calculate_sneak_enter_duration()
+	_apply_sneak_enter_settings(enter_duration)
+	_prime_sneak_idle_blend()
 	_request_sneak_enter_one_shot()
-	_set_sneak_blend_target(1.0, _calculate_sneak_enter_duration())
+	_set_sneak_blend_target(1.0, enter_duration)
 	_set_sneak_move_blend(0.0)
 
 func _deactivate_sneak() -> void:
@@ -695,6 +752,9 @@ func _refresh_parameter_cache() -> void:
 	_sneak_exit_request_params.clear()
 	_sneak_move_params.clear()
 	_sneak_blend_params.clear()
+	_sneak_enter_fadein_params.clear()
+	_sneak_enter_fadeout_params.clear()
+	_sneak_enter_mix_params.clear()
 	if anim_tree == null:
 		return
 	var loc_candidates: Array[StringName] = [PARAM_LOC, PARAM_LOC_LEGACY]
@@ -729,6 +789,18 @@ func _refresh_parameter_cache() -> void:
 	for param in sneak_blend_candidates:
 		if _tree_has_param(param) and not _sneak_blend_params.has(param):
 			_sneak_blend_params.append(param)
+	var sneak_enter_fadein_candidates: Array[StringName] = [PARAM_SNEAK_ENTER_FADE_IN]
+	for param in sneak_enter_fadein_candidates:
+		if _tree_has_param(param) and not _sneak_enter_fadein_params.has(param):
+			_sneak_enter_fadein_params.append(param)
+	var sneak_enter_fadeout_candidates: Array[StringName] = [PARAM_SNEAK_ENTER_FADE_OUT]
+	for param in sneak_enter_fadeout_candidates:
+		if _tree_has_param(param) and not _sneak_enter_fadeout_params.has(param):
+			_sneak_enter_fadeout_params.append(param)
+	var sneak_enter_mix_candidates: Array[StringName] = [PARAM_SNEAK_ENTER_MIX]
+	for param in sneak_enter_mix_candidates:
+		if _tree_has_param(param) and not _sneak_enter_mix_params.has(param):
+			_sneak_enter_mix_params.append(param)
 
 func _resolve_state_name(preferred: StringName, fallback: StringName) -> StringName:
 	if _state_machine_graph == null:
