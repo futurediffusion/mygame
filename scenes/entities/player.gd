@@ -476,7 +476,7 @@ func _on_area_exited(area: Area3D) -> void:
 # AUDIO & CAMERA HOOKS
 # ============================================================================
 func _play_footstep_audio() -> void:
-	m_audio.play_footstep()
+	m_audio.play_footstep(is_sneaking())
 
 func _play_landing_audio(is_hard: bool) -> void:
 	m_audio.play_landing(is_hard)

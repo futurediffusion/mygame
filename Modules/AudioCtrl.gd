@@ -7,6 +7,16 @@ var land_sfx: AudioStreamPlayer3D
 var footstep_sfx: AudioStreamPlayer3D
 
 @export var use_timer_footsteps := false
+@export_range(0.0, 5.0, 0.05) var footstep_min_speed: float = 0.5
+@export_range(0.0, 5.0, 0.05) var footstep_min_speed_sneak: float = 0.2
+@export_range(0.1, 2.0, 0.01) var footstep_period_slow: float = 0.5
+@export_range(0.1, 2.0, 0.01) var footstep_period_fast: float = 0.28
+@export_range(0.5, 2.0, 0.01) var footstep_period_bias: float = 1.05
+@export_range(1.0, 3.0, 0.01) var footstep_sneak_period_multiplier: float = 1.6
+@export_range(-80.0, 24.0, 0.1) var footstep_volume_walk_db: float = -5.0
+@export_range(-80.0, 24.0, 0.1) var footstep_volume_sneak_db: float = -12.0
+@export var footstep_pitch_range_walk := Vector2(0.95, 1.05)
+@export var footstep_pitch_range_sneak := Vector2(0.9, 0.98)
 var _footstep_timer := 0.0
 
 func setup(p: CharacterBody3D) -> void:
@@ -16,30 +26,80 @@ func setup(p: CharacterBody3D) -> void:
 	footstep_sfx = p.footstep_sfx if "footstep_sfx" in p else null
 
 func physics_tick(delta: float) -> void:
-	if not use_timer_footsteps or player == null:
+	if not use_timer_footsteps:
 		return
-	var hspeed := Vector2(player.velocity.x, player.velocity.z).length()
-	if not player.is_on_floor() or hspeed < 0.5:
+	if player == null or not is_instance_valid(player):
+		return
+	if not player.is_on_floor():
 		_footstep_timer = 0.0
 		return
-	const STEP_PERIOD_MULTIPLIER := 1.05
-	var speed_ratio := clampf(hspeed / player.sprint_speed, 0.0, 1.0)
-	var step_period := lerpf(0.5, 0.28, speed_ratio) * STEP_PERIOD_MULTIPLIER
+	var hspeed := Vector2(player.velocity.x, player.velocity.z).length()
+	var is_sneaking := _is_player_sneaking()
+	var min_speed := footstep_min_speed_sneak if is_sneaking else footstep_min_speed
+	if hspeed < min_speed:
+		_footstep_timer = 0.0
+		return
+	var step_period := _calculate_step_period(hspeed, is_sneaking)
 	_footstep_timer += delta
 	if _footstep_timer >= step_period:
 		_footstep_timer -= step_period
-		play_footstep()
+		play_footstep(is_sneaking)
 
 func play_jump() -> void:
-	if is_instance_valid(jump_sfx): jump_sfx.play()
+	if is_instance_valid(jump_sfx):
+		jump_sfx.play()
 
 func play_landing(is_hard: bool) -> void:
-	if not is_instance_valid(land_sfx) or land_sfx.stream == null: return
+	if not is_instance_valid(land_sfx) or land_sfx.stream == null:
+		return
 	land_sfx.volume_db = -6.0 if is_hard else -12.0
 	land_sfx.pitch_scale = 0.95 if is_hard else 1.05
 	land_sfx.play()
 
-func play_footstep() -> void:
-	if not is_instance_valid(footstep_sfx) or not player.is_on_floor(): return
-	footstep_sfx.pitch_scale = randf_range(0.95, 1.05)
+func play_footstep(is_sneaking: bool = false) -> void:
+	if not is_instance_valid(footstep_sfx):
+		return
+	if player == null or not is_instance_valid(player):
+		return
+	if not player.is_on_floor():
+		return
+	var volume := footstep_volume_sneak_db if is_sneaking else footstep_volume_walk_db
+	footstep_sfx.volume_db = volume
+	var pitch_range := footstep_pitch_range_sneak if is_sneaking else footstep_pitch_range_walk
+	var pitch_min := minf(pitch_range.x, pitch_range.y)
+	var pitch_max := maxf(pitch_range.x, pitch_range.y)
+	footstep_sfx.pitch_scale = randf_range(pitch_min, pitch_max)
 	footstep_sfx.play()
+
+func _calculate_step_period(speed: float, is_sneaking: bool) -> float:
+	var target_speed := speed
+	if "sprint_speed" in player:
+		target_speed = maxf(player.sprint_speed, 0.01)
+	if is_sneaking and "walk_speed" in player:
+		target_speed = maxf(player.walk_speed, 0.01)
+	var speed_ratio := 0.0
+	if target_speed > 0.0:
+		speed_ratio = clampf(speed / target_speed, 0.0, 1.0)
+	var slow_period := maxf(footstep_period_slow, 0.01)
+	var fast_period := maxf(footstep_period_fast, 0.01)
+	var base_period := lerpf(slow_period, fast_period, speed_ratio)
+	base_period *= maxf(footstep_period_bias, 0.01)
+	if is_sneaking:
+		base_period *= maxf(footstep_sneak_period_multiplier, 1.0)
+	return maxf(base_period, 0.01)
+
+func _is_player_sneaking() -> bool:
+	if player == null or not is_instance_valid(player):
+		return false
+	if player.has_method("get_context_state"):
+		var ctx_value: Variant = player.get_context_state()
+		if typeof(ctx_value) == TYPE_INT:
+			var ctx_enum: Variant = player.get("ContextState")
+			if ctx_enum is Dictionary and ctx_enum.has("SNEAK"):
+				if int(ctx_value) == int(ctx_enum["SNEAK"]):
+					return true
+			if int(ctx_value) == 1:
+				return true
+	if player.has_method("is_sneaking"):
+		return bool(player.is_sneaking())
+	return false
