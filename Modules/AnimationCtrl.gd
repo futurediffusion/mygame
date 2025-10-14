@@ -80,6 +80,7 @@ var _current_air_blend := 0.0
 
 var _state_machine: AnimationNodeStateMachinePlayback
 var _state_machine_graph: AnimationNodeStateMachine
+var _state_machine_started := false
 var _state_locomotion: StringName = STATE_LOCOMOTION
 var _locomotion_params: Array[StringName] = []
 var _sprint_scale_params: Array[StringName] = []
@@ -339,6 +340,7 @@ func _cache_state_machine() -> void:
 	# Garantiza que tengamos referencia válida al AnimationTree.
 	_state_machine = null
 	_state_machine_graph = null
+	_state_machine_started = false
 	if anim_tree == null:
 		push_warning("AnimationTree no asignado; revisa que el módulo se configure en setup().")
 		return
@@ -359,13 +361,19 @@ func _cache_state_machine() -> void:
 		_state_machine_graph = null
 		push_warning("El AnimationTree configurado no expone un AnimationNodeStateMachine como raíz; no se puede validar la existencia de estados.")
 	_state_locomotion = _resolve_state_name(STATE_LOCOMOTION, STATE_LOCOMOTION_LEGACY)
-	_travel_to_state(_state_locomotion)
+	_start_state_machine(_state_locomotion)
 	_cache_transition_indices()
 	_configure_transition_blends()
 
 func _resolve_state_machine_playback() -> AnimationNodeStateMachinePlayback:
 	if anim_tree == null:
 		return null
+
+	if anim_tree.has_method("get_state_machine_playback"):
+		var playback_variant: Variant = anim_tree.call("get_state_machine_playback")
+		var playback_direct := playback_variant as AnimationNodeStateMachinePlayback
+		if playback_direct != null:
+			return playback_direct
 
 	var playback := anim_tree.get(PARAM_SM_PLAYBACK) as AnimationNodeStateMachinePlayback
 	if playback != null:
@@ -714,7 +722,19 @@ func _on_landed(_is_hard: bool) -> void:
 	else:
 		_travel_to_state(_state_locomotion)
 
+func _start_state_machine(state_name: StringName) -> void:
+	if _state_machine == null:
+		return
+	if String(state_name).is_empty():
+		return
+	if _state_machine_graph != null and not _state_machine_graph.has_node(state_name):
+		return
+	_state_machine.start(state_name)
+	_state_machine_started = true
+
 func _travel_to_state(state_name: StringName) -> void:
+	if _state_machine == null:
+		_cache_state_machine()
 	if state_name == STATE_JUMP:
 		_fire_jump_one_shot()
 	elif state_name == _state_locomotion or state_name == STATE_LAND:
@@ -726,6 +746,10 @@ func _travel_to_state(state_name: StringName) -> void:
 		return
 	if _state_machine_graph != null and not _state_machine_graph.has_node(state_name):
 		return
+	if not _state_machine_started:
+		_start_state_machine(state_name)
+		if not _state_machine_started:
+			return
 	_state_machine.travel(state_name)
 
 func _refresh_parameter_cache() -> void:
