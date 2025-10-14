@@ -13,7 +13,10 @@ func _ready() -> void:
 	_subscribe_clock()
 
 func _exit_tree() -> void:
-	_unsubscribe_clock()
+	var clock := _get_simclock()
+	if _subscribed and clock != null:
+		clock.unregister_module(self, sim_group)
+	_subscribed = false
 
 func _subscribe_clock() -> void:
 	if _subscribed:
@@ -26,6 +29,11 @@ func _subscribe_clock() -> void:
 	_subscribed = true
 
 func _unsubscribe_clock() -> void:
+	if not _subscribed:
+		return
+	var clock := _get_simclock()
+	if clock != null:
+		clock.unregister_module(self, sim_group)
 	_subscribed = false
 
 func _on_clock_tick(group: StringName, dt: float) -> void:

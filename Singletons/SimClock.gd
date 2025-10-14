@@ -52,6 +52,16 @@ func register_module(mod: Node, group: StringName, priority: int) -> void:
 	if not mod.is_connected("tree_exited", Callable(self, "_on_mod_exited")):
 		mod.connect("tree_exited", Callable(self, "_on_mod_exited").bind(group, mod))
 
+func unregister_module(mod: Node, group: StringName) -> void:
+	if not _groups.has(group):
+		return
+	var list: Array = _groups[group]
+	for index in range(list.size() - 1, -1, -1):
+		var entry: Dictionary = list[index]
+		if entry.get("mod") == mod:
+			list.remove_at(index)
+	_groups[group] = list
+
 func pause_group(group: StringName, paused: bool) -> void:
 	_group_paused[group] = paused
 
@@ -76,11 +86,7 @@ func _compare_entries(a: Dictionary, b: Dictionary) -> bool:
 	return int(a.get("prio", 0)) < int(b.get("prio", 0))
 
 func _on_mod_exited(group: StringName, mod: Node) -> void:
-	if not _groups.has(group):
-		return
-	var list: Array = _groups[group]
-	list = list.filter(func(entry): return entry.get("mod") != mod)
-	_groups[group] = list
+	unregister_module(mod, group)
 
 func _tick_group(group: StringName, dt: float) -> void:
 	if _group_paused.get(group, false):
