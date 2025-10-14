@@ -3,12 +3,12 @@ class_name MovementModule
 
 @export var max_speed_ground: float = 7.5
 @export var max_speed_air: float = 6.5
-@export var accel_ground: float = 26.0
-@export var accel_air: float = 9.5
-@export var ground_friction: float = 10.0
-@export_range(1.0, 3.0, 0.05) var fast_fall_speed_multiplier: float = 1.5
+@export var accel_ground: float = GameConstants.DEFAULT_ACCEL_GROUND
+@export var accel_air: float = GameConstants.DEFAULT_ACCEL_AIR
+@export var ground_friction: float = GameConstants.DEFAULT_DECEL
+@export_range(1.0, 3.0, 0.05) var fast_fall_speed_multiplier: float = GameConstants.DEFAULT_FAST_FALL_MULT
 
-var sprint_speed: float = 9.5
+var sprint_speed: float = GameConstants.DEFAULT_SPRINT_SPEED
 var speed_multiplier: float = 1.0
 
 var player: CharacterBody3D

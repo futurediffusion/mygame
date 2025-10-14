@@ -67,7 +67,7 @@ func post_move_update() -> void:
 		left_ground.emit()
 	elif (not _was_on_floor) and on_floor:
 		var impact_velocity := absf(_pre_move_velocity_y)
-		var is_hard := impact_velocity > 10.0
+		var is_hard := impact_velocity > GameConstants.HARD_LANDING_V
 		landed.emit(is_hard)
 	_was_on_floor = on_floor
 

@@ -46,28 +46,28 @@ const CONTEXT_SIT := 4
 
 # Parámetros expuestos
 @export var fall_speed_threshold: float = -1.5
-@export var min_air_time_to_fall: float = 0.10
+@export var min_air_time_to_fall: float = GameConstants.MIN_AIR_TIME_FOR_FALL_S
 @export_range(0.0, 0.5, 0.01) var locomotion_to_jump_blend_time_min: float = 0.08
 @export_range(0.0, 0.5, 0.01) var locomotion_to_jump_blend_time_max: float = 0.18
 @export_range(0.0, 0.5, 0.01) var jump_to_fall_blend_time_min: float = 0.12
 @export_range(0.0, 0.5, 0.01) var jump_to_fall_blend_time_max: float = 0.32
 @export_range(0.0, 0.5, 0.01) var fall_to_locomotion_blend_time: float = 0.14
 @export_range(0.0, 0.5, 0.01) var fall_to_land_blend_time: float = 0.18
-@export_range(0.0, 1.0, 0.01) var fall_blend_ramp_delay: float = 0.10
-@export_range(0.0, 1.0, 0.01) var fall_blend_ramp_time: float = 0.20
-@export_range(0.0, 30.0, 0.5) var fall_blend_lerp_speed: float = 12.0
+@export_range(0.0, 1.0, 0.01) var fall_blend_ramp_delay: float = GameConstants.DEFAULT_FALL_RAMP_DELAY_S
+@export_range(0.0, 1.0, 0.01) var fall_blend_ramp_time: float = GameConstants.DEFAULT_FALL_RAMP_TIME_S
+@export_range(0.0, 30.0, 0.5) var fall_blend_lerp_speed: float = GameConstants.DEFAULT_FALL_BLEND_LERP_SPEED
 @export_range(0.05, 1.5, 0.01) var sneak_enter_blend_time: float = 0.35
 @export_range(0.0, 1.0, 0.01) var sneak_enter_idle_mix: float = 0.8
 @export_range(0.05, 1.5, 0.01) var sneak_exit_blend_in_time: float = 0.35
 @export_range(0.05, 1.5, 0.01) var sneak_exit_blend_out_time: float = 0.35
 
 # Copiados del Player para mantener fidelidad
-var walk_speed := 2.5
-var run_speed := 6.0
-var sprint_speed := 9.5
-var sprint_anim_speed_scale := 1.15
-var sprint_blend_bias := 0.85
-var fall_clip_name: StringName = &"fall air loop"
+var walk_speed := GameConstants.DEFAULT_WALK_SPEED
+var run_speed := GameConstants.DEFAULT_RUN_SPEED
+var sprint_speed := GameConstants.DEFAULT_SPRINT_SPEED
+var sprint_anim_speed_scale := GameConstants.DEFAULT_SPRINT_ANIM_SPEED_SCALE
+var sprint_blend_bias := GameConstants.DEFAULT_SPRINT_BLEND_BIAS
+var fall_clip_name: StringName = GameConstants.DEFAULT_FALL_CLIP_NAME
 
 # Estado interno
 var _is_sprinting := false
