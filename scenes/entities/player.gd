@@ -18,7 +18,8 @@ signal build_mode_toggled(is_building: bool)
 
 const INPUT_ACTIONS := {
 	"sprint": ["sprint"],
-	"crouch": ["crouch", "sneak"],
+	"crouch": ["crouch", "sneak", "toggle_sneak"],
+	"toggle_sneak": ["toggle_sneak"],
 	"jump": ["jump", "roll"],
 	"talk": ["talk"],
 	"sit": ["sit", "sit_toggle", "sit_stand"],
@@ -91,6 +92,7 @@ const SIMCLOCK_SCRIPT := preload("res://Singletons/SimClock.gd")
 @onready var game_state: GameStateAutoload = get_node_or_null(^"/root/GameState")
 @onready var trigger_area: Area3D = get_node_or_null(^"TriggerArea")
 @onready var combo: PerfectJumpCombo = $PerfectJumpCombo
+@onready var sneak_ctrl: SneakAnimController = $SneakAnimController
 
 # --- MÓDULOS (nuevos onready) ---
 @onready var m_movement: MovementModule = $Modules/Movement
@@ -184,6 +186,8 @@ func _ready() -> void:
 			ratio = clampf(stamina.value / stamina.max_stamina, 0.0, 1.0)
 		_stamina_ratio_min = ratio
 		_stamina_ratio_max_since_min = ratio
+	if sneak_ctrl != null and is_instance_valid(sneak_ctrl):
+		sneak_ctrl.set_sneak_enabled(_is_sneaking)
 
 
 func _ensure_input_bootstrap() -> void:
@@ -253,6 +257,8 @@ func physics_tick(delta: float) -> void:
 	move_and_slide()
 	if m_state:
 		m_state.post_move_update()
+	if sneak_ctrl != null and is_instance_valid(sneak_ctrl):
+		sneak_ctrl.update_sneak_speed(velocity.length())
 	if m_audio:
 		m_audio.physics_tick(delta)
 	_consume_sprint_stamina(delta, is_sprinting)
@@ -277,6 +283,13 @@ func get_context_state() -> ContextState:
 
 func is_sneaking() -> bool:
 	return _is_sneaking
+
+func _set_sneak_state(enable: bool) -> void:
+	if _is_sneaking == enable:
+		return
+	_is_sneaking = enable
+	if sneak_ctrl != null and is_instance_valid(sneak_ctrl):
+		sneak_ctrl.set_sneak_enabled(enable)
 
 # ============================================================================
 # INPUT PROCESSING
@@ -307,6 +320,7 @@ func _cache_input_states(allow_input: bool, move_dir: Vector3) -> void:
 	_input_cache["move"] = move_record
 	var sprint_record := _update_action_cache("sprint", INPUT_ACTIONS.get("sprint", []), allow_input)
 	var crouch_record := _update_action_cache("crouch", INPUT_ACTIONS.get("crouch", []), allow_input)
+	var toggle_record := _update_action_cache("toggle_sneak", INPUT_ACTIONS.get("toggle_sneak", []), allow_input)
 	var jump_record := _update_action_cache("jump", INPUT_ACTIONS.get("jump", []), allow_input)
 	var talk_record := _update_action_cache("talk", INPUT_ACTIONS.get("talk", []), allow_input)
 	var sit_record := _update_action_cache("sit", INPUT_ACTIONS.get("sit", []), allow_input)
@@ -321,9 +335,10 @@ func _cache_input_states(allow_input: bool, move_dir: Vector3) -> void:
 		_talk_active = false
 	talk_record["active"] = _talk_active
 	_input_cache["talk"] = talk_record
-	if allow_input and crouch_record.get("just_pressed", false):
-		_is_sneaking = not _is_sneaking
+	if allow_input and toggle_record.get("just_pressed", false):
+		_set_sneak_state(not _is_sneaking)
 	crouch_record["active"] = _is_sneaking
+	toggle_record["active"] = _is_sneaking
 	if allow_input and sit_record.get("just_pressed", false):
 		var previous := _is_sitting
 		_is_sitting = not _is_sitting
@@ -353,6 +368,7 @@ func _cache_input_states(allow_input: bool, move_dir: Vector3) -> void:
 	_input_cache["build"] = build_record
 	_input_cache["sprint"] = sprint_record
 	_input_cache["crouch"] = crouch_record
+	_input_cache["toggle_sneak"] = toggle_record
 	_input_cache["jump"] = jump_record
 	_input_cache["interact"] = interact_record
 

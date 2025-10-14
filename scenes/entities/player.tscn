@@ -1,4 +1,4 @@
-[gd_scene load_steps=45 format=3 uid="uid://l4e1k3jkgu8s"]
+[gd_scene load_steps=46 format=3 uid="uid://l4e1k3jkgu8s"]
 
 [ext_resource type="Script" uid="uid://wgpmntr5gt2u" path="res://scenes/entities/player.gd" id="1_08t41"]
 [ext_resource type="PackedScene" uid="uid://cvgcaefwbrg4n" path="res://art/characters/animations1.glb" id="1_ucweq"]
@@ -15,6 +15,7 @@
 [ext_resource type="Script" uid="uid://buk7idb8jq37n" path="res://Modules/AnimationCtrl.gd" id="9_qq92a"]
 [ext_resource type="Script" uid="uid://dnbmy77ibnv2s" path="res://Modules/AudioCtrl.gd" id="9_wa8qt"]
 [ext_resource type="Script" uid="uid://dpr2epmd50orb" path="res://Modules/PerfectJumpCombo.gd" id="9_zq1h7"]
+[ext_resource type="Script" uid="uid://d3m4xk8f6k2at" path="res://scenes/entities/SneakAnimController.gd" id="10_rz6q2"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_ucweq"]
 
@@ -254,5 +255,9 @@ shape = SubResource("SphereShape3D_trigger")
 
 [node name="Stamina" type="Node" parent="."]
 script = ExtResource("8_c5rqy")
+
+[node name="SneakAnimController" type="Node" parent="."]
+script = ExtResource("10_rz6q2")
+animation_tree = NodePath("../Pivot/Model/StateMachine")
 
 [editable path="Pivot/Model"]

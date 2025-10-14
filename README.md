@@ -11,7 +11,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 ### ¿Qué funciona en R3?
 - Captura de input y bindings automáticos (`scripts/bootstrap/InputSetup.gd`).
 - Controlador del jugador con módulos de movimiento, salto, orientación, animación y audio (`Modules/*.gd`, `scenes/entities/player.gd`).
-- Toggle de sigilo con la tecla `C` que activa el blend Sneak (`SneakEnter` → `SneakIdleWalk` → `SneakExit`) y bloquea el sprint mientras dura.
+- Toggle de sigilo con la tecla `C` gestionado por `SneakAnimController` (mezcla `SneakBlend`, interpola `EnterHandoff` y sincroniza `SneakIdleWalk`/`SneakIdleWalk2`) y bloquea el sprint mientras dura.
 - Stamina jugable y seguimiento de ciclos de uso (`scripts/player/Stamina.gd`, `scenes/entities/player.gd`).
 - FSM completa de aliados con progresión de habilidades, animaciones y personalización visual (`scenes/entities/Ally.gd`).
 - Progresión basada en `AllyStats` y arquetipos data-driven (`Resources/AllyStats.gd`, `data/ally_archetypes.json`, `Singletons/Data.gd`).
@@ -27,6 +27,8 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Log rápido (último cambio)
+- `scenes/entities/SneakAnimController.gd` + `scenes/entities/player.gd` + `Modules/AnimationCtrl.gd`: controlador ligero de sigilo mueve únicamente `SneakBlend`, interpola `EnterHandoff` con tween y delega el blend desde el módulo para reducir carga en cada tick.
+- `scripts/bootstrap/InputSetup.gd` + `scenes/entities/player.tscn`: nueva acción `toggle_sneak` en la tecla C y nodo `SneakAnimController` exportado hacia el `AnimationTree` del Player.
 - `Modules/AnimationCtrl.gd` + `scenes/entities/player.tscn`: el árbol `LocomotionSpeed` ahora encadena `Locomotion → SprintSpeed → SneakBlend → SneakExit → AirBlend → Jump`, dispara `SneakEnter`/`SneakExit` vía `request` y sólo necesita animar `SneakBlend.blend` para alternar entre locomoción normal y sigilo.
 - `Modules/AnimationCtrl.gd`: tipado explícito del resultado de `has_parameter` para evitar inferencias `Variant` al compilar en Godot 4.4 y mantener la detección de parámetros del AnimationTree.
 - `scripts/bootstrap/InputSetup.gd` + `scenes/entities/player.gd`: retira los tipos anidados del diccionario de acciones para que Godot 4.4 vuelva a cargar el bootstrap de input y restablezca la precarga desde el Player.
