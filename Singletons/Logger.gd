@@ -1,5 +1,5 @@
 extends Node
-class_name Logger
+class_name LoggerService
 
 enum Level {
 	DEBUG,
@@ -10,7 +10,7 @@ enum Level {
 
 @export var min_level: int = Level.INFO
 
-static var _instance: Logger = null
+static var _instance: LoggerService = null
 
 func _ready() -> void:
 	_instance = self
