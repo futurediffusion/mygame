@@ -335,7 +335,12 @@ func _cache_input_states(allow_input: bool, move_dir: Vector3) -> void:
 		_talk_active = false
 	talk_record["active"] = _talk_active
 	_input_cache["talk"] = talk_record
-	if allow_input and toggle_record.get("just_pressed", false):
+	var toggle_requested := false
+	if toggle_record.has("just_pressed"):
+		toggle_requested = toggle_record.get("just_pressed", false)
+	if not toggle_requested and crouch_record.has("just_pressed"):
+		toggle_requested = crouch_record.get("just_pressed", false)
+	if allow_input and toggle_requested:
 		_set_sneak_state(not _is_sneaking)
 	crouch_record["active"] = _is_sneaking
 	toggle_record["active"] = _is_sneaking
