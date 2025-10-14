@@ -28,6 +28,7 @@ const PARAM_SNEAK_EXIT_REQUEST: StringName = &"parameters/LocomotionSpeed/SneakE
 const PARAM_SNEAK_ENTER_FADE_IN: StringName = &"parameters/LocomotionSpeed/SneakEnter/fadein_time"
 const PARAM_SNEAK_ENTER_FADE_OUT: StringName = &"parameters/LocomotionSpeed/SneakEnter/fadeout_time"
 const PARAM_SNEAK_ENTER_MIX: StringName = &"parameters/LocomotionSpeed/SneakEnter/mix"
+const PARAM_SNEAK_ENTER_MIX_MODE: StringName = &"parameters/LocomotionSpeed/SneakEnter/mix_mode"
 
 const STATE_LOCOMOTION: StringName = &"LocomotionSpeed"
 const STATE_LOCOMOTION_LEGACY: StringName = &"Locomotion"
@@ -91,21 +92,22 @@ var _sneak_blend_params: Array[StringName] = []
 var _sneak_enter_fadein_params: Array[StringName] = []
 var _sneak_enter_fadeout_params: Array[StringName] = []
 var _sneak_enter_mix_params: Array[StringName] = []
+var _sneak_enter_mix_mode_params: Array[StringName] = []
 var _transition_indices: Dictionary = {}
 var _jump_fired := false
 var _sneak_active := false
 var _current_context_state: int = CONTEXT_DEFAULT
 var _sneak_blend_value := 0.0
 var _sneak_blend_target := 0.0
-var _sneak_blend_velocity := 0.0
 var _sneak_enter_clip_length := 0.35
 var _sneak_exit_clip_length := 0.4
 var _sneak_exit_duration := 0.0
 var _sneak_exit_timer := 0.0
 var _sneak_enter_playing := false
 var _sneak_exit_playing := false
+var _sneak_enter_timer := 0.0
 
-const SNEAK_ENTER_IDLE_PRE_BLEND := 0.2
+const SNEAK_PRE_BLEND := 0.2
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
@@ -152,6 +154,7 @@ func setup(p: CharacterBody3D) -> void:
 	_sneak_exit_playing = false
 	_sneak_exit_duration = 0.0
 	_sneak_exit_timer = 0.0
+	_sneak_enter_timer = 0.0
 
 	_connect_state_signals()
 	_initialize_context_state()
@@ -467,12 +470,11 @@ func _update_sneak_move_blend() -> void:
 	if not _sneak_active:
 		_set_sneak_move_blend(0.0)
 		return
+	if _sneak_enter_timer > 0.0 or _sneak_enter_playing:
+		return
 	if player == null or not is_instance_valid(player):
 		return
-	var hspeed := Vector2(player.velocity.x, player.velocity.z).length()
-	var target := 0.0
-	if walk_speed > 0.0:
-		target = clampf(hspeed / maxf(walk_speed, 0.001), 0.0, 1.0)
+	var target := _current_sneak_speed_ratio()
 	_set_sneak_move_blend(target)
 
 func _set_sneak_move_blend(value: float) -> void:
@@ -487,6 +489,53 @@ func _set_sneak_move_blend(value: float) -> void:
 		if _tree_has_param(PARAM_SNEAK_MOVE):
 			anim_tree.set(PARAM_SNEAK_MOVE, clamped)
 
+func _tween_param(path: String, to_value: float, dur: float, trans := Tween.TRANS_SINE, ease := Tween.EASE_OUT) -> void:
+	if anim_tree == null:
+		return
+	if path.is_empty():
+		return
+	var duration := max(0.0, dur)
+	if duration <= 0.0:
+		anim_tree.set(path, to_value)
+		return
+	var tw := create_tween().set_trans(trans).set_ease(ease)
+	tw.tween_property(anim_tree, path, to_value, duration)
+
+func _tween_cached_params(params: Array[StringName], to_value: float, duration: float, fallback: StringName = StringName()) -> void:
+	if anim_tree == null:
+		return
+	var applied := false
+	for param in params:
+		var path := String(param)
+		if path.is_empty():
+			continue
+		_tween_param(path, to_value, duration)
+		applied = true
+	if not applied and fallback != StringName() and _tree_has_param(fallback):
+		_tween_param(String(fallback), to_value, duration)
+
+func _get_primary_param(params: Array[StringName], fallback: StringName = StringName()) -> StringName:
+	if not params.is_empty():
+		return params[0]
+	if fallback != StringName() and _tree_has_param(fallback):
+		return fallback
+	return StringName()
+
+func _get_sneak_blend_fallback() -> StringName:
+	if _tree_has_param(PARAM_SNEAK_BLEND):
+		return PARAM_SNEAK_BLEND
+	if _tree_has_param(PARAM_SNEAK_BLEND_ALT):
+		return PARAM_SNEAK_BLEND_ALT
+	return StringName()
+
+func _current_sneak_speed_ratio() -> float:
+	if player == null or not is_instance_valid(player):
+		return 0.0
+	var hspeed := Vector2(player.velocity.x, player.velocity.z).length()
+	if walk_speed <= 0.0:
+		return 0.0
+	return clampf(hspeed / maxf(walk_speed, 0.001), 0.0, 1.0)
+
 func _calculate_sneak_enter_duration() -> float:
 	var duration := maxf(sneak_enter_blend_time, _sneak_enter_clip_length)
 	if duration <= 0.0:
@@ -495,17 +544,14 @@ func _calculate_sneak_enter_duration() -> float:
 
 func _set_sneak_blend_target(target: float, duration: float) -> void:
 	_sneak_blend_target = clampf(target, 0.0, 1.0)
+	if anim_tree == null:
+		_sneak_blend_value = _sneak_blend_target
+		return
 	var clamped_duration := maxf(duration, 0.0)
 	if clamped_duration <= 0.0:
-		_sneak_blend_velocity = 0.0
 		_apply_sneak_blend(_sneak_blend_target)
 		return
-	var distance := absf(_sneak_blend_target - _sneak_blend_value)
-	if distance <= 0.0001:
-		_sneak_blend_velocity = 0.0
-		_apply_sneak_blend(_sneak_blend_target)
-		return
-	_sneak_blend_velocity = distance / clamped_duration
+	_tween_cached_params(_sneak_blend_params, _sneak_blend_target, clamped_duration, _get_sneak_blend_fallback())
 
 func _apply_sneak_blend(value: float) -> void:
 	var clamped := clampf(value, 0.0, 1.0)
@@ -544,6 +590,9 @@ func _set_sneak_enter_fade_out(value: float) -> void:
 func _set_sneak_enter_mix(value: float) -> void:
 	_apply_cached_param(_sneak_enter_mix_params, PARAM_SNEAK_ENTER_MIX, value)
 
+func _set_sneak_enter_mix_mode(value: int) -> void:
+	_apply_cached_param(_sneak_enter_mix_mode_params, PARAM_SNEAK_ENTER_MIX_MODE, value)
+
 func _apply_sneak_enter_fade_settings(duration: float) -> void:
 	var clamped_duration := maxf(duration, 0.0)
 	if clamped_duration <= 0.0:
@@ -561,27 +610,56 @@ func _apply_sneak_enter_fade_settings(duration: float) -> void:
 
 func _apply_sneak_enter_settings(duration: float) -> void:
 	_apply_sneak_enter_fade_settings(duration)
+	_set_sneak_enter_mix_mode(AnimationNodeOneShot.MIX_MODE_BLEND)
 	_set_sneak_enter_mix(clampf(sneak_enter_idle_mix, 0.0, 1.0))
 
 func _prime_sneak_idle_blend() -> void:
-	if _sneak_blend_value >= SNEAK_ENTER_IDLE_PRE_BLEND:
+	if _sneak_blend_value >= SNEAK_PRE_BLEND:
 		return
-	_apply_sneak_blend(SNEAK_ENTER_IDLE_PRE_BLEND)
+	_apply_sneak_blend(SNEAK_PRE_BLEND)
+
+func _do_enter_sneak(enter_duration: float, target_ratio: float) -> void:
+	var clamped_duration := maxf(enter_duration, 0.0)
+	var clamped_ratio := clampf(target_ratio, 0.0, 1.0)
+	_apply_sneak_enter_settings(clamped_duration)
+	_prime_sneak_idle_blend()
+	_set_sneak_move_blend(0.0)
+	_tween_cached_params(_sneak_move_params, clamped_ratio, clamped_duration, PARAM_SNEAK_MOVE)
+	var fired := _request_sneak_enter_one_shot()
+	_sneak_blend_target = 1.0
+	if clamped_duration <= 0.0:
+		_apply_sneak_blend(1.0)
+	else:
+		_tween_cached_params(_sneak_blend_params, 1.0, clamped_duration, _get_sneak_blend_fallback())
+	_sneak_enter_timer = clamped_duration
+	if _sneak_enter_timer <= 0.0:
+		_sneak_enter_playing = false
+
+func _do_exit_sneak() -> void:
+	_sneak_enter_timer = 0.0
+	_sneak_enter_playing = false
+	_request_sneak_exit_one_shot()
+	_set_sneak_move_blend(0.0)
+	_sneak_blend_target = 0.0
+	var exit_duration := maxf(sneak_exit_blend_out_time, 0.0)
+	if exit_duration <= 0.0:
+		_apply_sneak_blend(0.0)
+	else:
+		_tween_cached_params(_sneak_blend_params, 0.0, exit_duration, _get_sneak_blend_fallback())
 
 func _update_sneak_blend(delta: float) -> void:
-	if is_equal_approx(_sneak_blend_value, _sneak_blend_target):
-		_sneak_blend_value = _sneak_blend_target
-		_sneak_blend_velocity = 0.0
+	if _sneak_enter_timer > 0.0:
+		_sneak_enter_timer = maxf(_sneak_enter_timer - delta, 0.0)
+		if _sneak_enter_timer <= 0.0:
+			_sneak_enter_playing = false
+	if anim_tree == null:
 		return
-	if _sneak_blend_velocity <= 0.0:
-		_apply_sneak_blend(_sneak_blend_target)
-		_sneak_blend_velocity = 0.0
+	var param := _get_primary_param(_sneak_blend_params, _get_sneak_blend_fallback())
+	if param == StringName():
 		return
-	var step := _sneak_blend_velocity * delta
-	var next_value := move_toward(_sneak_blend_value, _sneak_blend_target, step)
-	_apply_sneak_blend(next_value)
-	if is_equal_approx(_sneak_blend_value, _sneak_blend_target):
-		_sneak_blend_velocity = 0.0
+	var current := anim_tree.get(param)
+	if current is float:
+		_sneak_blend_value = clampf(float(current), 0.0, 1.0)
 
 func _activate_sneak() -> void:
 	if _sneak_active:
@@ -592,11 +670,8 @@ func _activate_sneak() -> void:
 	_sneak_exit_timer = 0.0
 	_stop_sneak_exit_one_shot()
 	var enter_duration := _calculate_sneak_enter_duration()
-	_apply_sneak_enter_settings(enter_duration)
-	_prime_sneak_idle_blend()
-	_request_sneak_enter_one_shot()
-	_set_sneak_blend_target(1.0, enter_duration)
-	_set_sneak_move_blend(0.0)
+	var speed_ratio := _current_sneak_speed_ratio()
+	_do_enter_sneak(enter_duration, speed_ratio)
 
 func _deactivate_sneak() -> void:
 	_stop_sneak_enter_one_shot()
@@ -606,28 +681,35 @@ func _deactivate_sneak() -> void:
 		_set_sneak_move_blend(0.0)
 		return
 	_sneak_active = false
-	_request_sneak_exit_one_shot()
-	_set_sneak_move_blend(0.0)
-	_set_sneak_blend_target(0.0, maxf(sneak_exit_blend_out_time, 0.0))
+	_do_exit_sneak()
 
-func _request_sneak_enter_one_shot() -> void:
+func _request_sneak_enter_one_shot() -> bool:
 	if anim_tree == null:
 		_sneak_enter_playing = false
-		return
+		return false
 	var fired := false
 	for param in _sneak_enter_request_params:
 		anim_tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 		fired = true
+	if not fired and _tree_has_param(PARAM_SNEAK_ENTER_REQUEST):
+		anim_tree.set(PARAM_SNEAK_ENTER_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+		fired = true
 	_sneak_enter_playing = fired
+	return fired
 
 func _stop_sneak_enter_one_shot() -> void:
 	if anim_tree == null:
 		_sneak_enter_playing = false
+		_sneak_enter_timer = 0.0
 		return
-	if not _sneak_enter_playing:
-		return
+	var had_param := false
 	for param in _sneak_enter_request_params:
 		anim_tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
+		had_param = true
+	if not had_param and _tree_has_param(PARAM_SNEAK_ENTER_REQUEST):
+		anim_tree.set(PARAM_SNEAK_ENTER_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
+		had_param = true
+	_sneak_enter_timer = 0.0
 	_sneak_enter_playing = false
 
 func _request_sneak_exit_one_shot() -> void:
@@ -755,6 +837,7 @@ func _refresh_parameter_cache() -> void:
 	_sneak_enter_fadein_params.clear()
 	_sneak_enter_fadeout_params.clear()
 	_sneak_enter_mix_params.clear()
+	_sneak_enter_mix_mode_params.clear()
 	if anim_tree == null:
 		return
 	var loc_candidates: Array[StringName] = [PARAM_LOC, PARAM_LOC_LEGACY]
@@ -801,6 +884,11 @@ func _refresh_parameter_cache() -> void:
 	for param in sneak_enter_mix_candidates:
 		if _tree_has_param(param) and not _sneak_enter_mix_params.has(param):
 			_sneak_enter_mix_params.append(param)
+
+	var sneak_enter_mix_mode_candidates: Array[StringName] = [PARAM_SNEAK_ENTER_MIX_MODE]
+	for param in sneak_enter_mix_mode_candidates:
+		if _tree_has_param(param) and not _sneak_enter_mix_mode_params.has(param):
+			_sneak_enter_mix_mode_params.append(param)
 
 func _resolve_state_name(preferred: StringName, fallback: StringName) -> StringName:
 	if _state_machine_graph == null:
