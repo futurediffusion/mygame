@@ -97,12 +97,21 @@ var _sneak_exit_duration := 0.0
 var _sneak_exit_timer := 0.0
 var _sneak_enter_playing := false
 var _sneak_exit_playing := false
+var _sneak_delegated := false
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
 	if p != null and is_instance_valid(p):
 		anim_tree = p.anim_tree
 		anim_player = p.anim_player
+
+	_sneak_delegated = false
+	if player != null and is_instance_valid(player):
+		var sneak_node := player.get_node_or_null(^"SneakAnimController")
+		if sneak_node != null and is_instance_valid(sneak_node):
+			var handles_toggle := sneak_node.has_method("set_sneak_enabled") and sneak_node.has_method("update_sneak_speed")
+			if handles_toggle:
+				_sneak_delegated = true
 
 	if "walk_speed" in p:
 		walk_speed = p.walk_speed
@@ -174,14 +183,19 @@ func physics_tick(delta: float) -> void:
 	else:
 		_handle_grounded()
 
-	_update_sneak_blend(delta)
-	_update_sneak_exit_state(delta)
-	if _sneak_active:
-		_update_sneak_move_blend()
-		_set_air_blend(0.0)
-		_set_sprint_scale(1.0)
+	if _sneak_delegated:
+		if _sneak_active:
+			_set_air_blend(0.0)
+			_set_sprint_scale(1.0)
 	else:
-		_set_sneak_move_blend(0.0)
+		_update_sneak_blend(delta)
+		_update_sneak_exit_state(delta)
+		if _sneak_active:
+			_update_sneak_move_blend()
+			_set_air_blend(0.0)
+			_set_sprint_scale(1.0)
+		else:
+			_set_sneak_move_blend(0.0)
 
 func _handle_airborne(delta: float) -> void:
 	if not _airborne:
@@ -437,6 +451,9 @@ func _on_player_context_state_changed(new_state: int, _previous: int) -> void:
 
 func _apply_context_state(state: int, force: bool = false) -> void:
 	_current_context_state = state
+	if _sneak_delegated:
+		_sneak_active = state == CONTEXT_SNEAK
+		return
 	var wants_sneak := state == CONTEXT_SNEAK
 	if wants_sneak:
 		if force or not _sneak_active:

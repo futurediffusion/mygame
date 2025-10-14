@@ -12,6 +12,7 @@ const _ACTION_BINDINGS := {
 	&"sprint": [KEY_SHIFT],
 	&"jump": [KEY_SPACE],
 	&"crouch": [KEY_C],  # agacharse / sigilo
+	&"toggle_sneak": [KEY_C],  # toggle sigilo (tecla C)
 
 	# Interacción / contexto
 	&"interact": [KEY_E],  # hablar/abrir/recoger/usar NPCs y objetos
