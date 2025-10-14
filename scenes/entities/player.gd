@@ -295,7 +295,7 @@ func _apply_method_track(animation: Animation, times: Array[float]) -> void:
 		track_idx = animation.add_track(Animation.TYPE_METHOD)
 	animation.track_set_path(track_idx, NodePath("."))
 	animation.track_set_interpolation_type(track_idx, Animation.INTERPOLATION_NEAREST)
-	animation.track_set_loop_wrap(track_idx, false)
+	animation.track_set_interpolation_loop_wrap(track_idx, false)
 	animation.track_clear(track_idx)
 	for time in times:
 		animation.method_track_insert(track_idx, time, "_play_footstep_audio", [])
