@@ -296,7 +296,9 @@ func _apply_method_track(animation: Animation, times: Array[float]) -> void:
 	animation.track_set_path(track_idx, NodePath("."))
 	animation.track_set_interpolation_type(track_idx, Animation.INTERPOLATION_NEAREST)
 	animation.track_set_interpolation_loop_wrap(track_idx, false)
-	animation.track_clear(track_idx)
+	var key_count := animation.track_get_key_count(track_idx)
+	for key_idx in range(key_count - 1, -1, -1):
+		animation.track_remove_key(track_idx, key_idx)
 	for time in times:
 		animation.method_track_insert(track_idx, time, "_play_footstep_audio", [])
 
