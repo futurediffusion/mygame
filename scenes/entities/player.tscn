@@ -14,11 +14,13 @@
 [ext_resource type="Script" uid="uid://d7166l6er61r" path="res://Modules/Orientation.gd" id="9_n5d2n"]
 [ext_resource type="Script" uid="uid://buk7idb8jq37n" path="res://Modules/AnimationCtrl.gd" id="9_qq92a"]
 [ext_resource type="Script" uid="uid://dnbmy77ibnv2s" path="res://Modules/AudioCtrl.gd" id="9_wa8qt"]
-[ext_resource type="Script" uid="uid://dpr2epmd50orb" path="res://Modules/PerfectJumpCombo.gd" id="9_zq1h7"]
 [ext_resource type="Script" uid="uid://0120b173f37a" path="res://scripts/player/PlayerInputHandler.gd" id="9_yf4ct"]
-[ext_resource type="Script" uid="uid://91beeb5f7cc4" path="res://scripts/player/PlayerContextDetector.gd" id="9_zr6my"]
+[ext_resource type="Script" uid="uid://dpr2epmd50orb" path="res://Modules/PerfectJumpCombo.gd" id="9_zq1h7"]
+[ext_resource type="Script" uid="uid://ba1beeb5f7cc4" path="res://scripts/player/PlayerContextDetector.gd" id="9_zr6my"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_ucweq"]
+radius = 0.45
+height = 1.0
 
 [sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_ogpgs"]
 
