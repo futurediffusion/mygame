@@ -57,9 +57,6 @@ collision_mask = 7
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Ramp/StaticBody3D"]
 shape = SubResource("BoxShape3D_ramp")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Ramp/StaticBody3D/CollisionShape3D"]
-shape = SubResource("BoxShape3D_ramp")
-
 [node name="Ramp" type="MeshInstance3D" parent="Ramp"]
 transform = Transform3D(1, 0, 0, 0, 0.909889, 0.414852, 0, -0.414852, 0.909889, 0.609125, -7.30379, -18.1483)
 mesh = SubResource("BoxMesh_ramp")
@@ -71,9 +68,6 @@ collision_mask = 7
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Ramp/Ramp/StaticBody3D"]
 shape = SubResource("BoxShape3D_ramp")
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Ramp/Ramp/StaticBody3D/CollisionShape3D"]
-shape = SubResource("BoxShape3D_ramp")
-
 [node name="Ramp" type="MeshInstance3D" parent="Ramp/Ramp"]
 transform = Transform3D(-0.0289859, -0.32576, 0.945008, -0.0956323, 0.941972, 0.321781, -0.994995, -0.0810462, -0.0584571, 28.7757, 4.07579, -0.543165)
 mesh = SubResource("BoxMesh_ramp")
@@ -83,9 +77,6 @@ collision_layer = 8
 collision_mask = 7
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Ramp/Ramp/Ramp/StaticBody3D"]
-shape = SubResource("BoxShape3D_ramp")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Ramp/Ramp/Ramp/StaticBody3D/CollisionShape3D"]
 shape = SubResource("BoxShape3D_ramp")
 
 [node name="Platform" type="MeshInstance3D" parent="."]
