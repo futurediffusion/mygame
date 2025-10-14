@@ -92,6 +92,8 @@ const LOGGER_CONTEXT := "Player"
 @onready var game_state: GameStateAutoload = get_node_or_null(^"/root/GameState")
 @onready var trigger_area: Area3D = get_node_or_null(^"TriggerArea")
 @onready var combo: PerfectJumpCombo = $PerfectJumpCombo
+@onready var input_handler: PlayerInputHandler = $PlayerInputHandler
+@onready var context_detector: PlayerContextDetector = $PlayerContextDetector
 
 # --- MÓDULOS (nuevos onready) ---
 @onready var m_movement: MovementModule = $Modules/Movement
@@ -111,8 +113,6 @@ var _skip_module_updates := false
 var _block_animation_updates := false
 var _input_cache: Dictionary = {}
 var _context_state: ContextState = ContextState.DEFAULT
-var _is_in_water := false
-var _water_areas: Array = []
 var _talk_active := false
 var _is_sitting := false
 var _is_build_mode := false
@@ -130,7 +130,7 @@ func _ready() -> void:
 	if stats == null:
 		stats = AllyStats.new()
 	_ensure_input_bootstrap()
-	_initialize_input_cache()
+	_initialize_input_components()
 	_sprint_threshold = run_speed * 0.4
 	input_buffer = InputBuffer.new()
 	input_buffer.name = "InputBuffer"
@@ -223,7 +223,8 @@ func physics_tick(delta: float) -> void:
 	var input_dir := Vector3.ZERO
 	if allow_input:
 		input_dir = _get_camera_relative_input()
-	_cache_input_states(allow_input, input_dir)
+	if input_handler:
+		input_handler.update_input(allow_input, input_dir)
 	_update_module_stats()
 	var is_sprinting := false
 	if allow_input:
@@ -237,7 +238,8 @@ func physics_tick(delta: float) -> void:
 	m_anim.set_frame_anim_inputs(is_sprinting, air_time)
 	_skip_module_updates = is_paused or in_cinematic
 	_block_animation_updates = is_paused or in_cinematic
-	_evaluate_context_state(input_dir)
+	if context_detector:
+		context_detector.update_frame(_is_sitting, _talk_active, _is_sneaking, is_on_floor())
 	if not _skip_module_updates:
 		if m_state:
 			m_state.pre_move_update(delta)
@@ -282,142 +284,78 @@ func is_sneaking() -> bool:
 # ============================================================================
 # INPUT PROCESSING
 # ============================================================================
-func _initialize_input_cache() -> void:
+
+func _initialize_input_components() -> void:
 	_input_cache.clear()
-	var move_record := {
-		"raw": Vector2.ZERO,
-		"camera": Vector3.ZERO
-	}
-	_input_cache["move"] = move_record
-	for key in INPUT_ACTIONS.keys():
-		_input_cache[key] = {
-			"pressed": false,
-			"just_pressed": false,
-			"just_released": false
+	if input_handler:
+		input_handler.set_input_actions(INPUT_ACTIONS)
+		input_handler.initialize_cache()
+		_input_cache = input_handler.get_input_cache()
+		_is_sneaking = input_handler.is_sneaking()
+		_is_sitting = input_handler.is_sitting()
+		_is_build_mode = input_handler.is_build_mode()
+		_using_ranged = input_handler.is_using_ranged()
+		_talk_active = input_handler.is_talk_active()
+		if not input_handler.input_updated.is_connected(_on_input_updated):
+			input_handler.input_updated.connect(_on_input_updated)
+		if not input_handler.talk_requested.is_connected(_on_input_talk_requested):
+			input_handler.talk_requested.connect(_on_input_talk_requested)
+		if not input_handler.sit_toggled.is_connected(_on_input_sit_toggled):
+			input_handler.sit_toggled.connect(_on_input_sit_toggled)
+		if not input_handler.interact_requested.is_connected(_on_input_interact_requested):
+			input_handler.interact_requested.connect(_on_input_interact_requested)
+		if not input_handler.combat_mode_switched.is_connected(_on_input_combat_mode_switched):
+			input_handler.combat_mode_switched.connect(_on_input_combat_mode_switched)
+		if not input_handler.build_mode_toggled.is_connected(_on_input_build_mode_toggled):
+			input_handler.build_mode_toggled.connect(_on_input_build_mode_toggled)
+	else:
+		LoggerService.warn(LOGGER_CONTEXT, "PlayerInputHandler no encontrado; se utilizará un caché de entrada vacío.")
+		var move_record := {
+			"raw": Vector2.ZERO,
+			"camera": Vector3.ZERO,
 		}
-	_input_cache["context_state"] = ContextState.DEFAULT
-
-func _cache_input_states(allow_input: bool, move_dir: Vector3) -> void:
-	var raw_axes := Vector2.ZERO
-	if allow_input:
-		raw_axes.x = Input.get_axis("move_left", "move_right")
-		raw_axes.y = Input.get_axis("move_back", "move_forward")
-	var move_record: Dictionary = _input_cache.get("move", {})
-	move_record["raw"] = raw_axes
-	move_record["camera"] = move_dir
-	_input_cache["move"] = move_record
-	var sprint_record := _update_action_cache("sprint", INPUT_ACTIONS.get("sprint", []), allow_input)
-	var crouch_record := _update_action_cache("crouch", INPUT_ACTIONS.get("crouch", []), allow_input)
-	var jump_record := _update_action_cache("jump", INPUT_ACTIONS.get("jump", []), allow_input)
-	var talk_record := _update_action_cache("talk", INPUT_ACTIONS.get("talk", []), allow_input)
-	var sit_record := _update_action_cache("sit", INPUT_ACTIONS.get("sit", []), allow_input)
-	var interact_record := _update_action_cache("interact", INPUT_ACTIONS.get("interact", []), allow_input)
-	var combat_record := _update_action_cache("combat_switch", INPUT_ACTIONS.get("combat_switch", []), allow_input)
-	var build_record := _update_action_cache("build", INPUT_ACTIONS.get("build", []), allow_input)
-	if allow_input:
-		if talk_record.get("just_pressed", false):
-			talk_requested.emit()
-		_talk_active = talk_record.get("pressed", false)
+		_input_cache["move"] = move_record
+		_input_cache["context_state"] = ContextState.DEFAULT
+	if context_detector:
+		context_detector.reset()
+		_context_state = context_detector.get_context_state()
+		if not context_detector.context_changed.is_connected(_on_context_changed):
+			context_detector.context_changed.connect(_on_context_changed)
 	else:
-		_talk_active = false
-	talk_record["active"] = _talk_active
-	_input_cache["talk"] = talk_record
-	if allow_input and crouch_record.get("just_pressed", false):
-		_is_sneaking = not _is_sneaking
-	crouch_record["active"] = _is_sneaking
-	if allow_input and sit_record.get("just_pressed", false):
-		var previous := _is_sitting
-		_is_sitting = not _is_sitting
-		if previous != _is_sitting:
-			sit_toggled.emit(_is_sitting)
-	sit_record["active"] = _is_sitting
-	_input_cache["sit"] = sit_record
-	if allow_input and interact_record.get("just_pressed", false):
-		interact_requested.emit()
-	if allow_input and combat_record.get("just_pressed", false):
-		_using_ranged = not _using_ranged
-		var new_mode := "melee"
-		if _using_ranged:
-			new_mode = "ranged"
-		combat_mode_switched.emit(new_mode)
-	var combat_mode := "melee"
-	if _using_ranged:
-		combat_mode = "ranged"
-	combat_record["mode"] = combat_mode
-	_input_cache["combat_switch"] = combat_record
-	if allow_input and build_record.get("just_pressed", false):
-		var was_building := _is_build_mode
-		_is_build_mode = not _is_build_mode
-		if was_building != _is_build_mode:
-			build_mode_toggled.emit(_is_build_mode)
-	build_record["active"] = _is_build_mode
-	_input_cache["build"] = build_record
-	_input_cache["sprint"] = sprint_record
-	_input_cache["crouch"] = crouch_record
-	_input_cache["jump"] = jump_record
-	_input_cache["interact"] = interact_record
+		LoggerService.warn(LOGGER_CONTEXT, "PlayerContextDetector no encontrado; el estado de contexto no se actualizará.")
 
-func _update_action_cache(key: String, action_names: Array, allow_input: bool) -> Dictionary:
-	var record: Dictionary = _input_cache.get(key, {
-		"pressed": false,
-		"just_pressed": false,
-		"just_released": false
-	})
-	var pressed := false
-	var just_pressed := false
-	var just_released := false
-	if allow_input:
-		pressed = _action_pressed(action_names)
-		just_pressed = _action_just_pressed(action_names)
-		just_released = _action_just_released(action_names)
-	record["pressed"] = pressed
-	record["just_pressed"] = just_pressed
-	record["just_released"] = just_released
-	_input_cache[key] = record
-	return record
+func _on_input_updated(cache: Dictionary, state: Dictionary) -> void:
+	_input_cache = cache
+	_is_sneaking = state.get("is_sneaking", false)
+	_is_sitting = state.get("is_sitting", false)
+	_is_build_mode = state.get("is_build_mode", false)
+	_using_ranged = state.get("is_using_ranged", false)
+	_talk_active = state.get("talk_active", false)
 
-func _action_pressed(action_names: Array) -> bool:
-	for action_name in action_names:
-		if typeof(action_name) == TYPE_STRING and InputMap.has_action(action_name):
-			if Input.is_action_pressed(action_name):
-				return true
-	return false
+func _on_input_talk_requested() -> void:
+	talk_requested.emit()
 
-func _action_just_pressed(action_names: Array) -> bool:
-	for action_name in action_names:
-		if typeof(action_name) == TYPE_STRING and InputMap.has_action(action_name):
-			if Input.is_action_just_pressed(action_name):
-				return true
-	return false
+func _on_input_sit_toggled(is_sitting: bool) -> void:
+	sit_toggled.emit(is_sitting)
 
-func _action_just_released(action_names: Array) -> bool:
-	for action_name in action_names:
-		if typeof(action_name) == TYPE_STRING and InputMap.has_action(action_name):
-			if Input.is_action_just_released(action_name):
-				return true
-	return false
+func _on_input_interact_requested() -> void:
+	interact_requested.emit()
 
-func _evaluate_context_state(_move_dir: Vector3) -> void:
-	var desired: ContextState = ContextState.DEFAULT
-	if _is_sitting:
-		desired = ContextState.SIT
-	elif _talk_active:
-		desired = ContextState.TALK
-	elif _is_in_water:
-		desired = ContextState.SWIM
+func _on_input_combat_mode_switched(mode: String) -> void:
+	combat_mode_switched.emit(mode)
+
+func _on_input_build_mode_toggled(is_building: bool) -> void:
+	build_mode_toggled.emit(is_building)
+
+func _on_context_changed(new_state: int, previous_state: int) -> void:
+	_context_state = new_state
+	if input_handler:
+		input_handler.set_context_state(new_state)
+		_input_cache = input_handler.get_input_cache()
 	else:
-		var can_sneak := _is_sneaking and is_on_floor()
-		if can_sneak:
-			desired = ContextState.SNEAK
-	_set_context_state(desired)
+		_input_cache["context_state"] = _context_state
+	context_state_changed.emit(new_state, previous_state)
 
-func _set_context_state(state: ContextState) -> void:
-	if _context_state == state:
-		return
-	var previous := _context_state
-	_context_state = state
-	_input_cache["context_state"] = _context_state
-	context_state_changed.emit(state, previous)
 
 # ============================================================================
 # MOVEMENT & SPRINT
@@ -518,51 +456,12 @@ func _track_stamina_cycle(delta: float, is_sprinting: bool) -> void:
 # WATER STATE HANDLERS
 # ============================================================================
 func _on_area_entered(area: Area3D) -> void:
-	_mark_water_area(area, true)
+	if context_detector:
+		context_detector.mark_water_area(area, true)
 
 func _on_area_exited(area: Area3D) -> void:
-	_mark_water_area(area, false)
-
-func _mark_water_area(area: Area3D, entered: bool) -> void:
-	if area == null or not is_instance_valid(area):
-		return
-
-	var is_water: bool = false
-
-	# 1) Grupo "water" tiene prioridad
-	if area.is_in_group("water"):
-		is_water = true
-	# 2) O usa el meta "is_water" (puede venir como bool o cualquier cosa casteable)
-	elif area.has_meta("is_water"):
-		var meta_value: Variant = area.get_meta("is_water")  # evitar Variant implícito
-		if meta_value is bool:
-			is_water = meta_value
-		else:
-			is_water = bool(meta_value)
-
-	if not is_water:
-		return
-
-	# Mantén el set de áreas de agua
-	if entered:
-		if not _water_areas.has(area):
-			_water_areas.append(area)
-	else:
-		_water_areas.erase(area)
-
-	# Actualiza estado global y reevalúa contexto si cambió
-	var was_in_water: bool = _is_in_water
-	_is_in_water = _water_areas.size() > 0
-
-	if was_in_water != _is_in_water:
-		var move_dir: Vector3 = Vector3.ZERO
-		if _input_cache.has("move"):
-			var move_record: Dictionary = _input_cache.get("move", {})
-			if move_record.has("camera"):
-				var cam_val: Variant = move_record["camera"]  # puede ser Variant
-				if cam_val is Vector3:
-					move_dir = cam_val
-		_evaluate_context_state(move_dir)
+	if context_detector:
+		context_detector.mark_water_area(area, false)
 
 
 # ============================================================================
