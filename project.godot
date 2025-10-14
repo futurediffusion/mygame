@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 GameState="*res://Singletons/GameState.gd"
 SimClock="*res://Singletons/SimClock.gd"
 EventBus="*res://Singletons/EventBus.gd"
+Logger="*res://Singletons/Logger.gd"
 Save="*res://Singletons/Save.gd"
 Flags="*res://scripts/core/Flags.gd"
 
