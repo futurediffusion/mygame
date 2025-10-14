@@ -300,7 +300,7 @@ func _apply_method_track(animation: Animation, times: Array[float]) -> void:
 	for key_idx in range(key_count - 1, -1, -1):
 		animation.track_remove_key(track_idx, key_idx)
 	for time in times:
-		animation.method_track_insert(track_idx, time, "_play_footstep_audio", [])
+		animation.method_track_insert_key(track_idx, time, "_play_footstep_audio", [])
 
 func _ensure_input_bootstrap() -> void:
 	var tree := get_tree()
