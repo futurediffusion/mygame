@@ -198,7 +198,7 @@ func _ensure_input_bootstrap() -> void:
 	if root == null:
 		return
 	var bootstrap: Node = INPUT_BOOTSTRAP_SCRIPT.new()
-	root.add_child(bootstrap)
+	root.call_deferred("add_child", bootstrap)
 	tree.set_meta(TREE_META_INPUT_BOOTSTRAPPED, true)
 
 
@@ -396,7 +396,7 @@ func _action_just_released(action_names: Array) -> bool:
 				return true
 	return false
 
-func _evaluate_context_state(move_dir: Vector3) -> void:
+func _evaluate_context_state(_move_dir: Vector3) -> void:
 	var desired: ContextState = ContextState.DEFAULT
 	if _is_sitting:
 		desired = ContextState.SIT

@@ -3,27 +3,27 @@ extends Node
 # Acciones y sus bindings por defecto (teclado/ratón)
 const _ACTION_BINDINGS := {
 	# Movimiento básico
-	&"move_forward": [KEY_W],
-	&"move_back": [KEY_S],
-	&"move_left": [KEY_A],
-	&"move_right": [KEY_D],
+	&"move_forward": [Key.KEY_W],
+	&"move_back": [Key.KEY_S],
+	&"move_left": [Key.KEY_A],
+	&"move_right": [Key.KEY_D],
 
 	# Movimiento avanzado
-	&"sprint": [KEY_SHIFT],
-	&"jump": [KEY_SPACE],
-	&"crouch": [KEY_C],  # agacharse / sigilo
+	&"sprint": [Key.KEY_SHIFT],
+	&"jump": [Key.KEY_SPACE],
+	&"crouch": [Key.KEY_C],  # agacharse / sigilo
 
 	# Interacción / contexto
-	&"interact": [KEY_E],  # hablar/abrir/recoger/usar NPCs y objetos
-	&"use": [KEY_F],  # acción contextual secundaria (futuro)
-	&"build": [KEY_B],  # entrar/salir del modo construir
+	&"interact": [Key.KEY_E],  # hablar/abrir/recoger/usar NPCs y objetos
+	&"use": [Key.KEY_F],  # acción contextual secundaria (futuro)
+	&"build": [Key.KEY_B],  # entrar/salir del modo construir
 
 	# Combate
-	&"attack_primary": [MOUSE_BUTTON_LEFT],  # click izq: ataque principal
-	&"attack_secondary": [MOUSE_BUTTON_RIGHT],  # click der: defensa/apuntar
+	&"attack_primary": [MouseButton.LEFT],  # click izq: ataque principal
+	&"attack_secondary": [MouseButton.RIGHT],  # click der: defensa/apuntar
 
 	# Sistema
-	&"pause": [KEY_ESCAPE]
+	&"pause": [Key.KEY_ESCAPE]
 }
 
 @onready var _actions: Dictionary = _ACTION_BINDINGS
@@ -52,12 +52,12 @@ func _enter_tree() -> void:
 # Crea InputEventKey o InputEventMouseButton según el código recibido
 func _make_event_from_key(keycode: int) -> InputEvent:
 	# Rango simple para distinguir mouse vs teclado
-	if keycode == MOUSE_BUTTON_LEFT or keycode == MOUSE_BUTTON_RIGHT:
+	if keycode == MouseButton.LEFT or keycode == MouseButton.RIGHT:
 		var mb := InputEventMouseButton.new()
-		mb.button_index = keycode
+		mb.button_index = MouseButton(keycode)
 		return mb
 	var k := InputEventKey.new()
-	k.physical_keycode = keycode
+	k.physical_keycode = Key(keycode)
 	return k
 
 # Evita duplicar bindings comparando tipo y código
