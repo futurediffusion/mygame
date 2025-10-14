@@ -15,8 +15,8 @@ var footstep_sfx: AudioStreamPlayer3D
 @export_range(1.0, 3.0, 0.01) var footstep_sneak_period_multiplier: float = 1.6
 @export_range(-80.0, 24.0, 0.1) var footstep_volume_walk_db: float = -5.0
 @export_range(-80.0, 24.0, 0.1) var footstep_volume_sneak_db: float = -12.0
-@export var footstep_pitch_range_walk := Vector2(0.95, 1.05)
-@export var footstep_pitch_range_sneak := Vector2(0.9, 0.98)
+@export var footstep_pitch_range_walk := Vector2.ONE
+@export var footstep_pitch_range_sneak := Vector2(0.87, 0.9)
 var _footstep_timer := 0.0
 
 func setup(p: CharacterBody3D) -> void:
