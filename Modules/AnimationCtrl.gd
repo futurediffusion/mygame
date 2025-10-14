@@ -489,7 +489,7 @@ func _set_sneak_move_blend(value: float) -> void:
 		if _tree_has_param(PARAM_SNEAK_MOVE):
 			anim_tree.set(PARAM_SNEAK_MOVE, clamped)
 
-func _tween_param(path: String, to_value: float, dur: float, trans := Tween.TRANS_SINE, ease := Tween.EASE_OUT) -> void:
+func _tween_param(path: String, to_value: float, dur: float, trans := Tween.TRANS_SINE, ease_mode := Tween.EASE_OUT) -> void:
 	if anim_tree == null:
 		return
 	if path.is_empty():
@@ -498,7 +498,7 @@ func _tween_param(path: String, to_value: float, dur: float, trans := Tween.TRAN
 	if duration <= 0.0:
 		anim_tree.set(path, to_value)
 		return
-	var tw := create_tween().set_trans(trans).set_ease(ease)
+	var tw := create_tween().set_trans(trans).set_ease(ease_mode)
 	tw.tween_property(anim_tree, path, to_value, duration)
 
 func _tween_cached_params(params: Array[StringName], to_value: float, duration: float, fallback: StringName = StringName()) -> void:
@@ -625,7 +625,7 @@ func _do_enter_sneak(enter_duration: float, target_ratio: float) -> void:
 	_prime_sneak_idle_blend()
 	_set_sneak_move_blend(0.0)
 	_tween_cached_params(_sneak_move_params, clamped_ratio, clamped_duration, PARAM_SNEAK_MOVE)
-	var fired := _request_sneak_enter_one_shot()
+	_request_sneak_enter_one_shot()
 	_sneak_blend_target = 1.0
 	if clamped_duration <= 0.0:
 		_apply_sneak_blend(1.0)

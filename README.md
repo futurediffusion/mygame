@@ -27,6 +27,7 @@ El build es jugable en tercera persona con cámara orbital, locomoción física 
 - Optimización de escenas `world/` y limpieza de `.tmp` generados por el editor.
 
 ### Log rápido (último cambio)
+- `scripts/bootstrap/InputSetup.gd`, `Modules/AnimationCtrl.gd` y `scenes/entities/player.gd`: corrige las advertencias nuevas de Godot 4.4 castear enteros a `Key`/`MouseButton`, renombra el parámetro `ease` para no ocultar el método global y difiere `add_child()` al preparar el bootstrap de input para evitar el error de jerarquía ocupada.
 - `Modules/AnimationCtrl.gd` + `scenes/entities/player.tscn`: el árbol `LocomotionSpeed` ahora encadena `Locomotion → SprintSpeed → SneakBlend → SneakExit → AirBlend → Jump`, dispara `SneakEnter`/`SneakExit` vía `request` y sólo necesita animar `SneakBlend.blend` para alternar entre locomoción normal y sigilo.
 - `Modules/AnimationCtrl.gd`: tipado explícito del resultado de `has_parameter` para evitar inferencias `Variant` al compilar en Godot 4.4 y mantener la detección de parámetros del AnimationTree.
 - `scripts/bootstrap/InputSetup.gd` + `scenes/entities/player.gd`: retira los tipos anidados del diccionario de acciones para que Godot 4.4 vuelva a cargar el bootstrap de input y restablezca la precarga desde el Player.
