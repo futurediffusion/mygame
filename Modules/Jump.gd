@@ -97,7 +97,6 @@ func physics_tick(dt: float) -> void:
 						_owner_body.velocity.y = capped_velocity
 			_jumping = false
 
-
 func get_air_time() -> float:
 	return _air_time
 
