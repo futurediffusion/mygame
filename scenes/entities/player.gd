@@ -58,6 +58,10 @@ const LOGGER_CONTEXT := "Player"
 @export_range(1.0, 50.0, 0.5) var decel: float = GameConstants.DEFAULT_DECEL
 @export_range(0.0, 89.0, 1.0) var max_slope_deg: float = 46.0
 @export_range(0.0, 2.0, 0.05) var snap_len: float = 0.3
+@export_range(0.0, 2.0, 0.05) var snap_len_sneak: float = 0.18
+@export_range(0.1, 1.5, 0.01) var capsule_radius: float = 0.45
+@export_range(0.5, 3.0, 0.01) var capsule_height_stand: float = 1.9
+@export_range(0.5, 3.0, 0.01) var capsule_height_sneak: float = 1.35
 
 @export_group("Input Buffering")
 @export_range(0.0, 0.5, 0.01) var coyote_time: float = GameConstants.DEFAULT_COYOTE_TIME_S
@@ -94,6 +98,7 @@ const LOGGER_CONTEXT := "Player"
 @onready var combo: PerfectJumpCombo = $PerfectJumpCombo
 @onready var input_handler: PlayerInputHandler = $PlayerInputHandler
 @onready var context_detector: PlayerContextDetector = $PlayerContextDetector
+@onready var body_collision: CollisionShape3D = $CollisionShape3D
 
 # --- MÓDULOS (nuevos onready) ---
 @onready var m_movement: MovementModule = $Modules/Movement
@@ -122,6 +127,11 @@ var _stamina_ratio_min := 1.0
 var _stamina_ratio_max_since_min := 1.0
 var _stamina_cycle_window := 12.0
 var _t_stamina_window := 0.0
+var _capsule_shape: CapsuleShape3D
+var _capsule_height_active := 0.0
+var _capsule_height_stand_cached := 0.0
+var _capsule_height_sneak_cached := 0.0
+var _capsule_radius_cached := 0.0
 
 # ============================================================================
 # INITIALIZATION
@@ -137,8 +147,15 @@ func _ready() -> void:
 	input_buffer.jump_buffer_time = jump_buffer
 	add_child(input_buffer)
 
+	_initialize_capsule_shape()
+
+	if m_state:
+		m_state.floor_snap_length = snap_len
+		m_state.floor_snap_length_sneak = snap_len_sneak
 	if m_state:
 		m_state.setup(self)
+	if m_state:
+		m_state.configure_floor_snap_lengths(snap_len, snap_len_sneak)
 	if m_jump:
 		m_jump.setup(self, m_state, input_buffer)
 	for m in [m_movement, m_orientation, m_anim, m_audio]:
@@ -163,6 +180,8 @@ func _ready() -> void:
 	if not missing_audio_nodes.is_empty():
 		LoggerService.warn(LOGGER_CONTEXT, "Nodos de audio faltantes (%s); SFX de jugador desactivados." % ", ".join(missing_audio_nodes))
 
+	_configure_sneak_footstep_events()
+	_apply_context_physics(_context_state, true)
 	var clock := _get_simclock()
 	if clock:
 		clock.register_module(self, sim_group, priority)
@@ -187,6 +206,99 @@ func _ready() -> void:
 		_stamina_ratio_min = ratio
 		_stamina_ratio_max_since_min = ratio
 
+
+
+
+func _initialize_capsule_shape() -> void:
+	if _capsule_shape == null:
+		if body_collision and body_collision.shape is CapsuleShape3D:
+			_capsule_shape = body_collision.shape as CapsuleShape3D
+		else:
+			_capsule_shape = null
+	_capsule_radius_cached = maxf(capsule_radius, 0.05)
+	_capsule_height_stand_cached = maxf(capsule_height_stand, _capsule_radius_cached * 2.0 + 0.01)
+	_capsule_height_sneak_cached = maxf(capsule_height_sneak, _capsule_radius_cached * 2.0 + 0.01)
+	if _capsule_shape:
+		_apply_capsule_dimensions(_capsule_height_stand_cached)
+
+
+func _apply_capsule_dimensions(total_height: float) -> void:
+	if _capsule_shape == null:
+		return
+	var radius := maxf(_capsule_radius_cached, 0.05)
+	_capsule_radius_cached = radius
+	_capsule_shape.radius = radius
+	var min_total := radius * 2.0 + 0.01
+	var clamped_total := maxf(total_height, min_total)
+	var cylinder_height := maxf(clamped_total - radius * 2.0, 0.0)
+	_capsule_shape.height = cylinder_height
+	_capsule_height_active = clamped_total
+	if body_collision:
+		var offset_y := radius + cylinder_height * 0.5
+		var xform := body_collision.transform
+		xform.origin.y = offset_y
+		body_collision.transform = xform
+
+
+func _apply_context_physics(state: int, force: bool = false) -> void:
+	var is_sneak := int(state) == int(ContextState.SNEAK)
+	var target_height := _capsule_height_sneak_cached if is_sneak else _capsule_height_stand_cached
+	_apply_capsule_dimensions(target_height)
+	if m_state:
+		if force:
+			m_state.configure_floor_snap_lengths(snap_len, snap_len_sneak)
+		var target_snap := snap_len_sneak if is_sneak else snap_len
+		m_state.set_active_floor_snap_length(target_snap)
+
+
+func _configure_sneak_footstep_events() -> void:
+	if anim_player == null or not is_instance_valid(anim_player):
+		return
+	var ratios := {
+		"sneak_enter": PackedFloat32Array([0.55]),
+		"sneak_idle": PackedFloat32Array([0.33, 0.83]),
+		"sneakwalk": PackedFloat32Array([0.3666667, 0.9]),
+	}
+	for anim_name in ratios.keys():
+		var animation := anim_player.get_animation(anim_name)
+		if animation == null:
+			continue
+		_ensure_animation_footstep_events(animation, ratios[anim_name])
+
+
+func _ensure_animation_footstep_events(animation: Animation, ratios: PackedFloat32Array) -> void:
+	if animation == null:
+		return
+	var length := maxf(animation.length, 0.0)
+	if length <= 0.0:
+		return
+	var times: Array[float] = []
+	for ratio in ratios:
+		var weight := clampf(float(ratio), 0.0, 0.999)
+		var time := length * weight
+		if time >= length:
+			time = maxf(length - 0.0001, 0.0)
+		times.append(time)
+	times.sort()
+	_apply_method_track(animation, times)
+
+
+func _apply_method_track(animation: Animation, times: Array[float]) -> void:
+	if animation == null:
+		return
+	var track_idx := -1
+	for i in range(animation.get_track_count()):
+		if animation.track_get_type(i) == Animation.TYPE_METHOD:
+			track_idx = i
+			break
+	if track_idx == -1:
+		track_idx = animation.add_track(Animation.TYPE_METHOD)
+	animation.track_set_path(track_idx, NodePath("."))
+	animation.track_set_interpolation_type(track_idx, Animation.INTERPOLATION_NEAREST)
+	animation.track_set_loop_wrap(track_idx, false)
+	animation.track_clear(track_idx)
+	for time in times:
+		animation.method_track_insert(track_idx, time, "_play_footstep_audio", [])
 
 func _ensure_input_bootstrap() -> void:
 	var tree := get_tree()
@@ -362,6 +474,7 @@ func _on_context_changed(new_state: int, previous_state: int) -> void:
 		_input_cache = input_handler.get_input_cache()
 	else:
 		_input_cache["context_state"] = _context_state
+	_apply_context_physics(new_state)
 	context_state_changed.emit(new_state, previous_state)
 
 

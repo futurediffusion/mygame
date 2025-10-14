@@ -19,6 +19,8 @@
 [ext_resource type="Script" uid="uid://91beeb5f7cc4" path="res://scripts/player/PlayerContextDetector.gd" id="9_zr6my"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_ucweq"]
+radius = 0.45
+height = 1.0
 
 [sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_ogpgs"]
 
@@ -75,9 +77,9 @@ animation = &"sneakwalk"
 
 [sub_resource type="AnimationNodeBlendSpace1D" id="AnimationNodeBlendSpace1D_yv3je"]
 blend_point_0/node = SubResource("AnimationNodeAnimation_qc1tv")
-blend_point_0/pos = -1.0
+blend_point_0/pos = 0.0
 blend_point_1/node = SubResource("AnimationNodeAnimation_xe83n")
-blend_point_1/pos = 0.0
+blend_point_1/pos = 0.5
 blend_point_2/node = SubResource("AnimationNodeAnimation_cwche")
 blend_point_2/pos = 1.0
 min_space = 0.0
@@ -137,6 +139,11 @@ radius = 1.0
 [node name="Player" type="CharacterBody3D" groups=["player"]]
 collision_mask = 30
 script = ExtResource("1_08t41")
+snap_len = 0.3
+snap_len_sneak = 0.18
+capsule_radius = 0.45
+capsule_height_stand = 1.9
+capsule_height_sneak = 1.35
 
 [node name="PerfectJumpCombo" type="Node" parent="."]
 script = ExtResource("9_zq1h7")
@@ -168,9 +175,13 @@ state_module_path = NodePath("../State")
 
 [node name="AudioCtrl" type="Node" parent="Modules"]
 script = ExtResource("9_wa8qt")
+use_timer_footsteps = true
+footstep_min_speed_sneak = 0.18
+footstep_sneak_period_multiplier = 1.85
+footstep_volume_sneak_db = -8.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.00319, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.95, 0)
 shape = SubResource("CapsuleShape3D_ucweq")
 
 [node name="Pivot" type="Node3D" parent="."]
