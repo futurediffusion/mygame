@@ -1,6 +1,28 @@
 extends Resource
 class_name AllyStats
 
+const VALID_BASE_STATS := [
+	"hp_max",
+	"stamina_max",
+	"vitality",
+	"strength",
+	"athletics",
+	"swimming",
+	"move_speed",
+	"defense_hint"
+]
+
+const STAT_RANGES := {
+	"hp_max": Vector2(0.0, 100.0),
+	"stamina_max": Vector2(0.0, 100.0),
+	"vitality": Vector2(0.0, 100.0),
+	"strength": Vector2(0.0, 100.0),
+	"athletics": Vector2(0.0, 100.0),
+	"swimming": Vector2(0.0, 100.0),
+	"move_speed": Vector2(0.0, 100.0),
+	"defense_hint": Vector2(0.0, 100.0)
+}
+
 const SKILL_TREE_DEFAULTS := {
 	"war": {
 		"swords": 0.0,
@@ -198,31 +220,85 @@ func gain_skill(tree: String, skill: String, amount: float = 1.0, context: Dicti
 	_skill_repeat_decay[key] = skill_decay
 
 
-func gain_base_stat(stat: String, amount := 1.0) -> void:
+func gain_base_stat(stat: String, amount := 1.0) -> bool:
 	var sanitized := float(amount)
 	if is_zero_approx(sanitized):
-		return
+		return false
+	if not VALID_BASE_STATS.has(stat):
+		push_warning("gain_base_stat(): clave desconocida '%s'" % stat)
+		return false
+	var has_range := STAT_RANGES.has(stat)
+	var range := STAT_RANGES.get(stat, Vector2.ZERO)
 	match stat:
 		"hp_max":
-			_hp_store = clampf(_hp_store + sanitized, 0.0, 100.0)
+			var previous := _hp_store
+			var new_value := previous + sanitized
+			if has_range:
+				new_value = clampf(new_value, range.x, range.y)
+			if is_equal_approx(previous, new_value):
+				return false
+			_hp_store = new_value
 		"stamina_max":
 			if not _allow_stamina_gain:
-				return
-			_stamina_store = clampf(_stamina_store + sanitized, 0.0, 100.0)
+				return false
+			var stamina_previous := _stamina_store
+			var stamina_value := stamina_previous + sanitized
+			if has_range:
+				stamina_value = clampf(stamina_value, range.x, range.y)
+			if is_equal_approx(stamina_previous, stamina_value):
+				return false
+			_stamina_store = stamina_value
 		"vitality":
-			_vitality_store = clampf(_vitality_store + sanitized, 0.0, 100.0)
+			var vitality_previous := _vitality_store
+			var vitality_value := vitality_previous + sanitized
+			if has_range:
+				vitality_value = clampf(vitality_value, range.x, range.y)
+			if is_equal_approx(vitality_previous, vitality_value):
+				return false
+			_vitality_store = vitality_value
 		"strength":
-			_strength_store = clampf(_strength_store + sanitized, 0.0, 100.0)
+			var strength_previous := _strength_store
+			var strength_value := strength_previous + sanitized
+			if has_range:
+				strength_value = clampf(strength_value, range.x, range.y)
+			if is_equal_approx(strength_previous, strength_value):
+				return false
+			_strength_store = strength_value
 		"athletics":
-			_athletics_store = clampf(_athletics_store + sanitized, 0.0, 100.0)
+			var athletics_previous := _athletics_store
+			var athletics_value := athletics_previous + sanitized
+			if has_range:
+				athletics_value = clampf(athletics_value, range.x, range.y)
+			if is_equal_approx(athletics_previous, athletics_value):
+				return false
+			_athletics_store = athletics_value
 		"swimming":
-			_swimming_store = clampf(_swimming_store + sanitized, 0.0, 100.0)
+			var swimming_previous := _swimming_store
+			var swimming_value := swimming_previous + sanitized
+			if has_range:
+				swimming_value = clampf(swimming_value, range.x, range.y)
+			if is_equal_approx(swimming_previous, swimming_value):
+				return false
+			_swimming_store = swimming_value
 		"move_speed":
-			move_speed = clampf(move_speed + sanitized, 0.0, 100.0)
+			var speed_previous := _move_speed_store
+			var speed_value := speed_previous + sanitized
+			if has_range:
+				speed_value = clampf(speed_value, range.x, range.y)
+			if is_equal_approx(speed_previous, speed_value):
+				return false
+			_move_speed_store = speed_value
 		"defense_hint":
-			_defense_hint_store = clampf(_defense_hint_store + sanitized, 0.0, 100.0)
+			var defense_previous := _defense_hint_store
+			var defense_value := defense_previous + sanitized
+			if has_range:
+				defense_value = clampf(defense_value, range.x, range.y)
+			if is_equal_approx(defense_previous, defense_value):
+				return false
+			_defense_hint_store = defense_value
 		_:
-			return
+			return false
+	return true
 
 func note_stamina_cycle(consumed_ratio: float, recovered_ratio: float, seconds_window: float) -> void:
 	if consumed_ratio < 0.4 or recovered_ratio < 0.95:
@@ -232,9 +308,10 @@ func note_stamina_cycle(consumed_ratio: float, recovered_ratio: float, seconds_w
 	var window_factor := clampf(90.0 / normalized_window, 0.5, 1.2)
 	var base_gain := 0.35 * _stamina_cycle_factor * window_factor
 	_allow_stamina_gain = true
-	gain_base_stat("stamina_max", base_gain)
+	var applied := gain_base_stat("stamina_max", base_gain)
 	_allow_stamina_gain = false
-	_stamina_cycle_factor = max(0.25, _stamina_cycle_factor * 0.7)
+	if applied:
+		_stamina_cycle_factor = max(0.25, _stamina_cycle_factor * 0.7)
 
 func note_low_hp_and_bed_recovery(went_below_15_percent: bool, recovered_in_bed: bool) -> void:
 	if went_below_15_percent and recovered_in_bed:
