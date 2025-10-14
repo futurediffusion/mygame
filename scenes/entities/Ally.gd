@@ -305,7 +305,7 @@ func _track_stamina_cycle(dt: float) -> void:
 		_t_stamina_window = 0.0
 
 func _ally_physics_update(dt: float) -> void:
-_track_stamina_cycle(dt)
+	_track_stamina_cycle(dt)
 
 # R3→R4 MIGRATION: Utilidad de logging para FSM Ally.
 func _state_enum_name(value: State) -> String:
