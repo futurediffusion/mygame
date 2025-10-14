@@ -46,34 +46,34 @@ const SIMCLOCK_SCRIPT := preload("res://Singletons/SimClock.gd")
 # MOVEMENT CONFIGURATION
 # ============================================================================
 @export_group("Movement")
-@export_range(0.1, 10.0, 0.1) var walk_speed: float = 2.5
-@export_range(0.1, 15.0, 0.1) var run_speed: float = 6.0
-@export_range(0.1, 20.0, 0.1) var sprint_speed: float = 9.5
-@export_range(1.0, 15.0, 0.1) var jump_velocity: float = 8.2
+@export_range(GameConstants.MIN_WALK_SPEED, 10.0, 0.1) var walk_speed: float = GameConstants.DEFAULT_WALK_SPEED
+@export_range(0.1, 15.0, 0.1) var run_speed: float = GameConstants.DEFAULT_RUN_SPEED
+@export_range(0.1, 20.0, 0.1) var sprint_speed: float = GameConstants.DEFAULT_SPRINT_SPEED
+@export_range(1.0, 15.0, 0.1) var jump_velocity: float = GameConstants.DEFAULT_JUMP_VELOCITY
 
 @export_group("Physics")
-@export_range(1.0, 50.0, 0.5) var accel_ground: float = 26.0
-@export_range(1.0, 30.0, 0.5) var accel_air: float = 9.5
-@export_range(1.0, 50.0, 0.5) var decel: float = 10.0
+@export_range(1.0, 50.0, 0.5) var accel_ground: float = GameConstants.DEFAULT_ACCEL_GROUND
+@export_range(1.0, 30.0, 0.5) var accel_air: float = GameConstants.DEFAULT_ACCEL_AIR
+@export_range(1.0, 50.0, 0.5) var decel: float = GameConstants.DEFAULT_DECEL
 @export_range(0.0, 89.0, 1.0) var max_slope_deg: float = 46.0
 @export_range(0.0, 2.0, 0.05) var snap_len: float = 0.3
 
 @export_group("Input Buffering")
-@export_range(0.0, 0.5, 0.01) var coyote_time: float = 0.12
-@export_range(0.0, 0.5, 0.01) var jump_buffer: float = 0.15
+@export_range(0.0, 0.5, 0.01) var coyote_time: float = GameConstants.DEFAULT_COYOTE_TIME_S
+@export_range(0.0, 0.5, 0.01) var jump_buffer: float = GameConstants.DEFAULT_JUMP_BUFFER_S
 
 @export_group("Sprint Animation")
-@export_range(1.0, 2.0, 0.05) var sprint_anim_speed_scale: float = 1.15
-@export_range(0.0, 1.0, 0.05) var sprint_blend_bias: float = 0.85
+@export_range(1.0, 2.0, 0.05) var sprint_anim_speed_scale: float = GameConstants.DEFAULT_SPRINT_ANIM_SPEED_SCALE
+@export_range(0.0, 1.0, 0.05) var sprint_blend_bias: float = GameConstants.DEFAULT_SPRINT_BLEND_BIAS
 
 @export_group("Air State")
-@export var fall_clip_name: StringName = &"fall air loop"
-@export_range(-10.0, 0.0, 0.01) var fall_threshold: float = -0.05
-@export_range(0.0, 1.0, 0.01) var fall_ramp_delay: float = 0.10
-@export_range(0.0, 1.0, 0.01) var fall_ramp_time: float = 0.20
-@export_range(1.0, 30.0, 0.5) var fall_blend_lerp: float = 12.0
-@export_range(1.0, 3.0, 0.05) var fall_gravity_multiplier: float = 1.5
-@export_range(1.0, 3.0, 0.05) var fast_fall_speed_multiplier: float = 1.5
+@export var fall_clip_name: StringName = GameConstants.DEFAULT_FALL_CLIP_NAME
+@export_range(-10.0, 0.0, 0.01) var fall_threshold: float = GameConstants.DEFAULT_FALL_THRESHOLD_V
+@export_range(0.0, 1.0, 0.01) var fall_ramp_delay: float = GameConstants.DEFAULT_FALL_RAMP_DELAY_S
+@export_range(0.0, 1.0, 0.01) var fall_ramp_time: float = GameConstants.DEFAULT_FALL_RAMP_TIME_S
+@export_range(1.0, 30.0, 0.5) var fall_blend_lerp: float = GameConstants.DEFAULT_FALL_BLEND_LERP_SPEED
+@export_range(1.0, 3.0, 0.05) var fall_gravity_multiplier: float = GameConstants.DEFAULT_FALL_GRAVITY_MULT
+@export_range(1.0, 3.0, 0.05) var fast_fall_speed_multiplier: float = GameConstants.DEFAULT_FAST_FALL_MULT
 
 @export_group("Model Rotation")
 @export_range(0.0, 1.0, 0.01) var face_lerp: float = 0.18

@@ -1,11 +1,11 @@
 extends ModuleBase
 class_name JumpModule
 
-@export var jump_speed: float = 6.8
-@export var coyote_time: float = 0.12
-@export var max_hold_time: float = 0.15
-@export_range(0.0, 1.0, 0.01) var hold_gravity_scale: float = 0.45
-@export_range(0.0, 1.0, 0.01) var release_velocity_scale: float = 0.35
+@export var jump_speed: float = GameConstants.DEFAULT_JUMP_SPEED
+@export var coyote_time: float = GameConstants.DEFAULT_COYOTE_TIME_S
+@export var max_hold_time: float = GameConstants.DEFAULT_JUMP_HOLD_MAX_S
+@export_range(0.0, 1.0, 0.01) var hold_gravity_scale: float = GameConstants.DEFAULT_HOLD_GRAVITY_SCALE
+@export_range(0.0, 1.0, 0.01) var release_velocity_scale: float = GameConstants.DEFAULT_RELEASE_VELOCITY_SCALE
 
 var player: CharacterBody3D
 var anim_tree: AnimationTree
