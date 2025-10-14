@@ -61,7 +61,7 @@ shape = SubResource("BoxShape3D_ramp")
 shape = SubResource("BoxShape3D_ramp")
 
 [node name="Ramp" type="MeshInstance3D" parent="Ramp"]
-transform = Transform3D(1, 0, 0, 0, 0.909889, 0.414852, 0, -0.414852, 0.909889, -18.4724, -5.10141, -14.3337)
+transform = Transform3D(1, 0, 0, 0, 0.909889, 0.414852, 0, -0.414852, 0.909889, 0.609125, -7.30379, -18.1483)
 mesh = SubResource("BoxMesh_ramp")
 
 [node name="StaticBody3D" type="StaticBody3D" parent="Ramp/Ramp"]
@@ -75,7 +75,7 @@ shape = SubResource("BoxShape3D_ramp")
 shape = SubResource("BoxShape3D_ramp")
 
 [node name="Ramp" type="MeshInstance3D" parent="Ramp/Ramp"]
-transform = Transform3D(-0.0289859, -0.32576, 0.945008, -0.0956323, 0.941972, 0.321781, -0.994995, -0.0810462, -0.0584571, 28.7757, -1.17464, -14.7111)
+transform = Transform3D(-0.0289859, -0.32576, 0.945008, -0.0956323, 0.941972, 0.321781, -0.994995, -0.0810462, -0.0584571, 28.7757, 4.07579, -0.543165)
 mesh = SubResource("BoxMesh_ramp")
 
 [node name="StaticBody3D" type="StaticBody3D" parent="Ramp/Ramp/Ramp"]
@@ -89,7 +89,7 @@ shape = SubResource("BoxShape3D_ramp")
 shape = SubResource("BoxShape3D_ramp")
 
 [node name="Platform" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 3, -8)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.64157, 6.12316, -8)
 mesh = SubResource("BoxMesh_platform")
 
 [node name="StaticBody3D" type="StaticBody3D" parent="Platform"]
@@ -97,6 +97,17 @@ collision_layer = 8
 collision_mask = 7
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Platform/StaticBody3D"]
+shape = SubResource("BoxShape3D_platform")
+
+[node name="Platform" type="MeshInstance3D" parent="Platform"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32.043, 3.12775, 1.04712)
+mesh = SubResource("BoxMesh_platform")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="Platform/Platform"]
+collision_layer = 8
+collision_mask = 7
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Platform/Platform/StaticBody3D"]
 shape = SubResource("BoxShape3D_platform")
 
 [node name="Player" parent="." instance=ExtResource("1_11l7r")]
