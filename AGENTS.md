@@ -59,6 +59,7 @@ func physics_tick(dt: float) -> void:
 > Mantén este archivo sincronizado si detectas nuevas invariantes (ej. métricas de SimClock, AnimationTree compartido) para que el agente siempre tenga el mapa actualizado.
 
 ## 6. Notas recientes
+- Los helpers de tween en AnimationCtrl deben usar `maxf` y tipado explícito (`var duration: float`) para que Godot 4.4 no infiera `Variant` y dispare advertencias como error.
 - Godot 4.4 aún no soporta `Dictionary[StringName, Array[int]]`; usa diccionarios sin tipado genérico y castea a `Array` cuando necesites leer bindings en `InputSetup.gd` para mantener el bootstrap parseable.
 - Cuando ajustes PerfectJumpCombo, resetea el combo al fallar la ventana perfecta y evita decaimientos ocultos; Godot 4.4 detecta mejor los regresos si el contador pasa por 0 explícito.
 - Al implementar salto variable, corta la velocidad ascendente al soltar (usa `release_velocity_scale`) en lugar de añadir `velocity +=` múltiples veces; evita micro saltos inconsistentes en Godot 4.4.
