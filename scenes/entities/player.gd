@@ -143,6 +143,7 @@ func _ready() -> void:
 		m_jump.setup(self, m_state, input_buffer)
 	for m in [m_movement, m_orientation, m_anim, m_audio]:
 		m.setup(self)
+	_disable_module_clock_subscription()
 
 	if m_state and not m_state.landed.is_connected(_on_state_landed):
 		m_state.landed.connect(_on_state_landed)
@@ -323,6 +324,13 @@ func _initialize_input_components() -> void:
 			context_detector.context_changed.connect(_on_context_changed)
 	else:
 		LoggerService.warn(LOGGER_CONTEXT, "PlayerContextDetector no encontrado; el estado de contexto no se actualizará.")
+
+func _disable_module_clock_subscription() -> void:
+	for module in [m_state, m_jump, m_movement, m_orientation, m_anim, m_audio]:
+		if module == null or not is_instance_valid(module):
+			continue
+		if module.has_method("set_clock_subscription"):
+			module.set_clock_subscription(false)
 
 func _on_input_updated(cache: Dictionary, state: Dictionary) -> void:
 	_input_cache = cache

@@ -56,3 +56,12 @@ func _get_simclock() -> SimClockAutoload:
 	if autoload is SIMCLOCK_SCRIPT:
 		return autoload as SimClockAutoload
 	return null
+
+func is_clock_subscribed() -> bool:
+	return _subscribed
+
+func set_clock_subscription(enabled: bool) -> void:
+	if enabled:
+		_subscribe_clock()
+	else:
+		_unsubscribe_clock()
