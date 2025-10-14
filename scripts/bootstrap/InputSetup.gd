@@ -19,12 +19,17 @@ const _ACTION_BINDINGS := {
 	&"build": [Key.KEY_B],  # entrar/salir del modo construir
 
 	# Combate
-	&"attack_primary": [MouseButton.LEFT],  # click izq: ataque principal
-	&"attack_secondary": [MouseButton.RIGHT],  # click der: defensa/apuntar
+	&"attack_primary": [MOUSE_BUTTON_LEFT],  # click izq: ataque principal
+	&"attack_secondary": [MOUSE_BUTTON_RIGHT],  # click der: defensa/apuntar
 
 	# Sistema
 	&"pause": [Key.KEY_ESCAPE]
 }
+
+const _MOUSE_BUTTON_CODES := [
+	MOUSE_BUTTON_LEFT,
+	MOUSE_BUTTON_RIGHT,
+]
 
 @onready var _actions: Dictionary = _ACTION_BINDINGS
 
@@ -52,12 +57,12 @@ func _enter_tree() -> void:
 # Crea InputEventKey o InputEventMouseButton según el código recibido
 func _make_event_from_key(keycode: int) -> InputEvent:
 	# Rango simple para distinguir mouse vs teclado
-	if keycode == MouseButton.LEFT or keycode == MouseButton.RIGHT:
+	if _MOUSE_BUTTON_CODES.has(keycode):
 		var mb := InputEventMouseButton.new()
-		mb.button_index = MouseButton(keycode)
+		mb.button_index = keycode
 		return mb
 	var k := InputEventKey.new()
-	k.physical_keycode = Key(keycode)
+	k.physical_keycode = keycode
 	return k
 
 # Evita duplicar bindings comparando tipo y código
