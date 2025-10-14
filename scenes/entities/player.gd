@@ -193,14 +193,14 @@ func _ready() -> void:
 
 	_update_module_stats()
 
-        if stamina:
-                var ratio: float = 1.0
-                if stamina.max_stamina > 0.0:
-                        ratio = clampf(stamina.value / stamina.max_stamina, 0.0, 1.0)
-                _stamina_ratio_min = ratio
-                _stamina_ratio_max_since_min = ratio
+		if stamina:
+			var ratio: float = 1.0
+			if stamina.max_stamina > 0.0:
+				ratio = clampf(stamina.value / stamina.max_stamina, 0.0, 1.0)
+			_stamina_ratio_min = ratio
+			_stamina_ratio_max_since_min = ratio
 
-        _sync_collider_to_context()
+		_sync_collider_to_context()
 
 
 func _ensure_input_bootstrap() -> void:
