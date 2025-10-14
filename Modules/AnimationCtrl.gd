@@ -187,11 +187,10 @@ func physics_tick(delta: float) -> void:
 		_update_sneak_entry_blend(delta)
 		_set_air_blend(0.0)
 		_set_sprint_scale(1.0)
-		return
-
-	_update_sneak_entry_blend(delta)
-	_update_exit_blend(delta)
-	_update_sneak_exit_state(delta)
+	else:
+		_update_sneak_entry_blend(delta)
+		_update_exit_blend(delta)
+		_update_sneak_exit_state(delta)
 
 func _handle_airborne(delta: float) -> void:
 	if not _airborne:
@@ -223,6 +222,21 @@ func _handle_airborne(delta: float) -> void:
 
 
 func _handle_grounded() -> void:
+	if _sneak_active:
+		_set_sprint_scale(1.0)
+		_set_air_blend(0.0)
+		if _airborne:
+			if _has_jumped and player != null and is_instance_valid(player):
+				if player.velocity.y > 0.0:
+					return
+			_airborne = false
+			_time_in_air = 0.0
+			_fall_triggered = false
+			_has_jumped = false
+			_current_air_blend = 0.0
+			_stop_jump_one_shot()
+		return
+
 	if _airborne:
 		if _has_jumped and player != null and is_instance_valid(player):
 			if player.velocity.y > 0.0:
@@ -239,10 +253,6 @@ func _handle_grounded() -> void:
 				_travel_to_state(STATE_LAND)
 			else:
 				_travel_to_state(_state_locomotion)
-	if _sneak_active:
-		_set_sprint_scale(1.0)
-		_set_air_blend(0.0)
-		return
 
 	var blend := _calculate_locomotion_blend()
 	_update_locomotion_jump_transition(blend)
