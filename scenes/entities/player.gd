@@ -58,6 +58,10 @@ const LOGGER_CONTEXT := "Player"
 @export_range(1.0, 50.0, 0.5) var decel: float = GameConstants.DEFAULT_DECEL
 @export_range(0.0, 89.0, 1.0) var max_slope_deg: float = 46.0
 @export_range(0.0, 2.0, 0.05) var snap_len: float = 0.3
+@export_group("Sneak Collider")
+@export_range(0.1, 2.0, 0.01) var sneak_capsule_height: float = 0.7
+@export_range(0.1, 1.5, 0.01) var sneak_capsule_radius: float = 0.45
+@export_range(0.0, 2.0, 0.01) var sneak_snap_len: float = 0.12
 
 @export_group("Input Buffering")
 @export_range(0.0, 0.5, 0.01) var coyote_time: float = GameConstants.DEFAULT_COYOTE_TIME_S
@@ -94,6 +98,7 @@ const LOGGER_CONTEXT := "Player"
 @onready var combo: PerfectJumpCombo = $PerfectJumpCombo
 @onready var input_handler: PlayerInputHandler = $PlayerInputHandler
 @onready var context_detector: PlayerContextDetector = $PlayerContextDetector
+@onready var collision_shape: CollisionShape3D = get_node_or_null(^"CollisionShape3D")
 
 # --- MÓDULOS (nuevos onready) ---
 @onready var m_movement: MovementModule = $Modules/Movement
@@ -122,6 +127,12 @@ var _stamina_ratio_min := 1.0
 var _stamina_ratio_max_since_min := 1.0
 var _stamina_cycle_window := 12.0
 var _t_stamina_window := 0.0
+var _capsule_shape: CapsuleShape3D
+var _standing_capsule_height := 0.0
+var _standing_capsule_radius := 0.0
+var _standing_snap_length := 0.3
+var _collider_base_offset := 0.0
+var _sneak_collider_active := false
 
 # ============================================================================
 # INITIALIZATION
@@ -153,21 +164,23 @@ func _ready() -> void:
 	if anim_player == null:
 		LoggerService.warn(LOGGER_CONTEXT, "AnimationPlayer no encontrado; animaciones desactivadas en este modo.")
 
-	var missing_audio_nodes: Array[String] = []
-	if jump_sfx == null:
-		missing_audio_nodes.append("JumpSFX")
-	if land_sfx == null:
-		missing_audio_nodes.append("LandSFX")
-	if footstep_sfx == null:
-		missing_audio_nodes.append("FootstepSFX")
-	if not missing_audio_nodes.is_empty():
-		LoggerService.warn(LOGGER_CONTEXT, "Nodos de audio faltantes (%s); SFX de jugador desactivados." % ", ".join(missing_audio_nodes))
+        var missing_audio_nodes: Array[String] = []
+        if jump_sfx == null:
+                missing_audio_nodes.append("JumpSFX")
+        if land_sfx == null:
+                missing_audio_nodes.append("LandSFX")
+        if footstep_sfx == null:
+                missing_audio_nodes.append("FootstepSFX")
+        if not missing_audio_nodes.is_empty():
+                LoggerService.warn(LOGGER_CONTEXT, "Nodos de audio faltantes (%s); SFX de jugador desactivados." % ", ".join(missing_audio_nodes))
 
-	var clock := _get_simclock()
-	if clock:
-		clock.register_module(self, sim_group, priority)
-	else:
-		LoggerService.warn(LOGGER_CONTEXT, "SimClock autoload no disponible; Player no se registró en el scheduler.")
+        _cache_collider_defaults()
+
+        var clock := _get_simclock()
+        if clock:
+                clock.register_module(self, sim_group, priority)
+        else:
+                LoggerService.warn(LOGGER_CONTEXT, "SimClock autoload no disponible; Player no se registró en el scheduler.")
 
 	# ⬇️ CONECTA LAS SEÑALES EN EL Area3D, NO EN EL PLAYER
 	if trigger_area and is_instance_valid(trigger_area):
@@ -180,12 +193,14 @@ func _ready() -> void:
 
 	_update_module_stats()
 
-	if stamina:
-		var ratio: float = 1.0
-		if stamina.max_stamina > 0.0:
-			ratio = clampf(stamina.value / stamina.max_stamina, 0.0, 1.0)
-		_stamina_ratio_min = ratio
-		_stamina_ratio_max_since_min = ratio
+        if stamina:
+                var ratio: float = 1.0
+                if stamina.max_stamina > 0.0:
+                        ratio = clampf(stamina.value / stamina.max_stamina, 0.0, 1.0)
+                _stamina_ratio_min = ratio
+                _stamina_ratio_max_since_min = ratio
+
+        _sync_collider_to_context()
 
 
 func _ensure_input_bootstrap() -> void:
@@ -317,13 +332,14 @@ func _initialize_input_components() -> void:
 		}
 		_input_cache["move"] = move_record
 		_input_cache["context_state"] = ContextState.DEFAULT
-	if context_detector:
-		context_detector.reset()
-		_context_state = context_detector.get_context_state()
-		if not context_detector.context_changed.is_connected(_on_context_changed):
-			context_detector.context_changed.connect(_on_context_changed)
-	else:
-		LoggerService.warn(LOGGER_CONTEXT, "PlayerContextDetector no encontrado; el estado de contexto no se actualizará.")
+        if context_detector:
+                context_detector.reset()
+                _context_state = context_detector.get_context_state()
+                if not context_detector.context_changed.is_connected(_on_context_changed):
+                        context_detector.context_changed.connect(_on_context_changed)
+        else:
+                LoggerService.warn(LOGGER_CONTEXT, "PlayerContextDetector no encontrado; el estado de contexto no se actualizará.")
+        _sync_collider_to_context()
 
 func _disable_module_clock_subscription() -> void:
 	for module in [m_state, m_jump, m_movement, m_orientation, m_anim, m_audio]:
@@ -356,13 +372,14 @@ func _on_input_build_mode_toggled(is_building: bool) -> void:
 	build_mode_toggled.emit(is_building)
 
 func _on_context_changed(new_state: int, previous_state: int) -> void:
-	_context_state = new_state
-	if input_handler:
-		input_handler.set_context_state(new_state)
-		_input_cache = input_handler.get_input_cache()
-	else:
-		_input_cache["context_state"] = _context_state
-	context_state_changed.emit(new_state, previous_state)
+        _context_state = new_state
+        if input_handler:
+                input_handler.set_context_state(new_state)
+                _input_cache = input_handler.get_input_cache()
+        else:
+                _input_cache["context_state"] = _context_state
+        context_state_changed.emit(new_state, previous_state)
+        _sync_collider_to_context()
 
 
 # ============================================================================
@@ -476,14 +493,65 @@ func _on_area_exited(area: Area3D) -> void:
 # AUDIO & CAMERA HOOKS
 # ============================================================================
 func _play_footstep_audio() -> void:
-	m_audio.play_footstep(is_sneaking())
+        m_audio.play_footstep()
 
 func _play_landing_audio(is_hard: bool) -> void:
 	m_audio.play_landing(is_hard)
 
 func _trigger_camera_landing(is_hard: bool) -> void:
-	if camera_rig:
-		camera_rig.call_deferred("_on_player_landed", is_hard)
+        if camera_rig:
+                camera_rig.call_deferred("_on_player_landed", is_hard)
+
+func _cache_collider_defaults() -> void:
+        if collision_shape == null or not is_instance_valid(collision_shape):
+                return
+        if not (collision_shape.shape is CapsuleShape3D):
+                return
+        _capsule_shape = collision_shape.shape as CapsuleShape3D
+        _standing_capsule_height = maxf(_capsule_shape.height, 0.0)
+        _standing_capsule_radius = maxf(_capsule_shape.radius, 0.0)
+        _standing_snap_length = maxf(snap_len, 0.0)
+        if m_state:
+                _standing_snap_length = maxf(m_state.floor_snap_length, 0.0)
+        var origin := collision_shape.transform.origin
+        _collider_base_offset = origin.y - (_standing_capsule_radius + _standing_capsule_height * 0.5)
+
+func _sync_collider_to_context() -> void:
+        var wants_sneak := _context_state == ContextState.SNEAK
+        _apply_sneak_collider(wants_sneak)
+
+func _apply_sneak_collider(enable: bool) -> void:
+        if _capsule_shape == null:
+                return
+        if enable == _sneak_collider_active:
+                return
+        _sneak_collider_active = enable
+        if enable:
+                _set_capsule_dimensions(sneak_capsule_height, sneak_capsule_radius)
+                _apply_floor_snap_length(sneak_snap_len, false)
+        else:
+                _set_capsule_dimensions(_standing_capsule_height, _standing_capsule_radius)
+                _apply_floor_snap_length(_standing_snap_length, true)
+
+func _set_capsule_dimensions(height: float, radius: float) -> void:
+        var clamped_height := maxf(height, 0.01)
+        var clamped_radius := maxf(radius, 0.01)
+        _capsule_shape.height = clamped_height
+        _capsule_shape.radius = clamped_radius
+        if collision_shape and is_instance_valid(collision_shape):
+                var basis := collision_shape.transform.basis
+                var origin := collision_shape.transform.origin
+                origin.y = _collider_base_offset + clamped_radius + clamped_height * 0.5
+                collision_shape.transform = Transform3D(basis, origin)
+
+func _apply_floor_snap_length(value: float, update_default: bool) -> void:
+	var clamped := maxf(value, 0.0)
+	self.floor_snap_length = clamped
+	if update_default:
+		snap_len = clamped
+		_standing_snap_length = clamped
+	if m_state:
+		m_state.set_floor_snap_length(clamped)
 
 func _get_simclock() -> SimClockAutoload:
 	var tree: SceneTree = get_tree()

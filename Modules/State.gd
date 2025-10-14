@@ -14,6 +14,7 @@ var _owner_body: CharacterBody3D
 var _was_on_floor: bool = false
 var last_on_floor_time_s: float = -1.0
 var _pre_move_velocity_y: float = 0.0
+var _default_floor_snap_length: float = 0.3
 
 func setup(owner_body: CharacterBody3D) -> void:
 	_owner_body = owner_body
@@ -28,10 +29,11 @@ func setup(owner_body: CharacterBody3D) -> void:
 		fall_gravity_scale = max(owner_body.fall_gravity_multiplier, 1.0)
 	if "max_slope_deg" in owner_body:
 		floor_max_angle = deg_to_rad(owner_body.max_slope_deg)
-	if "snap_len" in owner_body:
-		floor_snap_length = owner_body.snap_len
-	_owner_body.floor_max_angle = floor_max_angle
-	_owner_body.floor_snap_length = floor_snap_length
+        if "snap_len" in owner_body:
+                floor_snap_length = owner_body.snap_len
+        _default_floor_snap_length = floor_snap_length
+        _owner_body.floor_max_angle = floor_max_angle
+        _owner_body.floor_snap_length = floor_snap_length
 
 func physics_tick(_dt: float) -> void:
 	pass
@@ -57,8 +59,8 @@ func pre_move_update(dt: float) -> void:
 			_owner_body.velocity.y -= extra_gravity
 
 func post_move_update() -> void:
-	if _owner_body == null or not is_instance_valid(_owner_body):
-		return
+        if _owner_body == null or not is_instance_valid(_owner_body):
+                return
 	var now_s := Time.get_ticks_msec() * 0.001
 	var on_floor := _owner_body.is_on_floor()
 	if on_floor:
@@ -72,4 +74,12 @@ func post_move_update() -> void:
 	_was_on_floor = on_floor
 
 func emit_jumped() -> void:
-	jumped.emit()
+        jumped.emit()
+
+func set_floor_snap_length(value: float) -> void:
+        floor_snap_length = maxf(value, 0.0)
+        if _owner_body != null and is_instance_valid(_owner_body):
+                _owner_body.floor_snap_length = floor_snap_length
+
+func get_default_floor_snap_length() -> float:
+        return _default_floor_snap_length

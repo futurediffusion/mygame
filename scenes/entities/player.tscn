@@ -168,6 +168,10 @@ state_module_path = NodePath("../State")
 
 [node name="AudioCtrl" type="Node" parent="Modules"]
 script = ExtResource("9_wa8qt")
+footstep_volume_walk_db = -5.0
+footstep_volume_sneak_db = -8.0
+footstep_sneak_period_multiplier = 1.9
+auto_detect_sneak_on_play = true
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.00319, 0)
