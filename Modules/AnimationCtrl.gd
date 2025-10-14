@@ -159,7 +159,13 @@ func setup(p: CharacterBody3D) -> void:
 	_connect_state_signals()
 	_initialize_context_state()
 
+## Registra los flags de locomoción usados para calcular blends de animación en el tick siguiente.
+## - `is_sprinting`: indica si el jugador intenta esprintar y se usará para escalar el blend de locomoción.
+## - `_air_time`: tiempo acumulado en el aire, utilizado por transiciones como el estado de caída.
+## Efectos: valida los parámetros y actualiza `_is_sprinting`; el tiempo de aire se evalúa dentro de `physics_tick`.
 func set_frame_anim_inputs(is_sprinting: bool, _air_time: float) -> void:
+	assert(is_finite(_air_time), "AnimationCtrlModule.set_frame_anim_inputs espera un air_time finito.")
+	assert(_air_time >= 0.0, "AnimationCtrlModule.set_frame_anim_inputs espera un air_time no negativo.")
 	_is_sprinting = is_sprinting
 
 func _cache_sneak_animation_lengths() -> void:
@@ -1006,3 +1012,4 @@ func _update_jump_fall_transition_blend() -> void:
 		ratio = clampf(_current_air_blend, 0.0, 1.0)
 	var duration := lerpf(jump_to_fall_blend_time_min, jump_to_fall_blend_time_max, ratio)
 	_set_transition_blend_time(STATE_JUMP, STATE_FALL, duration)
+
