@@ -1,4 +1,4 @@
-[gd_scene load_steps=41 format=3 uid="uid://l4e1k3jkgu8s"]
+[gd_scene load_steps=43 format=3 uid="uid://l4e1k3jkgu8s"]
 
 [ext_resource type="Script" uid="uid://wgpmntr5gt2u" path="res://scenes/entities/player.gd" id="1_08t41"]
 [ext_resource type="PackedScene" uid="uid://cvgcaefwbrg4n" path="res://art/characters/animations1.glb" id="1_ucweq"]
@@ -15,6 +15,8 @@
 [ext_resource type="Script" uid="uid://buk7idb8jq37n" path="res://Modules/AnimationCtrl.gd" id="9_qq92a"]
 [ext_resource type="Script" uid="uid://dnbmy77ibnv2s" path="res://Modules/AudioCtrl.gd" id="9_wa8qt"]
 [ext_resource type="Script" uid="uid://dpr2epmd50orb" path="res://Modules/PerfectJumpCombo.gd" id="9_zq1h7"]
+[ext_resource type="Script" uid="uid://0120b173f37a" path="res://scripts/player/PlayerInputHandler.gd" id="9_yf4ct"]
+[ext_resource type="Script" uid="uid://91beeb5f7cc4" path="res://scripts/player/PlayerContextDetector.gd" id="9_zr6my"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_ucweq"]
 
@@ -138,6 +140,12 @@ script = ExtResource("1_08t41")
 
 [node name="PerfectJumpCombo" type="Node" parent="."]
 script = ExtResource("9_zq1h7")
+
+[node name="PlayerInputHandler" type="Node" parent="."]
+script = ExtResource("9_yf4ct")
+
+[node name="PlayerContextDetector" type="Node" parent="."]
+script = ExtResource("9_zr6my")
 
 [node name="Modules" type="Node" parent="."]
 
