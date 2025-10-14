@@ -494,7 +494,7 @@ func _tween_param(path: String, to_value: float, dur: float, trans := Tween.TRAN
 		return
 	if path.is_empty():
 		return
-	var duration := max(0.0, dur)
+	var duration: float = maxf(dur, 0.0)
 	if duration <= 0.0:
 		anim_tree.set(path, to_value)
 		return
@@ -657,7 +657,7 @@ func _update_sneak_blend(delta: float) -> void:
 	var param := _get_primary_param(_sneak_blend_params, _get_sneak_blend_fallback())
 	if param == StringName():
 		return
-	var current := anim_tree.get(param)
+	var current: Variant = anim_tree.get(param)
 	if current is float:
 		_sneak_blend_value = clampf(float(current), 0.0, 1.0)
 

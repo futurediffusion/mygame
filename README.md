@@ -318,6 +318,7 @@ Cualquier sistema puede publicar mensajes sin conocer la escena de HUD, mantenie
 ---
 
 ## Problemas comunes detectados en R3
+- **Tipado explícito en AnimationCtrl:** las advertencias de Variant se evitan asignando tipo `float` a las duraciones de tweens y `Variant` a resultados de `AnimationTree.get`; Godot 4.4 deja de marcar error en build headless.
 - **Animaciones que no se reproducen:** asegurarse de que el `AnimationPlayer` esté bajo `Model` y que el nombre del clip coincida (ver exportados en `Ally.gd`).
 - **Diferencias de indentación (tabs/espacios):** todos los scripts usan tabs; mezclar espacios produce errores en Godot 4.
 - **`move_and_slide` sin `velocity`:** al pausar módulos (`should_skip_module_updates`) se debe limpiar la velocidad para evitar drift.
