@@ -100,4 +100,8 @@ godot --headless --run res://tests/TestFastFall.tscn
 - **6A.** Los setters `_set_locomotion_blend`, `_set_air_blend` y `_set_sprint_scale` en `AnimationCtrlModule` se factorizaron mediante un helper común.
 - **6B.** `player.gd` se descompuso en componentes dedicados para caché de input y detección de contexto, manteniendo el orden de módulos del `SimClock`.
 
+7. **Fase 7 – Copias defensivas de arquetipos (completada)**
+- `Data.get_archetype_entry()` y `Data.get_archetype_visual()` ahora devuelven duplicados profundos para impedir que los consumidores muten la caché interna.
+- Se añadió la prueba headless `TestDataIsolation.tscn` para asegurar que las respuestas de `Data` permanecen inmutables entre llamadas.
+
 Mantén este README sincronizado cuando agregues sistemas nuevos o cambies el flujo del SimClock. Actualiza el backlog cuando se complete trabajo adicional o se registren hallazgos relevantes.
