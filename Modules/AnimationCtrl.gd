@@ -1004,4 +1004,3 @@ func _update_jump_fall_transition_blend() -> void:
 		ratio = clampf(_current_air_blend, 0.0, 1.0)
 	var duration := lerpf(jump_to_fall_blend_time_min, jump_to_fall_blend_time_max, ratio)
 	_set_transition_blend_time(STATE_JUMP, STATE_FALL, duration)
-

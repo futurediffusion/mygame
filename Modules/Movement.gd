@@ -96,4 +96,3 @@ func _get_combo() -> PerfectJumpCombo:
 			return _combo
 	_combo = player.get_node_or_null("PerfectJumpCombo") as PerfectJumpCombo
 	return _combo
-

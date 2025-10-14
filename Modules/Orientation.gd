@@ -35,4 +35,3 @@ func update_model_rotation(_delta: float, input_dir: Vector3) -> void:
 		return
 	var target_yaw: float = atan2(input_dir.x, input_dir.z) + _model_correction_rad
 	model.rotation.y = lerp_angle(model.rotation.y, target_yaw, face_lerp)
-
