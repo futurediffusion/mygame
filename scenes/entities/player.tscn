@@ -55,8 +55,9 @@ fadein_time = 0.8
 fadeout_time = 0.1
 
 [sub_resource type="AnimationNodeOneShot" id="AnimationNodeOneShot_b4o2o"]
-fadein_time = 0.1
-fadeout_time = 0.1
+mix = 0.5
+fadein_time = 0.35
+fadeout_time = 0.35
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_b4o2o"]
 animation = &"sneak_exit"
