@@ -60,7 +60,7 @@ func play_landing(is_hard: bool) -> void:
 	land_sfx.pitch_scale = 0.95 if is_hard else 1.05
 	land_sfx.play()
 
-func play_footstep(is_sneaking_override := null) -> void:
+func play_footstep(is_sneaking_override: Variant = null) -> void:
 	if not is_instance_valid(footstep_sfx):
 		return
 	if player == null or not is_instance_valid(player):
