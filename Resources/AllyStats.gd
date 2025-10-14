@@ -231,13 +231,13 @@ func gain_base_stat(stat: String, amount := 1.0) -> bool:
 		_push_warning("gain_base_stat(): clave desconocida '%s'" % stat)
 		return false
 	var has_range := STAT_RANGES.has(stat)
-	var range: Vector2 = STAT_RANGES.get(stat, Vector2.ZERO)
+	var stat_range: Vector2 = STAT_RANGES.get(stat, Vector2.ZERO)
 	match stat:
 		"hp_max":
 			var previous := _hp_store
 			var new_value := previous + sanitized
 			if has_range:
-				new_value = clampf(new_value, range.x, range.y)
+				new_value = clampf(new_value, stat_range.x, stat_range.y)
 			if is_equal_approx(previous, new_value):
 				return false
 			_hp_store = new_value
@@ -247,7 +247,7 @@ func gain_base_stat(stat: String, amount := 1.0) -> bool:
 			var stamina_previous := _stamina_store
 			var stamina_value := stamina_previous + sanitized
 			if has_range:
-				stamina_value = clampf(stamina_value, range.x, range.y)
+				stamina_value = clampf(stamina_value, stat_range.x, stat_range.y)
 			if is_equal_approx(stamina_previous, stamina_value):
 				return false
 			_stamina_store = stamina_value
@@ -255,7 +255,7 @@ func gain_base_stat(stat: String, amount := 1.0) -> bool:
 			var vitality_previous := _vitality_store
 			var vitality_value := vitality_previous + sanitized
 			if has_range:
-				vitality_value = clampf(vitality_value, range.x, range.y)
+				vitality_value = clampf(vitality_value, stat_range.x, stat_range.y)
 			if is_equal_approx(vitality_previous, vitality_value):
 				return false
 			_vitality_store = vitality_value
@@ -263,7 +263,7 @@ func gain_base_stat(stat: String, amount := 1.0) -> bool:
 			var strength_previous := _strength_store
 			var strength_value := strength_previous + sanitized
 			if has_range:
-				strength_value = clampf(strength_value, range.x, range.y)
+				strength_value = clampf(strength_value, stat_range.x, stat_range.y)
 			if is_equal_approx(strength_previous, strength_value):
 				return false
 			_strength_store = strength_value
@@ -271,7 +271,7 @@ func gain_base_stat(stat: String, amount := 1.0) -> bool:
 			var athletics_previous := _athletics_store
 			var athletics_value := athletics_previous + sanitized
 			if has_range:
-				athletics_value = clampf(athletics_value, range.x, range.y)
+				athletics_value = clampf(athletics_value, stat_range.x, stat_range.y)
 			if is_equal_approx(athletics_previous, athletics_value):
 				return false
 			_athletics_store = athletics_value
@@ -279,7 +279,7 @@ func gain_base_stat(stat: String, amount := 1.0) -> bool:
 			var swimming_previous := _swimming_store
 			var swimming_value := swimming_previous + sanitized
 			if has_range:
-				swimming_value = clampf(swimming_value, range.x, range.y)
+				swimming_value = clampf(swimming_value, stat_range.x, stat_range.y)
 			if is_equal_approx(swimming_previous, swimming_value):
 				return false
 			_swimming_store = swimming_value
@@ -287,7 +287,7 @@ func gain_base_stat(stat: String, amount := 1.0) -> bool:
 			var speed_previous := _move_speed_store
 			var speed_value := speed_previous + sanitized
 			if has_range:
-				speed_value = clampf(speed_value, range.x, range.y)
+				speed_value = clampf(speed_value, stat_range.x, stat_range.y)
 			if is_equal_approx(speed_previous, speed_value):
 				return false
 			_move_speed_store = speed_value
@@ -295,7 +295,7 @@ func gain_base_stat(stat: String, amount := 1.0) -> bool:
 			var defense_previous := _defense_hint_store
 			var defense_value := defense_previous + sanitized
 			if has_range:
-				defense_value = clampf(defense_value, range.x, range.y)
+				defense_value = clampf(defense_value, stat_range.x, stat_range.y)
 			if is_equal_approx(defense_previous, defense_value):
 				return false
 			_defense_hint_store = defense_value

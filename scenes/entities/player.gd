@@ -148,9 +148,9 @@ func _ready() -> void:
 		m_state.landed.connect(_on_state_landed)
 
 	if anim_tree == null:
-		Logger.warn(LOGGER_CONTEXT, "AnimationTree no encontrado; animaciones desactivadas en este modo.")
+		LoggerService.warn(LOGGER_CONTEXT, "AnimationTree no encontrado; animaciones desactivadas en este modo.")
 	if anim_player == null:
-		Logger.warn(LOGGER_CONTEXT, "AnimationPlayer no encontrado; animaciones desactivadas en este modo.")
+		LoggerService.warn(LOGGER_CONTEXT, "AnimationPlayer no encontrado; animaciones desactivadas en este modo.")
 
 	var missing_audio_nodes: Array[String] = []
 	if jump_sfx == null:
@@ -160,13 +160,13 @@ func _ready() -> void:
 	if footstep_sfx == null:
 		missing_audio_nodes.append("FootstepSFX")
 	if not missing_audio_nodes.is_empty():
-		Logger.warn(LOGGER_CONTEXT, "Nodos de audio faltantes (%s); SFX de jugador desactivados." % ", ".join(missing_audio_nodes))
+		LoggerService.warn(LOGGER_CONTEXT, "Nodos de audio faltantes (%s); SFX de jugador desactivados." % ", ".join(missing_audio_nodes))
 
 	var clock := _get_simclock()
 	if clock:
 		clock.register_module(self, sim_group, priority)
 	else:
-		Logger.warn(LOGGER_CONTEXT, "SimClock autoload no disponible; Player no se registró en el scheduler.")
+		LoggerService.warn(LOGGER_CONTEXT, "SimClock autoload no disponible; Player no se registró en el scheduler.")
 
 	# ⬇️ CONECTA LAS SEÑALES EN EL Area3D, NO EN EL PLAYER
 	if trigger_area and is_instance_valid(trigger_area):
@@ -175,7 +175,7 @@ func _ready() -> void:
 		if not trigger_area.area_exited.is_connected(_on_area_exited):
 			trigger_area.area_exited.connect(_on_area_exited)
 	else:
-		Logger.warn(LOGGER_CONTEXT, "TriggerArea (Area3D) no está presente como hijo del Player; se omiten triggers.")
+		LoggerService.warn(LOGGER_CONTEXT, "TriggerArea (Area3D) no está presente como hijo del Player; se omiten triggers.")
 
 	_update_module_stats()
 
