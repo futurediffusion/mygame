@@ -16,9 +16,9 @@ const FOOTSTEP_PITCH_SNEAK := pow(2.0, -4.0 / 12.0)
 @export_range(0.1, 2.0, 0.01) var footstep_period_slow: float = 0.5
 @export_range(0.1, 2.0, 0.01) var footstep_period_fast: float = 0.28
 @export_range(0.5, 2.0, 0.01) var footstep_period_bias: float = 1.05
-@export_range(1.0, 3.0, 0.01) var footstep_sneak_period_multiplier: float = 1.6
+@export_range(1.0, 3.0, 0.01) var footstep_sneak_period_multiplier: float = 1.85
 @export_range(-80.0, 24.0, 0.1) var footstep_volume_walk_db: float = -5.0
-@export_range(-80.0, 24.0, 0.1) var footstep_volume_sneak_db: float = -12.0
+@export_range(-80.0, 24.0, 0.1) var footstep_volume_sneak_db: float = -8.0
 @export var footstep_pitch_range_walk := Vector2(FOOTSTEP_PITCH_WALK - 0.01, FOOTSTEP_PITCH_WALK + 0.01)
 @export var footstep_pitch_range_sneak := Vector2(FOOTSTEP_PITCH_SNEAK - 0.01, FOOTSTEP_PITCH_SNEAK + 0.01)
 var _footstep_timer := 0.0
@@ -60,19 +60,24 @@ func play_landing(is_hard: bool) -> void:
 	land_sfx.pitch_scale = 0.95 if is_hard else 1.05
 	land_sfx.play()
 
-func play_footstep(is_sneaking: bool = false) -> void:
-	if not is_instance_valid(footstep_sfx):
-		return
-	if player == null or not is_instance_valid(player):
-		return
-	if not player.is_on_floor():
-		return
-	var volume := footstep_volume_sneak_db if is_sneaking else footstep_volume_walk_db
-	footstep_sfx.volume_db = volume
-	var pitch_range := footstep_pitch_range_sneak if is_sneaking else footstep_pitch_range_walk
-	var pitch_min := minf(pitch_range.x, pitch_range.y)
-	var pitch_max := maxf(pitch_range.x, pitch_range.y)
-	footstep_sfx.pitch_scale = randf_range(pitch_min, pitch_max)
+func play_footstep(is_sneaking_override := null) -> void:
+        if not is_instance_valid(footstep_sfx):
+                return
+        if player == null or not is_instance_valid(player):
+                return
+        if not player.is_on_floor():
+                return
+        var is_sneaking := false
+        if is_sneaking_override is bool:
+                is_sneaking = bool(is_sneaking_override)
+        else:
+                is_sneaking = _is_player_sneaking()
+        var volume := footstep_volume_sneak_db if is_sneaking else footstep_volume_walk_db
+        footstep_sfx.volume_db = volume
+        var pitch_range := footstep_pitch_range_sneak if is_sneaking else footstep_pitch_range_walk
+        var pitch_min := minf(pitch_range.x, pitch_range.y)
+        var pitch_max := maxf(pitch_range.x, pitch_range.y)
+        footstep_sfx.pitch_scale = randf_range(pitch_min, pitch_max)
 	footstep_sfx.play()
 
 func _calculate_step_period(speed: float, is_sneaking: bool) -> float:

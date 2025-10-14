@@ -5,6 +5,7 @@ class_name StateModule
 @export var fall_gravity_scale: float = 1.6
 @export var floor_max_angle: float = 0.785398
 @export var floor_snap_length: float = 0.3
+@export_range(0.0, 2.0, 0.05) var floor_snap_length_sneak: float = 0.18
 
 signal jumped
 signal left_ground
@@ -14,6 +15,8 @@ var _owner_body: CharacterBody3D
 var _was_on_floor: bool = false
 var last_on_floor_time_s: float = -1.0
 var _pre_move_velocity_y: float = 0.0
+var _default_floor_snap_length: float = 0.3
+var _current_floor_snap_length: float = 0.3
 
 func setup(owner_body: CharacterBody3D) -> void:
 	_owner_body = owner_body
@@ -28,13 +31,20 @@ func setup(owner_body: CharacterBody3D) -> void:
 		fall_gravity_scale = max(owner_body.fall_gravity_multiplier, 1.0)
 	if "max_slope_deg" in owner_body:
 		floor_max_angle = deg_to_rad(owner_body.max_slope_deg)
-	if "snap_len" in owner_body:
-		floor_snap_length = owner_body.snap_len
-	_owner_body.floor_max_angle = floor_max_angle
-	_owner_body.floor_snap_length = floor_snap_length
+        if "snap_len" in owner_body:
+                floor_snap_length = owner_body.snap_len
+        _default_floor_snap_length = floor_snap_length
+        _current_floor_snap_length = floor_snap_length
+        if floor_snap_length_sneak <= 0.0:
+                floor_snap_length_sneak = maxf(_default_floor_snap_length * 0.6, 0.0)
+        _owner_body.floor_max_angle = floor_max_angle
+        _apply_floor_snap_length(_default_floor_snap_length)
+        if owner_body.has_signal("context_state_changed"):
+                if not owner_body.context_state_changed.is_connected(_on_owner_context_state_changed):
+                        owner_body.context_state_changed.connect(_on_owner_context_state_changed)
 
 func physics_tick(_dt: float) -> void:
-	pass
+        pass
 
 func pre_move_update(dt: float) -> void:
 	if _owner_body == null or not is_instance_valid(_owner_body):
@@ -72,4 +82,30 @@ func post_move_update() -> void:
 	_was_on_floor = on_floor
 
 func emit_jumped() -> void:
-	jumped.emit()
+        jumped.emit()
+
+func configure_floor_snap_lengths(standing_len: float, sneak_len: float) -> void:
+        _default_floor_snap_length = maxf(standing_len, 0.0)
+        floor_snap_length = _default_floor_snap_length
+        floor_snap_length_sneak = maxf(sneak_len, 0.0)
+        _apply_floor_snap_length(_default_floor_snap_length)
+
+func _apply_floor_snap_length(length: float) -> void:
+        _current_floor_snap_length = maxf(length, 0.0)
+        if _owner_body != null and is_instance_valid(_owner_body):
+                _owner_body.floor_snap_length = _current_floor_snap_length
+
+func set_active_floor_snap_length(length: float) -> void:
+        _apply_floor_snap_length(length)
+
+func _on_owner_context_state_changed(new_state: int, _previous_state: int) -> void:
+        var target := _default_floor_snap_length
+        var context_enum: Dictionary = {}
+        if _owner_body != null and is_instance_valid(_owner_body):
+                var ctx_enum: Variant = _owner_body.get("ContextState")
+                if ctx_enum is Dictionary:
+                        context_enum = ctx_enum
+        var sneak_state := context_enum.get("SNEAK", 1)
+        if int(new_state) == int(sneak_state):
+                target = floor_snap_length_sneak
+        _apply_floor_snap_length(target)
