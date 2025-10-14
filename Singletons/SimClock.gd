@@ -88,11 +88,17 @@ func _tick_group(group: StringName, dt: float) -> void:
 	if not _groups.has(group):
 		return
 	var list: Array = _groups[group]
-	for entry in list.duplicate():
+	var index := 0
+	while index < list.size():
+		var entry: Dictionary = list[index]
 		var module: Node = entry.get("mod")
-		if is_instance_valid(module) and module.is_inside_tree():
-			if module.has_method("_on_clock_tick"):
-				module._on_clock_tick(group, dt)
+		if not is_instance_valid(module):
+			list.remove_at(index)
+			continue
+		if module.is_inside_tree() and module.has_method("_on_clock_tick"):
+			module._on_clock_tick(group, dt)
+		index += 1
+	_groups[group] = list
 	_tick_counters[group] = int(_tick_counters.get(group, 0)) + 1
 	_tick_sim_time[group] = float(_tick_sim_time.get(group, 0.0)) + dt
 	ticked.emit(group, dt)
