@@ -36,3 +36,7 @@
 4. Cambios en estadísticas reflejados en JSON + `Data.gd`; sin hardcodear valores en lógica.【F:Singletons/Data.gd†L1-L160】
 5. Pruebas headless relevantes ejecutadas si se tocó física, SimClock o combo.【F:tests/TestFastFall.gd†L1-L70】【F:tests/TestJumpCombo.gd†L1-L80】
 6. Player y aliados siguen registrándose al `SimClock`; valida orden de módulos en `player.gd` tras cualquier refactor.【F:scenes/entities/player.gd†L168-L286】
+
+## Seguimiento de backlog
+- Mantén sincronizada la sección "Backlog documentado R4" del README cuando se completen nuevas fases o se registren hallazgos relevantes; conserva contexto, riesgos y resultados.
+- Si se añaden automatizaciones (p.ej., `SimClock.unregister_module`, logger global), detalla el uso esperado y limitaciones en este AGENTS.md para futuros mantenedores.

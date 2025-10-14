@@ -78,9 +78,26 @@ godot --headless --run res://tests/TestFastFall.tscn
 - Tests críticos corren en headless (`TestFastFall`, `TestJumpCombo`) y dependen del orden de tick del `SimClock`. Manténlos actualizados tras tocar prioridades o física.【F:tests/TestFastFall.gd†L1-L70】【F:tests/TestJumpCombo.gd†L1-L80】
 
 ## Limitaciones y backlog identificados
+### Pendientes globales
 - IA enemiga y sistemas de reputación/economía aún no existen en el código; sólo hay aliados y jugador.【F:scenes/entities/Ally.gd†L1-L360】【F:Modules/Movement.gd†L1-L86】
 - `Save.gd` guarda/carga diccionarios comprimidos, pero no hay orquestación de slots ni serialización completa del mundo.【F:Singletons/Save.gd†L1-L32】
 - No hay integración de AnimationTree compartido entre jugador y aliados; cada uno depende de su propia configuración en escenas y presets externos.【F:Modules/AnimationCtrl.gd†L1-L200】【F:scenes/entities/Ally.gd†L1-L360】
 - Escenas de mundo (`scenes/world/`) son arenas de prueba sin lógica de gameplay avanzada.【F:scenes/world/test_world.tscn†L1-L20】【F:scenes/world/test_clock_benchmark.tscn†L1-L20】
 
-Mantén este README sincronizado cuando agregues sistemas nuevos o cambies el flujo del SimClock.
+### Backlog documentado R4
+1. **Fase 1 – Blindaje del SimClock (completada)**
+- Se depuraron nodos nulos dentro de `SimClock._tick_group()` antes de invocar `_on_clock_tick`, evitando referencias zombi al reciclar escenas.
+- `SimClock.unregister_module(module: ModuleBase)` quedó expuesto y `ModuleBase._unsubscribe_clock()` ahora lo invoca para retirar módulos correctamente.
+2. **Fase 2 – Saneado básico de estadísticas (completada)**
+- `AllyStats.gd.gain_base_stat` valida las claves aceptadas y centraliza los rangos permitidos, eliminando clamps duplicados.
+3. **Fase 3 – Documentación y asserts en APIs públicas (completada)**
+- `MovementModule.set_frame_input`, `OrientationModule.set_frame_input` y `AnimationCtrlModule.set_frame_anim_inputs` quedaron documentadas con parámetros esperados y `assert`s que alertan inputs fuera de rango.
+4. **Fase 4 – Consolidación de constantes de gameplay (completada)**
+- Tiempos de coyote, umbrales de sprint, ventanas de blend y demás constantes usadas por `player.gd`, `Jump.gd` y `AnimationCtrl.gd` se centralizaron en un punto común.
+5. **Fase 5 – Mini-logger unificado (opcional, completada)**
+- Se creó un autoload `Logger` con niveles configurables y se sustituyeron `push_warning/print` dispersos en módulos sensibles (p.ej., `AnimationCtrl`, `player.gd`).
+6. **Fase 6 – Refactors a medio plazo (completada)**
+- **6A.** Los setters `_set_locomotion_blend`, `_set_air_blend` y `_set_sprint_scale` en `AnimationCtrlModule` se factorizaron mediante un helper común.
+- **6B.** `player.gd` se descompuso en componentes dedicados para caché de input y detección de contexto, manteniendo el orden de módulos del `SimClock`.
+
+Mantén este README sincronizado cuando agregues sistemas nuevos o cambies el flujo del SimClock. Actualiza el backlog cuando se complete trabajo adicional o se registren hallazgos relevantes.
