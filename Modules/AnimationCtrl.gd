@@ -20,23 +20,17 @@ const PARAM_SM_PLAYBACK: StringName = &"parameters/StateMachine/playback"
 const PARAM_ROOT_PLAYBACK: StringName = &"parameters/playback"
 const PARAM_JUMP_REQUEST: StringName = &"parameters/LocomotionSpeed/Jump/request"
 const PARAM_JUMP_REQUEST_LEGACY: StringName = &"parameters/Jump/request"
-const PARAM_SNEAK_MOVE: StringName = &"parameters/Sneak/SneakIdleWalk/SneakIdleWalk/blend_position"
-const PARAM_SNEAK_MOVE_LEGACY: StringName = &"parameters/Sneak/SneakIdleWalk/blend_position"
-const PARAM_SNEAK_ENTRY_BLEND: StringName = &"parameters/Sneak/SneakEntry/SneakBlend/blend_amount"
-const PARAM_SNEAK_ENTRY_BLEND_LEGACY: StringName = &"parameters/Sneak/SneakBlend/blend_amount"
-const PARAM_SNEAK_ENTRY_BLEND_LEGACY_ALT: StringName = &"parameters/Sneak/SneakBlend/blend"
-const PARAM_SNEAK_REQUEST: StringName = &"parameters/Sneak/SneakEnter/request"
-const PARAM_SNEAK_REQUEST_LEGACY: StringName = &"parameters/SneakEnter/request"
-const PARAM_SNEAK_REQUEST_LEGACY_ALT: StringName = &"parameters/Sneak/SneakEnter/SneakEnter/request"
-const PARAM_EXIT_BLEND: StringName = &"parameters/LocomotionSpeed/ExitBlend/blend_amount"
-const PARAM_EXIT_BLEND_LEGACY: StringName = &"parameters/LocomotionSpeed/ExitBlend/blend"
+const PARAM_SNEAK_MOVE: StringName = &"parameters/LocomotionSpeed/SneakIdleWalk/blend_position"
+const PARAM_SNEAK_BLEND: StringName = &"parameters/LocomotionSpeed/SneakBlend/blend_amount"
+const PARAM_SNEAK_BLEND_ALT: StringName = &"parameters/LocomotionSpeed/SneakBlend/blend"
+const PARAM_SNEAK_ENTER_REQUEST: StringName = &"parameters/LocomotionSpeed/SneakEnter/request"
+const PARAM_SNEAK_EXIT_REQUEST: StringName = &"parameters/LocomotionSpeed/SneakExit/request"
 
 const STATE_LOCOMOTION: StringName = &"LocomotionSpeed"
 const STATE_LOCOMOTION_LEGACY: StringName = &"Locomotion"
 const STATE_JUMP: StringName = &"Jump"
 const STATE_FALL: StringName = &"FallAnim"
 const STATE_LAND: StringName = &"Land"
-const STATE_SNEAK: StringName = &"Sneak"
 const CLIP_SNEAK_ENTER: StringName = &"sneak_enter"
 const CLIP_SNEAK_EXIT: StringName = &"sneak_exit"
 
@@ -86,28 +80,23 @@ var _locomotion_params: Array[StringName] = []
 var _sprint_scale_params: Array[StringName] = []
 var _air_blend_params: Array[StringName] = []
 var _jump_request_params: Array[StringName] = []
-var _sneak_request_params: Array[StringName] = []
+var _sneak_enter_request_params: Array[StringName] = []
+var _sneak_exit_request_params: Array[StringName] = []
 var _sneak_move_params: Array[StringName] = []
-var _sneak_entry_params: Array[StringName] = []
-var _exit_blend_params: Array[StringName] = []
+var _sneak_blend_params: Array[StringName] = []
 var _transition_indices: Dictionary = {}
 var _jump_fired := false
 var _sneak_active := false
-var _sneak_exit_pending := false
-var _sneak_one_shot_active := false
 var _current_context_state: int = CONTEXT_DEFAULT
-var _sneak_entry_value := 1.0
-var _sneak_entry_target := 1.0
-var _sneak_entry_velocity := 0.0
+var _sneak_blend_value := 0.0
+var _sneak_blend_target := 0.0
+var _sneak_blend_velocity := 0.0
 var _sneak_enter_clip_length := 0.35
-var _exit_blend_value := 0.0
-var _exit_blend_target := 0.0
-var _exit_blend_velocity := 0.0
-var _exit_blend_hold_timer := 0.0
 var _sneak_exit_clip_length := 0.4
-var _exit_blend_last_duration := 0.0
 var _sneak_exit_duration := 0.0
 var _sneak_exit_timer := 0.0
+var _sneak_enter_playing := false
+var _sneak_exit_playing := false
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
@@ -149,8 +138,11 @@ func setup(p: CharacterBody3D) -> void:
 
 	_cache_sneak_animation_lengths()
 	_set_sneak_move_blend(0.0)
-	_set_sneak_entry_target(1.0, 0.0)
-	_reset_exit_blend()
+	_set_sneak_blend_target(0.0, 0.0)
+	_sneak_enter_playing = false
+	_sneak_exit_playing = false
+	_sneak_exit_duration = 0.0
+	_sneak_exit_timer = 0.0
 
 	_connect_state_signals()
 	_initialize_context_state()
@@ -182,15 +174,14 @@ func physics_tick(delta: float) -> void:
 	else:
 		_handle_grounded()
 
-	if _sneak_active:
-		_update_sneak_move_blend()
-		_update_sneak_entry_blend(delta)
-		_set_air_blend(0.0)
-		_set_sprint_scale(1.0)
-	else:
-		_update_sneak_entry_blend(delta)
-		_update_exit_blend(delta)
-		_update_sneak_exit_state(delta)
+if _sneak_active:
+_update_sneak_move_blend()
+_set_air_blend(0.0)
+_set_sprint_scale(1.0)
+else:
+_set_sneak_move_blend(0.0)
+_update_sneak_blend(delta)
+_update_sneak_exit_state(delta)
 
 func _handle_airborne(delta: float) -> void:
 	if not _airborne:
@@ -336,16 +327,6 @@ func _stop_jump_one_shot() -> void:
 		anim_tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
 	_jump_fired = false
 
-func _stop_sneak_one_shot() -> void:
-	if anim_tree == null:
-		_sneak_one_shot_active = false
-		return
-	if not _sneak_one_shot_active:
-		return
-	for param in _sneak_request_params:
-		anim_tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
-	_sneak_one_shot_active = false
-
 func _cache_state_machine() -> void:
 	# Garantiza que tengamos referencia válida al AnimationTree.
 	_state_machine = null
@@ -464,42 +445,12 @@ func _apply_context_state(state: int, force: bool = false) -> void:
 		if _sneak_active:
 			_deactivate_sneak()
 		elif force:
-			_stop_sneak_one_shot()
+			_stop_sneak_enter_one_shot()
+			_stop_sneak_exit_one_shot()
 			_set_sneak_move_blend(0.0)
-			_set_sneak_entry_target(1.0, 0.0)
-			_reset_exit_blend()
-
-func _activate_sneak() -> void:
-	if _sneak_active:
-		return
-	_sneak_active = true
-	_sneak_exit_pending = false
-	var requested := false
-	if anim_tree != null:
-		for param in _sneak_request_params:
-			anim_tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
-			requested = true
-	_sneak_one_shot_active = requested
-	_reset_exit_blend()
-	_set_sneak_move_blend(0.0)
-	_begin_sneak_entry_blend()
-	_travel_to_state(STATE_SNEAK)
-
-func _deactivate_sneak() -> void:
-	_stop_sneak_one_shot()
-	if not _sneak_active:
-		if not _sneak_exit_pending:
-			_reset_exit_blend()
-		_set_sneak_entry_target(1.0, 0.0)
-		_set_sneak_move_blend(0.0)
-		return
-	_sneak_active = false
-	_sneak_exit_pending = true
-	_sneak_exit_duration = _calculate_sneak_exit_duration()
-	_sneak_exit_timer = _sneak_exit_duration
-	_set_sneak_entry_target(1.0, 0.0)
-	_set_sneak_move_blend(0.0)
-	_begin_exit_blend()
+			_set_sneak_blend_target(0.0, 0.0)
+			_sneak_exit_playing = false
+			_sneak_exit_timer = 0.0
 
 func _update_sneak_move_blend() -> void:
 	if not _sneak_active:
@@ -524,174 +475,147 @@ func _set_sneak_move_blend(value: float) -> void:
 	if not applied:
 		if _tree_has_param(PARAM_SNEAK_MOVE):
 			anim_tree.set(PARAM_SNEAK_MOVE, clamped)
-		elif _tree_has_param(PARAM_SNEAK_MOVE_LEGACY):
-			anim_tree.set(PARAM_SNEAK_MOVE_LEGACY, clamped)
 
-func _begin_sneak_entry_blend() -> void:
-	if anim_tree == null:
-		_sneak_entry_value = 1.0
-		_sneak_entry_target = 1.0
-		_sneak_entry_velocity = 0.0
-		return
-	if _sneak_entry_params.is_empty() and not _tree_has_param(PARAM_SNEAK_ENTRY_BLEND):
-		_sneak_entry_value = 1.0
-		_sneak_entry_target = 1.0
-		_sneak_entry_velocity = 0.0
-		return
-	_apply_sneak_entry_blend(0.0)
+func _calculate_sneak_enter_duration() -> float:
 	var duration := maxf(sneak_enter_blend_time, _sneak_enter_clip_length)
 	if duration <= 0.0:
 		duration = sneak_enter_blend_time
-	if duration <= 0.0:
-		_set_sneak_entry_target(1.0, 0.0)
-	else:
-		_set_sneak_entry_target(1.0, duration)
+	return maxf(duration, 0.0)
 
-func _set_sneak_entry_target(target: float, duration: float) -> void:
-	_sneak_entry_target = clampf(target, 0.0, 1.0)
-	if duration <= 0.0:
-		_sneak_entry_velocity = 0.0
-		_apply_sneak_entry_blend(_sneak_entry_target)
+func _set_sneak_blend_target(target: float, duration: float) -> void:
+	_sneak_blend_target = clampf(target, 0.0, 1.0)
+	var clamped_duration := maxf(duration, 0.0)
+	if clamped_duration <= 0.0:
+		_sneak_blend_velocity = 0.0
+		_apply_sneak_blend(_sneak_blend_target)
 		return
-	var distance := absf(_sneak_entry_target - _sneak_entry_value)
+	var distance := absf(_sneak_blend_target - _sneak_blend_value)
 	if distance <= 0.0001:
-		_sneak_entry_velocity = 0.0
-		_apply_sneak_entry_blend(_sneak_entry_target)
+		_sneak_blend_velocity = 0.0
+		_apply_sneak_blend(_sneak_blend_target)
 		return
-	_sneak_entry_velocity = distance / duration
+	_sneak_blend_velocity = distance / clamped_duration
 
-func _apply_sneak_entry_blend(value: float) -> void:
+func _apply_sneak_blend(value: float) -> void:
 	var clamped := clampf(value, 0.0, 1.0)
-	_sneak_entry_value = clamped
-	_set_sneak_entry_blend_param(clamped)
+	_sneak_blend_value = clamped
+	_set_sneak_blend_param(clamped)
 
-func _set_sneak_entry_blend_param(value: float) -> void:
+func _set_sneak_blend_param(value: float) -> void:
 	if anim_tree == null:
 		return
 	var applied := false
-	for param in _sneak_entry_params:
+	for param in _sneak_blend_params:
 		anim_tree.set(param, value)
 		applied = true
 	if not applied:
-		if _tree_has_param(PARAM_SNEAK_ENTRY_BLEND):
-			anim_tree.set(PARAM_SNEAK_ENTRY_BLEND, value)
-		elif _tree_has_param(PARAM_SNEAK_ENTRY_BLEND_LEGACY):
-			anim_tree.set(PARAM_SNEAK_ENTRY_BLEND_LEGACY, value)
-		elif _tree_has_param(PARAM_SNEAK_ENTRY_BLEND_LEGACY_ALT):
-			anim_tree.set(PARAM_SNEAK_ENTRY_BLEND_LEGACY_ALT, value)
+		if _tree_has_param(PARAM_SNEAK_BLEND):
+			anim_tree.set(PARAM_SNEAK_BLEND, value)
+		elif _tree_has_param(PARAM_SNEAK_BLEND_ALT):
+			anim_tree.set(PARAM_SNEAK_BLEND_ALT, value)
 
-func _update_sneak_entry_blend(delta: float) -> void:
-	if is_equal_approx(_sneak_entry_value, _sneak_entry_target):
-		_sneak_entry_value = _sneak_entry_target
-		_sneak_entry_velocity = 0.0
+func _update_sneak_blend(delta: float) -> void:
+	if is_equal_approx(_sneak_blend_value, _sneak_blend_target):
+		_sneak_blend_value = _sneak_blend_target
+		_sneak_blend_velocity = 0.0
 		return
-	if _sneak_entry_velocity <= 0.0:
-		_apply_sneak_entry_blend(_sneak_entry_target)
-		_sneak_entry_velocity = 0.0
+	if _sneak_blend_velocity <= 0.0:
+		_apply_sneak_blend(_sneak_blend_target)
+		_sneak_blend_velocity = 0.0
 		return
-	var step := _sneak_entry_velocity * delta
-	var next_value := move_toward(_sneak_entry_value, _sneak_entry_target, step)
-	_apply_sneak_entry_blend(next_value)
-	if is_equal_approx(_sneak_entry_value, _sneak_entry_target):
-		_sneak_entry_velocity = 0.0
+	var step := _sneak_blend_velocity * delta
+	var next_value := move_toward(_sneak_blend_value, _sneak_blend_target, step)
+	_apply_sneak_blend(next_value)
+	if is_equal_approx(_sneak_blend_value, _sneak_blend_target):
+		_sneak_blend_velocity = 0.0
 
-func _begin_exit_blend() -> void:
-	var duration := maxf(sneak_exit_blend_in_time, 0.0)
-	if duration <= 0.0:
-		_set_exit_blend_target(1.0, 0.0)
+func _activate_sneak() -> void:
+	if _sneak_active:
+		_set_sneak_blend_target(1.0, 0.0)
+		return
+	_sneak_active = true
+	_sneak_exit_playing = false
+	_sneak_exit_timer = 0.0
+	_stop_sneak_exit_one_shot()
+	_request_sneak_enter_one_shot()
+	_set_sneak_blend_target(1.0, _calculate_sneak_enter_duration())
+	_set_sneak_move_blend(0.0)
+
+func _deactivate_sneak() -> void:
+	_stop_sneak_enter_one_shot()
+	if not _sneak_active:
+		if not _sneak_exit_playing:
+			_set_sneak_blend_target(0.0, 0.0)
+		_set_sneak_move_blend(0.0)
+		return
+	_sneak_active = false
+	_request_sneak_exit_one_shot()
+	_set_sneak_move_blend(0.0)
+	_set_sneak_blend_target(0.0, maxf(sneak_exit_blend_out_time, 0.0))
+
+func _request_sneak_enter_one_shot() -> void:
+	if anim_tree == null:
+		_sneak_enter_playing = false
+		return
+	var fired := false
+	for param in _sneak_enter_request_params:
+		anim_tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+		fired = true
+	_sneak_enter_playing = fired
+
+func _stop_sneak_enter_one_shot() -> void:
+	if anim_tree == null:
+		_sneak_enter_playing = false
+		return
+	if not _sneak_enter_playing:
+		return
+	for param in _sneak_enter_request_params:
+		anim_tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
+	_sneak_enter_playing = false
+
+func _request_sneak_exit_one_shot() -> void:
+	if anim_tree == null:
+		_sneak_exit_playing = false
+		return
+	var fired := false
+	for param in _sneak_exit_request_params:
+		anim_tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+		fired = true
+	if fired:
+		_sneak_exit_playing = true
+		_sneak_exit_duration = _calculate_sneak_exit_duration()
+		_sneak_exit_timer = _sneak_exit_duration
 	else:
-		_set_exit_blend_target(1.0, duration)
-	_exit_blend_hold_timer = 0.0
+		_sneak_exit_playing = false
+		_sneak_exit_duration = 0.0
+		_sneak_exit_timer = 0.0
+
+func _stop_sneak_exit_one_shot() -> void:
+	if anim_tree == null:
+		_sneak_exit_playing = false
+		_sneak_exit_duration = 0.0
+		_sneak_exit_timer = 0.0
+		return
+	if not _sneak_exit_playing:
+		return
+	for param in _sneak_exit_request_params:
+		anim_tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
+	_sneak_exit_playing = false
+	_sneak_exit_duration = 0.0
+	_sneak_exit_timer = 0.0
 
 func _calculate_sneak_exit_duration() -> float:
 	var duration := maxf(_sneak_exit_clip_length, sneak_exit_blend_in_time)
 	return maxf(duration, 0.0)
 
-func _reset_exit_blend() -> void:
-	_sneak_exit_pending = false
-	_sneak_exit_duration = 0.0
-	_sneak_exit_timer = 0.0
-	_exit_blend_hold_timer = 0.0
-	_set_exit_blend_target(0.0, 0.0)
-
-func _set_exit_blend_target(target: float, duration: float) -> void:
-	_exit_blend_target = clampf(target, 0.0, 1.0)
-	var clamped_duration := maxf(duration, 0.0)
-	if clamped_duration <= 0.0:
-		_exit_blend_velocity = 0.0
-		_exit_blend_last_duration = 0.0
-		_apply_exit_blend(_exit_blend_target)
-		return
-	var distance := absf(_exit_blend_target - _exit_blend_value)
-	if distance <= 0.0001:
-		_exit_blend_velocity = 0.0
-		_exit_blend_last_duration = 0.0
-		_apply_exit_blend(_exit_blend_target)
-		return
-	_exit_blend_velocity = distance / clamped_duration
-	_exit_blend_last_duration = clamped_duration
-
-func _apply_exit_blend(value: float) -> void:
-	var clamped := clampf(value, 0.0, 1.0)
-	_exit_blend_value = clamped
-	_set_exit_blend_param(clamped)
-
-func _set_exit_blend_param(value: float) -> void:
-	if anim_tree == null:
-		return
-	var applied := false
-	for param in _exit_blend_params:
-		anim_tree.set(param, value)
-		applied = true
-	if not applied:
-		if _tree_has_param(PARAM_EXIT_BLEND):
-			anim_tree.set(PARAM_EXIT_BLEND, value)
-		elif _tree_has_param(PARAM_EXIT_BLEND_LEGACY):
-			anim_tree.set(PARAM_EXIT_BLEND_LEGACY, value)
-
-func _schedule_exit_blend_reset() -> void:
-	var duration := maxf(sneak_exit_blend_out_time, 0.0)
-	if duration <= 0.0:
-		_set_exit_blend_target(0.0, 0.0)
-	else:
-		_set_exit_blend_target(0.0, duration)
-	_exit_blend_hold_timer = 0.0
-
-func _update_exit_blend(delta: float) -> void:
-	if not is_equal_approx(_exit_blend_value, _exit_blend_target):
-		if _exit_blend_velocity <= 0.0:
-			_apply_exit_blend(_exit_blend_target)
-		else:
-			var step := _exit_blend_velocity * delta
-			var next_value := move_toward(_exit_blend_value, _exit_blend_target, step)
-			_apply_exit_blend(next_value)
-		if is_equal_approx(_exit_blend_value, _exit_blend_target):
-			_exit_blend_value = _exit_blend_target
-			if _exit_blend_target >= 1.0:
-				var remaining := maxf(_sneak_exit_clip_length - _exit_blend_last_duration, 0.0)
-				_exit_blend_hold_timer = remaining
-			elif _exit_blend_target < 1.0:
-				_exit_blend_hold_timer = 0.0
-			_exit_blend_velocity = 0.0
-		return
-	if _exit_blend_target >= 1.0 and _exit_blend_hold_timer > 0.0:
-		_exit_blend_hold_timer = maxf(_exit_blend_hold_timer - delta, 0.0)
-
 func _update_sneak_exit_state(delta: float) -> void:
-	if not _sneak_exit_pending:
+	if not _sneak_exit_playing:
 		return
 	if _sneak_exit_timer > 0.0:
 		_sneak_exit_timer = maxf(_sneak_exit_timer - delta, 0.0)
-	if _sneak_exit_timer <= 0.0 and _exit_blend_hold_timer <= 0.0:
-		_complete_sneak_exit()
-
-func _complete_sneak_exit() -> void:
-	if not _sneak_exit_pending:
-		return
-	_sneak_exit_pending = false
-	_sneak_exit_timer = 0.0
-	_travel_to_state(_state_locomotion)
-	_schedule_exit_blend_reset()
+	if _sneak_exit_timer <= 0.0:
+		_sneak_exit_playing = false
+		_sneak_exit_duration = 0.0
 
 func _on_jumped() -> void:
 	_has_jumped = true
@@ -767,10 +691,10 @@ func _refresh_parameter_cache() -> void:
 	_sprint_scale_params.clear()
 	_air_blend_params.clear()
 	_jump_request_params.clear()
-	_sneak_request_params.clear()
+	_sneak_enter_request_params.clear()
+	_sneak_exit_request_params.clear()
 	_sneak_move_params.clear()
-	_sneak_entry_params.clear()
-	_exit_blend_params.clear()
+	_sneak_blend_params.clear()
 	if anim_tree == null:
 		return
 	var loc_candidates: Array[StringName] = [PARAM_LOC, PARAM_LOC_LEGACY]
@@ -789,22 +713,22 @@ func _refresh_parameter_cache() -> void:
 	for param in jump_candidates:
 		if _tree_has_param(param) and not _jump_request_params.has(param):
 			_jump_request_params.append(param)
-	var sneak_request_candidates: Array[StringName] = [PARAM_SNEAK_REQUEST, PARAM_SNEAK_REQUEST_LEGACY, PARAM_SNEAK_REQUEST_LEGACY_ALT]
-	for param in sneak_request_candidates:
-		if _tree_has_param(param) and not _sneak_request_params.has(param):
-			_sneak_request_params.append(param)
-	var sneak_blends: Array[StringName] = [PARAM_SNEAK_MOVE, PARAM_SNEAK_MOVE_LEGACY]
-	for param in sneak_blends:
+	var sneak_enter_candidates: Array[StringName] = [PARAM_SNEAK_ENTER_REQUEST]
+	for param in sneak_enter_candidates:
+		if _tree_has_param(param) and not _sneak_enter_request_params.has(param):
+			_sneak_enter_request_params.append(param)
+	var sneak_exit_candidates: Array[StringName] = [PARAM_SNEAK_EXIT_REQUEST]
+	for param in sneak_exit_candidates:
+		if _tree_has_param(param) and not _sneak_exit_request_params.has(param):
+			_sneak_exit_request_params.append(param)
+	var sneak_move_candidates: Array[StringName] = [PARAM_SNEAK_MOVE]
+	for param in sneak_move_candidates:
 		if _tree_has_param(param) and not _sneak_move_params.has(param):
 			_sneak_move_params.append(param)
-	var sneak_entry_candidates: Array[StringName] = [PARAM_SNEAK_ENTRY_BLEND, PARAM_SNEAK_ENTRY_BLEND_LEGACY, PARAM_SNEAK_ENTRY_BLEND_LEGACY_ALT]
-	for param in sneak_entry_candidates:
-		if _tree_has_param(param) and not _sneak_entry_params.has(param):
-			_sneak_entry_params.append(param)
-	var exit_candidates: Array[StringName] = [PARAM_EXIT_BLEND, PARAM_EXIT_BLEND_LEGACY]
-	for param in exit_candidates:
-		if _tree_has_param(param) and not _exit_blend_params.has(param):
-			_exit_blend_params.append(param)
+	var sneak_blend_candidates: Array[StringName] = [PARAM_SNEAK_BLEND, PARAM_SNEAK_BLEND_ALT]
+	for param in sneak_blend_candidates:
+		if _tree_has_param(param) and not _sneak_blend_params.has(param):
+			_sneak_blend_params.append(param)
 
 func _resolve_state_name(preferred: StringName, fallback: StringName) -> StringName:
 	if _state_machine_graph == null:
