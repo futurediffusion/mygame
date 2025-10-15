@@ -1,4 +1,4 @@
-[gd_scene load_steps=47 format=3 uid="uid://l4e1k3jkgu8s"]
+[gd_scene load_steps=48 format=3 uid="uid://l4e1k3jkgu8s"]
 
 [ext_resource type="Script" uid="uid://wgpmntr5gt2u" path="res://scenes/entities/player.gd" id="1_08t41"]
 [ext_resource type="PackedScene" uid="uid://cvgcaefwbrg4n" path="res://art/characters/animations1.glb" id="1_ucweq"]
@@ -26,9 +26,14 @@
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_yr3on"]
 animation = &"front jump"
 
+[sub_resource type="Curve" id="Curve_b4o2o"]
+_data = [Vector2(0.0169491, 0.236879), 0.0, 0.0, 0, 0, Vector2(0.555932, 0.478289), 2.23191, 2.23191, 0, 0, Vector2(1, 0.802486), 0.0, 0.0, 0, 0]
+point_count = 3
+
 [sub_resource type="AnimationNodeOneShot" id="AnimationNodeOneShot_yr3on"]
 fadein_time = 0.1
 fadeout_time = 0.5
+fadeout_curve = SubResource("Curve_b4o2o")
 
 [sub_resource type="AnimationNodeTimeScale" id="AnimationNodeTimeScale_dodge"]
 
