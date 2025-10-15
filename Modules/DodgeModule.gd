@@ -130,11 +130,17 @@ func _set_invulnerability(enabled: bool) -> void:
 		return
 	if "invulnerable" in player:
 		player.invulnerable = enabled
-	else:
-		player.set("invulnerable", enabled)
+		return
+	if player.has_method("set_invulnerable"):
+		player.call("set_invulnerable", enabled)
+		return
+	player.set("invulnerable", enabled)
 
 func _cache_floor_snap() -> void:
 	if not preserve_floor_snap:
+		return
+	if player == null or not is_instance_valid(player):
+		_has_saved_floor_snap = false
 		return
 	_saved_floor_snap_len = player.floor_snap_length
 	_has_saved_floor_snap = true
@@ -143,6 +149,9 @@ func _restore_floor_snap() -> void:
 	if not preserve_floor_snap:
 		return
 	if not _has_saved_floor_snap:
+		return
+	if player == null or not is_instance_valid(player):
+		_has_saved_floor_snap = false
 		return
 	player.floor_snap_length = _saved_floor_snap_len
 	_has_saved_floor_snap = false
