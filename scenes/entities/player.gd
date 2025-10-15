@@ -59,7 +59,7 @@ const LOGGER_CONTEXT := "Player"
 @export_range(0.0, 89.0, 1.0) var max_slope_deg: float = 46.0
 @export_range(0.0, 2.0, 0.05) var snap_len: float = 0.3
 @export_group("Sneak Collider")
-@export_range(0.1, 2.0, 0.01) var sneak_capsule_height: float = 0.9
+@export_range(0.1, 2.0, 0.01) var sneak_capsule_height: float = 1.65
 @export_range(0.1, 1.5, 0.01) var sneak_capsule_radius: float = 0.45
 @export_range(0.0, 2.0, 0.01) var sneak_snap_len: float = 0.12
 
