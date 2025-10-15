@@ -111,7 +111,7 @@ func _update_slope_speed(on_floor: bool, delta: float) -> void:
 			floor_normal = floor_normal.normalized()
 			var slope_angle := acos(clampf(floor_normal.dot(Vector3.UP), -1.0, 1.0))
 			var slope_deg := rad_to_deg(slope_angle)
-			var effective_deg := min(slope_deg, _max_slope_deg)
+			var effective_deg: float = minf(slope_deg, _max_slope_deg)
 			if effective_deg > 0.01 and _move_dir.length_squared() > 0.0:
 				var downhill := Vector3.DOWN.slide(floor_normal)
 				if downhill.length_squared() > 0.0001:
