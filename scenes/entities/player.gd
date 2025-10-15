@@ -278,6 +278,7 @@ func physics_tick(delta: float) -> void:
 	else:
 		velocity = Vector3.ZERO
 	move_and_slide()
+	_maintain_forced_sneak_state()
 	if m_state:
 		m_state.post_move_update()
 	if m_audio:
@@ -326,6 +327,15 @@ func set_roll_collider_override(active: bool) -> void:
 		_set_forced_sneak(true)
 		return
 	_sync_collider_to_context()
+
+func _maintain_forced_sneak_state() -> void:
+	if not _forced_sneak:
+		return
+	if _roll_collider_override:
+		return
+	if not can_exit_sneak():
+		return
+	_set_forced_sneak(false)
 
 # ============================================================================
 # INPUT PROCESSING
