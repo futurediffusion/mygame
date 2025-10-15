@@ -125,7 +125,7 @@ func _get_player_forward_dir() -> Vector3:
 			var model_node := model_variant as Node3D
 			if model_node != null and is_instance_valid(model_node):
 				basis = model_node.global_transform.basis
-	var forward := -basis.z
+	var forward := basis.z
 	forward.y = 0.0
 	if forward.length_squared() < 0.0001:
 		forward = Vector3.FORWARD
