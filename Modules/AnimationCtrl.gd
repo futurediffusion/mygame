@@ -194,19 +194,19 @@ func is_dodging() -> bool:
 	if anim_tree == null:
 		return false
 	for param in _dodge_active_params:
-		var value := anim_tree.get(param)
+		var value: Variant = anim_tree.get(param)
 		if value is bool:
 			if value:
 				return true
 		elif value == true:
 			return true
 	if _tree_has_param(PARAM_DODGE_ACTIVE):
-		var active_variant := anim_tree.get(PARAM_DODGE_ACTIVE)
+		var active_variant: Variant = anim_tree.get(PARAM_DODGE_ACTIVE)
 		if active_variant is bool:
 			return active_variant
 		return active_variant == true
 	if _tree_has_param(PARAM_DODGE_ACTIVE_LEGACY):
-		var legacy_variant := anim_tree.get(PARAM_DODGE_ACTIVE_LEGACY)
+		var legacy_variant: Variant = anim_tree.get(PARAM_DODGE_ACTIVE_LEGACY)
 		if legacy_variant is bool:
 			return legacy_variant
 		return legacy_variant == true
