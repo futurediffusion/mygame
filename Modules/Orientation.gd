@@ -70,9 +70,9 @@ func update_model_rotation(_delta: float, input_dir: Vector3) -> void:
 	basis.z = corrected_forward
 	basis = basis.orthonormalized()
 	var target_quat := basis.get_rotation_quaternion()
-	var current_quat: Quaternion = model.rotation_quaternion
+	var current_quat: Quaternion = model.quaternion
 	var weight: float = clampf(face_lerp, 0.0, 1.0)
-	model.rotation_quaternion = current_quat.slerp(target_quat, weight)
+	model.quaternion = current_quat.slerp(target_quat, weight)
 
 func _determine_target_up() -> Vector3:
 	var desired_up := _last_surface_normal
