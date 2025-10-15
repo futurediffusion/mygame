@@ -60,10 +60,10 @@ func update_model_rotation(_delta: float, input_dir: Vector3) -> void:
 				fallback = desired_up.cross(Vector3.FORWARD)
 			forward = fallback.normalized()
 	forward = forward.normalized()
-	var right := forward.cross(desired_up).normalized()
+	var right := desired_up.cross(forward).normalized()
 	if right.length_squared() < 0.0001:
 		right = desired_up.cross(Vector3.FORWARD).normalized()
-	var corrected_forward := desired_up.cross(right).normalized()
+	var corrected_forward := right.cross(desired_up).normalized()
 	var basis := Basis()
 	basis.x = right
 	basis.y = desired_up
