@@ -22,6 +22,8 @@ const PARAM_SM_PLAYBACK: StringName = &"parameters/StateMachine/playback"
 const PARAM_ROOT_PLAYBACK: StringName = &"parameters/playback"
 const PARAM_JUMP_REQUEST: StringName = &"parameters/LocomotionSpeed/Jump/request"
 const PARAM_JUMP_REQUEST_LEGACY: StringName = &"parameters/Jump/request"
+const PARAM_DODGE_REQUEST: StringName = &"parameters/LocomotionSpeed/Dodge/request"
+const PARAM_DODGE_REQUEST_LEGACY: StringName = &"parameters/Dodge/request"
 const PARAM_SNEAK_MOVE: StringName = &"parameters/LocomotionSpeed/SneakIdleWalk/blend_position"
 const PARAM_SNEAK_BLEND: StringName = &"parameters/LocomotionSpeed/SneakBlend/blend_amount"
 const PARAM_SNEAK_BLEND_ALT: StringName = &"parameters/LocomotionSpeed/SneakBlend/blend"
@@ -31,6 +33,8 @@ const PARAM_SNEAK_ENTER_FADE_IN: StringName = &"parameters/LocomotionSpeed/Sneak
 const PARAM_SNEAK_ENTER_FADE_OUT: StringName = &"parameters/LocomotionSpeed/SneakEnter/fadeout_time"
 const PARAM_SNEAK_ENTER_MIX: StringName = &"parameters/LocomotionSpeed/SneakEnter/mix"
 const PARAM_SNEAK_ENTER_MIX_MODE: StringName = &"parameters/LocomotionSpeed/SneakEnter/mix_mode"
+const PARAM_DODGE_ACTIVE: StringName = &"parameters/LocomotionSpeed/Dodge/active"
+const PARAM_DODGE_ACTIVE_LEGACY: StringName = &"parameters/Dodge/active"
 
 const STATE_LOCOMOTION: StringName = &"LocomotionSpeed"
 const STATE_LOCOMOTION_LEGACY: StringName = &"Locomotion"
@@ -87,6 +91,8 @@ var _locomotion_params: Array[StringName] = []
 var _sprint_scale_params: Array[StringName] = []
 var _air_blend_params: Array[StringName] = []
 var _jump_request_params: Array[StringName] = []
+var _dodge_request_params: Array[StringName] = []
+var _dodge_active_params: Array[StringName] = []
 var _sneak_enter_request_params: Array[StringName] = []
 var _sneak_exit_request_params: Array[StringName] = []
 var _sneak_move_params: Array[StringName] = []
@@ -169,6 +175,42 @@ func set_frame_anim_inputs(is_sprinting: bool, _air_time: float) -> void:
 	assert(is_finite(_air_time), "AnimationCtrlModule.set_frame_anim_inputs espera un air_time finito.")
 	assert(_air_time >= 0.0, "AnimationCtrlModule.set_frame_anim_inputs espera un air_time no negativo.")
 	_is_sprinting = is_sprinting
+
+func play_dodge() -> void:
+	if anim_tree == null:
+		return
+	var fired := false
+	for param in _dodge_request_params:
+		anim_tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+		fired = true
+	if fired:
+		return
+	if _tree_has_param(PARAM_DODGE_REQUEST):
+		anim_tree.set(PARAM_DODGE_REQUEST, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+	elif _tree_has_param(PARAM_DODGE_REQUEST_LEGACY):
+		anim_tree.set(PARAM_DODGE_REQUEST_LEGACY, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+
+func is_dodging() -> bool:
+	if anim_tree == null:
+		return false
+	for param in _dodge_active_params:
+		var value := anim_tree.get(param)
+		if value is bool:
+			if value:
+				return true
+		elif value == true:
+			return true
+	if _tree_has_param(PARAM_DODGE_ACTIVE):
+		var active_variant := anim_tree.get(PARAM_DODGE_ACTIVE)
+		if active_variant is bool:
+			return active_variant
+		return active_variant == true
+	if _tree_has_param(PARAM_DODGE_ACTIVE_LEGACY):
+		var legacy_variant := anim_tree.get(PARAM_DODGE_ACTIVE_LEGACY)
+		if legacy_variant is bool:
+			return legacy_variant
+		return legacy_variant == true
+	return false
 
 func _cache_sneak_animation_lengths() -> void:
 	if anim_player == null or not is_instance_valid(anim_player):
@@ -828,6 +870,8 @@ func _refresh_parameter_cache() -> void:
 	_sprint_scale_params.clear()
 	_air_blend_params.clear()
 	_jump_request_params.clear()
+	_dodge_request_params.clear()
+	_dodge_active_params.clear()
 	_sneak_enter_request_params.clear()
 	_sneak_exit_request_params.clear()
 	_sneak_move_params.clear()
@@ -854,6 +898,14 @@ func _refresh_parameter_cache() -> void:
 	for param in jump_candidates:
 		if _tree_has_param(param) and not _jump_request_params.has(param):
 			_jump_request_params.append(param)
+	var dodge_request_candidates: Array[StringName] = [PARAM_DODGE_REQUEST, PARAM_DODGE_REQUEST_LEGACY]
+	for param in dodge_request_candidates:
+		if _tree_has_param(param) and not _dodge_request_params.has(param):
+			_dodge_request_params.append(param)
+	var dodge_active_candidates: Array[StringName] = [PARAM_DODGE_ACTIVE, PARAM_DODGE_ACTIVE_LEGACY]
+	for param in dodge_active_candidates:
+		if _tree_has_param(param) and not _dodge_active_params.has(param):
+			_dodge_active_params.append(param)
 	var sneak_enter_candidates: Array[StringName] = [PARAM_SNEAK_ENTER_REQUEST]
 	for param in sneak_enter_candidates:
 		if _tree_has_param(param) and not _sneak_enter_request_params.has(param):

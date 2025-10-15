@@ -1,4 +1,4 @@
-[gd_scene load_steps=45 format=3 uid="uid://l4e1k3jkgu8s"]
+[gd_scene load_steps=46 format=3 uid="uid://l4e1k3jkgu8s"]
 
 [ext_resource type="Script" uid="uid://wgpmntr5gt2u" path="res://scenes/entities/player.gd" id="1_08t41"]
 [ext_resource type="PackedScene" uid="uid://cvgcaefwbrg4n" path="res://art/characters/animations1.glb" id="1_ucweq"]
@@ -13,6 +13,7 @@
 [ext_resource type="Script" uid="uid://defc63lccppnx" path="res://Modules/State.gd" id="9_hd4nk"]
 [ext_resource type="Script" uid="uid://d7166l6er61r" path="res://Modules/Orientation.gd" id="9_n5d2n"]
 [ext_resource type="Script" uid="uid://buk7idb8jq37n" path="res://Modules/AnimationCtrl.gd" id="9_qq92a"]
+[ext_resource type="Script" uid="uid://dodge4n2u1r" path="res://Modules/DodgeModule.gd" id="9_vt0x1"]
 [ext_resource type="Script" uid="uid://dnbmy77ibnv2s" path="res://Modules/AudioCtrl.gd" id="9_wa8qt"]
 [ext_resource type="Script" uid="uid://0120b173f37a" path="res://scripts/player/PlayerInputHandler.gd" id="9_yf4ct"]
 [ext_resource type="Script" uid="uid://dpr2epmd50orb" path="res://Modules/PerfectJumpCombo.gd" id="9_zq1h7"]
@@ -176,6 +177,9 @@ script = ExtResource("9_n5d2n")
 script = ExtResource("9_qq92a")
 animation_tree_path = NodePath("../../Pivot/Model/StateMachine")
 state_module_path = NodePath("../State")
+
+[node name="Dodge" type="Node" parent="Modules"]
+script = ExtResource("9_vt0x1")
 
 [node name="AudioCtrl" type="Node" parent="Modules"]
 script = ExtResource("9_wa8qt")

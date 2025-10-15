@@ -11,7 +11,8 @@ const _ACTION_BINDINGS := {
 	# Movimiento avanzado
 	&"sprint": [Key.KEY_SHIFT],
 	&"jump": [Key.KEY_SPACE],
-	&"crouch": [Key.KEY_C],  # agacharse / sigilo
+	&"crouch": [Key.KEY_C],	# agacharse / sigilo
+	&"roll": [Key.KEY_ALT],
 
 	# Interacción / contexto
 	&"interact": [Key.KEY_E],  # hablar/abrir/recoger/usar NPCs y objetos

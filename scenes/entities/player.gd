@@ -107,6 +107,7 @@ const LOGGER_CONTEXT := "Player"
 @onready var m_orientation: OrientationModule = $Modules/Orientation
 @onready var m_anim: AnimationCtrlModule = $Modules/AnimationCtrl
 @onready var m_audio: AudioCtrlModule = $Modules/AudioCtrl
+@onready var m_dodge: DodgeModule = $Modules/Dodge
 
 var input_buffer: InputBuffer
 
@@ -133,6 +134,7 @@ var _standing_capsule_radius := 0.0
 var _standing_snap_length := 0.3
 var _collider_base_offset := 0.0
 var _sneak_collider_active := false
+var invulnerable := false
 
 # ============================================================================
 # INITIALIZATION
@@ -154,6 +156,8 @@ func _ready() -> void:
 		m_jump.setup(self, m_state, input_buffer)
 	for m in [m_movement, m_orientation, m_anim, m_audio]:
 		m.setup(self)
+	if m_dodge:
+		m_dodge.setup(self, m_anim, m_audio)
 	_disable_module_clock_subscription()
 
 	if m_state and not m_state.landed.is_connected(_on_state_landed):
@@ -263,6 +267,8 @@ func physics_tick(delta: float) -> void:
 			m_jump.physics_tick(delta)
 		if m_movement:
 			m_movement.physics_tick(delta)
+		if m_dodge:
+			m_dodge.physics_tick(delta)
 		if m_orientation:
 			m_orientation.physics_tick(delta)
 		if not _block_animation_updates and m_anim:
@@ -349,7 +355,7 @@ func _initialize_input_components() -> void:
 	_sync_collider_to_context()
 
 func _disable_module_clock_subscription() -> void:
-	for module in [m_state, m_jump, m_movement, m_orientation, m_anim, m_audio]:
+	for module in [m_state, m_jump, m_movement, m_orientation, m_anim, m_audio, m_dodge]:
 		if module == null or not is_instance_valid(module):
 			continue
 		if module.has_method("set_clock_subscription"):
