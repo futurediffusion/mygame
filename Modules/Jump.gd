@@ -24,6 +24,8 @@ var _last_on_floor_time_s: float = -1.0
 var _last_jump_time_s: float = -1.0
 var _air_time: float = 0.0
 var _last_jump_velocity: float = 0.0
+var _floor_snap_to_restore: float = 0.0
+var _restore_snap_pending: bool = false
 
 func _ready() -> void:
 	pass
@@ -49,11 +51,13 @@ func setup(owner_body: CharacterBody3D, state: StateModule = null, input: InputB
 	elif _state == null and owner_body.has_node("State"):
 		_state = owner_body.get_node("State") as StateModule
 	_combo = _get_combo()
+	_cache_floor_snap_target()
 
 func physics_tick(dt: float) -> void:
 	if _owner_body == null or not is_instance_valid(_owner_body):
 		return
 	if _owner_body.has_method("should_skip_module_updates") and _owner_body.should_skip_module_updates():
+		_restore_floor_snap_if_needed()
 		_jumping = false
 		_hold_timer_s = 0.0
 		return
@@ -62,6 +66,7 @@ func physics_tick(dt: float) -> void:
 	if on_floor:
 		_last_on_floor_time_s = now_s
 		_air_time = 0.0
+		_restore_floor_snap_if_needed()
 	else:
 		_air_time += dt
 	var last_floor_time := _get_last_on_floor_time()
@@ -117,7 +122,11 @@ func _do_jump(now_s: float) -> void:
 	if combo != null:
 		final_speed *= combo.jump_multiplier()
 		was_perfect = combo.is_in_perfect_window()
+	_cache_floor_snap_target()
 	_owner_body.floor_snap_length = 0.0
+	if "snap_len" in _owner_body:
+		_owner_body.snap_len = 0.0
+	_restore_snap_pending = true
 	_owner_body.velocity.y = max(_owner_body.velocity.y, final_speed)
 	_jumping = true
 	_hold_timer_s = 0.0
@@ -167,3 +176,31 @@ func _play_jump_audio() -> void:
 		player.m_audio.play_jump()
 	elif "jump_sfx" in player and is_instance_valid(player.jump_sfx):
 		player.jump_sfx.play()
+
+func _cache_floor_snap_target() -> void:
+	if _owner_body == null or not is_instance_valid(_owner_body):
+		_floor_snap_to_restore = 0.0
+		return
+	if _state != null and is_instance_valid(_state):
+		_floor_snap_to_restore = maxf(_state.floor_snap_length, 0.0)
+	elif "snap_len" in _owner_body:
+		_floor_snap_to_restore = maxf(float(_owner_body.snap_len), 0.0)
+	else:
+		_floor_snap_to_restore = maxf(_owner_body.floor_snap_length, 0.0)
+
+func _restore_floor_snap_if_needed() -> void:
+	if not _restore_snap_pending:
+		return
+	if _owner_body == null or not is_instance_valid(_owner_body):
+		_restore_snap_pending = false
+		return
+	if not _owner_body.is_on_floor():
+		return
+	var target := maxf(_floor_snap_to_restore, 0.0)
+	if _state != null and is_instance_valid(_state):
+		_state.set_floor_snap_length(target)
+	else:
+		_owner_body.floor_snap_length = target
+		if "snap_len" in _owner_body:
+			_owner_body.snap_len = target
+	_restore_snap_pending = false
