@@ -1,4 +1,4 @@
-# AGENTS.md — Guía operativa tras auditoría R3
+# AGENTS.md — Guía operativa tras auditoría R4
 
 ## 2. Reglas imprescindibles
 1. **Motor objetivo: Godot 4.4 (Forward+).** Revisa APIs antes de usar funciones nuevas o sintaxis de 4.5+. Evita dependencias que requieran ramas nightly.
@@ -40,3 +40,9 @@
 ## Seguimiento de backlog
 - Mantén sincronizada la sección "Backlog documentado R4" del README cuando se completen nuevas fases o se registren hallazgos relevantes; conserva contexto, riesgos y resultados.
 - Si se añaden automatizaciones (p.ej., `SimClock.unregister_module`, logger global), detalla el uso esperado y limitaciones en este AGENTS.md para futuros mantenedores.
+
+## Recomendaciones nuevas tras auditoría R4
+- Los módulos hijos del Player derivados de `ModuleBase` deben permanecer desuscritos del `SimClock` (usa `module.set_clock_subscription(false)`); el `player.gd` orquesta su ciclo manualmente y evita ticks duplicados.【F:scenes/entities/player.gd†L335-L365】【F:Modules/ModuleBase.gd†L56-L69】
+- Para ajustar el sigilo modifica el colisionador mediante `_apply_sneak_collider`/`_set_capsule_dimensions` y consulta `can_exit_sneak()` en lugar de manipular `CollisionShape3D` directamente, así se mantiene `floor_snap` y el offset base coherente.【F:scenes/entities/player.gd†L509-L590】
+- Cualquier nueva fuente de input debe integrarse con `PlayerInputHandler.set_exit_sneak_callback()` y respetar los modos Toggle/Hold al cambiar sigilo.【F:scripts/player/PlayerInputHandler.gd†L8-L116】
+- Los ajustes de pendientes dependen de `max_slope_deg` ≤ 50°; si se necesita más inclinación revisa `_update_slope_speed` y `_clamp_surface_normal` para evitar velocidades divergentes.【F:Modules/Movement.gd†L15-L113】【F:Modules/Orientation.gd†L7-L87】
