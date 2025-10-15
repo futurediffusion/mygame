@@ -548,8 +548,8 @@ func can_exit_sneak() -> bool:
 	var world := get_world_3d()
 	if world == null:
 		return true
-	var space_rid := world.space
-	if space_rid == RID():
+	var space_state := world.direct_space_state
+	if space_state == null:
 		return true
 	var stand_shape := _capsule_shape.duplicate(true) as CapsuleShape3D
 	if stand_shape == null:
@@ -560,33 +560,18 @@ func can_exit_sneak() -> bool:
 	var local_origin := local_transform.origin
 	local_origin.y = _collider_base_offset + stand_shape.radius + stand_shape.height * 0.5
 	local_transform.origin = local_origin
-	var test_body := PhysicsServer3D.body_create()
-	PhysicsServer3D.body_set_mode(test_body, PhysicsServer3D.BODY_MODE_KINEMATIC)
-	PhysicsServer3D.body_set_collision_layer(test_body, collision_layer)
-	PhysicsServer3D.body_set_collision_mask(test_body, collision_mask)
-	PhysicsServer3D.body_set_space(test_body, space_rid)
-	PhysicsServer3D.body_add_shape(test_body, stand_shape.get_rid(), local_transform)
-	PhysicsServer3D.body_set_state(test_body, PhysicsServer3D.BODY_STATE_TRANSFORM, global_transform)
-	var params := PhysicsTestMotionParameters3D.new()
-	params.from = global_transform
-	params.motion = Vector3.ZERO
+	var params := PhysicsShapeQueryParameters3D.new()
+	params.shape = stand_shape
+	params.transform = global_transform * local_transform
 	params.margin = 0.001
-	params.recovery_as_collision = true
-	params.collide_separation_ray = true
+	params.collision_mask = collision_mask
 	params.collide_with_areas = true
 	params.collide_with_bodies = true
-	params.collision_mask = collision_mask
-	params.shape = 0
-	var exclude_bodies := PackedInt64Array()
-	exclude_bodies.append(get_rid().get_id())
-	params.exclude_bodies = exclude_bodies
-	var exclude_objects := PackedInt64Array()
-	exclude_objects.append(get_instance_id())
-	params.exclude_objects = exclude_objects
-	var result := PhysicsTestMotionResult3D.new()
-	var blocked := PhysicsServer3D.body_test_motion(test_body, params, result)
-	PhysicsServer3D.free_rid(test_body)
-	return not blocked
+	var exclude: Array[RID] = []
+	exclude.append(get_rid())
+	params.exclude = exclude
+	var hits := space_state.intersect_shape(params, 1)
+	return hits.is_empty()
 
 func _set_capsule_dimensions(height: float, radius: float) -> void:
 	if _capsule_shape == null:
