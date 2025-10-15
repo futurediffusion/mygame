@@ -632,8 +632,22 @@ func _has_stand_clearance() -> bool:
 	var exclude: Array[RID] = []
 	exclude.append(get_rid())
 	params.exclude = exclude
-	var hits := space_state.intersect_shape(params, 1)
-	return hits.is_empty()
+	var hits := space_state.intersect_shape(params, 8)
+	if hits.is_empty():
+		return true
+	for hit in hits:
+		if not (hit is Dictionary):
+			continue
+		var hit_dict := hit as Dictionary
+		var normal_variant: Variant = hit_dict.get("normal", Vector3.ZERO)
+		if not (normal_variant is Vector3):
+			continue
+		var normal := normal_variant as Vector3
+		if not normal.is_finite():
+			continue
+		if normal.y < -0.35:
+			return false
+	return true
 
 func _set_capsule_dimensions(height: float, radius: float) -> void:
 	if _capsule_shape == null:
