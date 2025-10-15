@@ -92,6 +92,7 @@ func _end_roll() -> void:
 
 func _resolve_direction() -> Vector3:
 	var move_dir := Vector3.ZERO
+	var has_input := false
 	if player != null and is_instance_valid(player):
 		var cache_variant: Variant = player.call("get_input_cache") if player.has_method("get_input_cache") else null
 		if cache_variant is Dictionary:
@@ -99,17 +100,38 @@ func _resolve_direction() -> Vector3:
 			var move_record_variant: Variant = cache_dict.get("move")
 			if move_record_variant is Dictionary:
 				var move_record := move_record_variant as Dictionary
-				var camera_dir_variant: Variant = move_record.get("camera")
-				if camera_dir_variant is Vector3:
-					var camera_dir := camera_dir_variant as Vector3
-					move_dir = camera_dir
-		if move_dir.length_squared() < 0.0001:
-			var basis := player.global_transform.basis
-			move_dir = -basis.z
-		move_dir.y = 0.0
+				var raw_dir_variant: Variant = move_record.get("raw")
+				if raw_dir_variant is Vector2:
+					var raw_dir := raw_dir_variant as Vector2
+					has_input = raw_dir.length_squared() > 0.0001
+				if has_input:
+					var camera_dir_variant: Variant = move_record.get("camera")
+					if camera_dir_variant is Vector3:
+						move_dir = camera_dir_variant as Vector3
+	if not has_input or move_dir.length_squared() < 0.0001:
+		move_dir = _get_player_forward_dir()
+	move_dir.y = 0.0
 	if not move_dir.is_finite():
 		move_dir = Vector3.ZERO
 	return move_dir
+
+func _get_player_forward_dir() -> Vector3:
+	if player == null or not is_instance_valid(player):
+		return Vector3.ZERO
+	var basis := player.global_transform.basis
+	if "model" in player:
+		var model_variant: Variant = player.get("model")
+		if model_variant is Node3D:
+			var model_node := model_variant as Node3D
+			if model_node != null and is_instance_valid(model_node):
+				basis = model_node.global_transform.basis
+	var forward := -basis.z
+	forward.y = 0.0
+	if forward.length_squared() < 0.0001:
+		forward = Vector3.FORWARD
+	if not forward.is_finite():
+		return Vector3.ZERO
+	return forward.normalized()
 
 func _has_required_stamina() -> bool:
 	if stamina == null or not is_instance_valid(stamina):
