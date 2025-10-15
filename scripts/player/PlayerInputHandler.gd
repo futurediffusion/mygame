@@ -156,6 +156,10 @@ func is_talk_active() -> bool:
 func set_exit_sneak_callback(callback: Callable) -> void:
 	_exit_sneak_callback = callback
 
+func force_sneak_state(force_enabled: bool) -> void:
+	_is_sneaking = force_enabled
+	_pending_hold_exit = false
+
 func _request_exit_sneak() -> bool:
 	if not _exit_sneak_callback.is_valid():
 		return true
