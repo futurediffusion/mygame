@@ -332,14 +332,14 @@ func _initialize_input_components() -> void:
 		}
 		_input_cache["move"] = move_record
 		_input_cache["context_state"] = ContextState.DEFAULT
-        if context_detector:
-                context_detector.reset()
-                _context_state = context_detector.get_context_state()
-                if not context_detector.context_changed.is_connected(_on_context_changed):
-                        context_detector.context_changed.connect(_on_context_changed)
-        else:
-                LoggerService.warn(LOGGER_CONTEXT, "PlayerContextDetector no encontrado; el estado de contexto no se actualizará.")
-        _sync_collider_to_context()
+	if context_detector:
+		context_detector.reset()
+		_context_state = context_detector.get_context_state()
+		if not context_detector.context_changed.is_connected(_on_context_changed):
+			context_detector.context_changed.connect(_on_context_changed)
+	else:
+		LoggerService.warn(LOGGER_CONTEXT, "PlayerContextDetector no encontrado; el estado de contexto no se actualizará.")
+	_sync_collider_to_context()
 
 func _disable_module_clock_subscription() -> void:
 	for module in [m_state, m_jump, m_movement, m_orientation, m_anim, m_audio]:
@@ -372,14 +372,14 @@ func _on_input_build_mode_toggled(is_building: bool) -> void:
 	build_mode_toggled.emit(is_building)
 
 func _on_context_changed(new_state: int, previous_state: int) -> void:
-        _context_state = new_state
-        if input_handler:
-                input_handler.set_context_state(new_state)
-                _input_cache = input_handler.get_input_cache()
-        else:
-                _input_cache["context_state"] = _context_state
-        context_state_changed.emit(new_state, previous_state)
-        _sync_collider_to_context()
+	_context_state = new_state
+	if input_handler:
+		input_handler.set_context_state(new_state)
+		_input_cache = input_handler.get_input_cache()
+	else:
+		_input_cache["context_state"] = _context_state
+	context_state_changed.emit(new_state, previous_state)
+	_sync_collider_to_context()
 
 
 # ============================================================================
@@ -493,56 +493,56 @@ func _on_area_exited(area: Area3D) -> void:
 # AUDIO & CAMERA HOOKS
 # ============================================================================
 func _play_footstep_audio() -> void:
-        m_audio.play_footstep()
+	m_audio.play_footstep()
 
 func _play_landing_audio(is_hard: bool) -> void:
 	m_audio.play_landing(is_hard)
 
 func _trigger_camera_landing(is_hard: bool) -> void:
-        if camera_rig:
-                camera_rig.call_deferred("_on_player_landed", is_hard)
+	if camera_rig:
+		camera_rig.call_deferred("_on_player_landed", is_hard)
 
 func _cache_collider_defaults() -> void:
-        if collision_shape == null or not is_instance_valid(collision_shape):
-                return
-        if not (collision_shape.shape is CapsuleShape3D):
-                return
-        _capsule_shape = collision_shape.shape as CapsuleShape3D
-        _standing_capsule_height = maxf(_capsule_shape.height, 0.0)
-        _standing_capsule_radius = maxf(_capsule_shape.radius, 0.0)
-        _standing_snap_length = maxf(snap_len, 0.0)
-        if m_state:
-                _standing_snap_length = maxf(m_state.floor_snap_length, 0.0)
-        var origin := collision_shape.transform.origin
-        _collider_base_offset = origin.y - (_standing_capsule_radius + _standing_capsule_height * 0.5)
+	if collision_shape == null or not is_instance_valid(collision_shape):
+		return
+	if not (collision_shape.shape is CapsuleShape3D):
+		return
+	_capsule_shape = collision_shape.shape as CapsuleShape3D
+	_standing_capsule_height = maxf(_capsule_shape.height, 0.0)
+	_standing_capsule_radius = maxf(_capsule_shape.radius, 0.0)
+	_standing_snap_length = maxf(snap_len, 0.0)
+	if m_state:
+		_standing_snap_length = maxf(m_state.floor_snap_length, 0.0)
+	var origin := collision_shape.transform.origin
+	_collider_base_offset = origin.y - (_standing_capsule_radius + _standing_capsule_height * 0.5)
 
 func _sync_collider_to_context() -> void:
-        var wants_sneak := _context_state == ContextState.SNEAK
-        _apply_sneak_collider(wants_sneak)
+	var wants_sneak := _context_state == ContextState.SNEAK
+	_apply_sneak_collider(wants_sneak)
 
 func _apply_sneak_collider(enable: bool) -> void:
-        if _capsule_shape == null:
-                return
-        if enable == _sneak_collider_active:
-                return
-        _sneak_collider_active = enable
-        if enable:
-                _set_capsule_dimensions(sneak_capsule_height, sneak_capsule_radius)
-                _apply_floor_snap_length(sneak_snap_len, false)
-        else:
-                _set_capsule_dimensions(_standing_capsule_height, _standing_capsule_radius)
-                _apply_floor_snap_length(_standing_snap_length, true)
+	if _capsule_shape == null:
+		return
+	if enable == _sneak_collider_active:
+		return
+	_sneak_collider_active = enable
+	if enable:
+		_set_capsule_dimensions(sneak_capsule_height, sneak_capsule_radius)
+		_apply_floor_snap_length(sneak_snap_len, false)
+	else:
+		_set_capsule_dimensions(_standing_capsule_height, _standing_capsule_radius)
+		_apply_floor_snap_length(_standing_snap_length, true)
 
 func _set_capsule_dimensions(height: float, radius: float) -> void:
-        var clamped_height := maxf(height, 0.01)
-        var clamped_radius := maxf(radius, 0.01)
-        _capsule_shape.height = clamped_height
-        _capsule_shape.radius = clamped_radius
-        if collision_shape and is_instance_valid(collision_shape):
-                var basis := collision_shape.transform.basis
-                var origin := collision_shape.transform.origin
-                origin.y = _collider_base_offset + clamped_radius + clamped_height * 0.5
-                collision_shape.transform = Transform3D(basis, origin)
+	var clamped_height := maxf(height, 0.01)
+	var clamped_radius := maxf(radius, 0.01)
+	_capsule_shape.height = clamped_height
+	_capsule_shape.radius = clamped_radius
+	if collision_shape and is_instance_valid(collision_shape):
+		var basis := collision_shape.transform.basis
+		var origin := collision_shape.transform.origin
+		origin.y = _collider_base_offset + clamped_radius + clamped_height * 0.5
+		collision_shape.transform = Transform3D(basis, origin)
 
 func _apply_floor_snap_length(value: float, update_default: bool) -> void:
 	var clamped := maxf(value, 0.0)
