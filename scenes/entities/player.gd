@@ -124,6 +124,7 @@ var _is_sitting := false
 var _is_build_mode := false
 var _using_ranged := false
 var _is_sneaking := false
+var _forced_sneak := false
 var _stamina_ratio_min := 1.0
 var _stamina_ratio_max_since_min := 1.0
 var _stamina_cycle_window := 12.0
@@ -134,6 +135,7 @@ var _standing_capsule_radius := 0.0
 var _standing_snap_length := 0.3
 var _collider_base_offset := 0.0
 var _sneak_collider_active := false
+var _roll_collider_override := false
 var invulnerable := false
 
 # ============================================================================
@@ -259,7 +261,7 @@ func physics_tick(delta: float) -> void:
 	_skip_module_updates = is_paused or in_cinematic
 	_block_animation_updates = is_paused or in_cinematic
 	if context_detector:
-		context_detector.update_frame(_is_sitting, _talk_active, _is_sneaking, is_on_floor())
+		context_detector.update_frame(_is_sitting, _talk_active, _is_sneaking or _forced_sneak, is_on_floor())
 	if not _skip_module_updates:
 		if m_state:
 			m_state.pre_move_update(delta)
@@ -301,12 +303,29 @@ func get_context_state() -> ContextState:
 	return _context_state
 
 func is_sneaking() -> bool:
-	return _is_sneaking
+	return _is_sneaking or _forced_sneak
 
 func request_exit_sneak() -> bool:
-	if not _is_sneaking:
+	if not _is_sneaking and not _forced_sneak:
 		return true
-	return can_exit_sneak()
+	if not can_exit_sneak():
+		return false
+	if _forced_sneak:
+		_set_forced_sneak(false)
+	return true
+
+func set_roll_collider_override(active: bool) -> void:
+	if _roll_collider_override == active:
+		return
+	_roll_collider_override = active
+	if active:
+		_sync_collider_to_context()
+		return
+	var can_stand := can_exit_sneak()
+	if not can_stand:
+		_set_forced_sneak(true)
+		return
+	_sync_collider_to_context()
 
 # ============================================================================
 # INPUT PROCESSING
@@ -445,7 +464,7 @@ func _update_sprint_state(delta: float, input_dir: Vector3) -> bool:
 		wants_sprint = sprint_record["pressed"]
 	if not wants_sprint:
 		return false
-	if _is_sneaking:
+	if is_sneaking():
 		return false
 	if input_dir.length_squared() <= 0.0001:
 		return false
@@ -529,8 +548,21 @@ func _cache_collider_defaults() -> void:
 	var origin := collision_shape.transform.origin
 	_collider_base_offset = origin.y - (_standing_capsule_radius + _standing_capsule_height * 0.5)
 
+func _refresh_context_detector() -> void:
+	if context_detector:
+		context_detector.update_frame(_is_sitting, _talk_active, _is_sneaking or _forced_sneak, is_on_floor())
+
+func _set_forced_sneak(enabled: bool) -> void:
+	if _forced_sneak == enabled:
+		return
+	_forced_sneak = enabled
+	if input_handler and input_handler.has_method("force_sneak_state"):
+		input_handler.force_sneak_state(enabled)
+	_refresh_context_detector()
+	_sync_collider_to_context()
+
 func _sync_collider_to_context() -> void:
-	var wants_sneak := _context_state == ContextState.SNEAK
+	var wants_sneak := _context_state == ContextState.SNEAK or _roll_collider_override or _forced_sneak
 	_apply_sneak_collider(wants_sneak)
 
 func _apply_sneak_collider(enable: bool) -> void:

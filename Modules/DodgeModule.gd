@@ -68,6 +68,7 @@ func _start_roll() -> void:
 	_cache_floor_snap()
 	if preserve_floor_snap:
 		player.floor_snap_length = 0.0
+	_notify_player_roll_state(true)
 	if anim_module != null and is_instance_valid(anim_module):
 		anim_module.play_dodge()
 
@@ -89,6 +90,7 @@ func _end_roll() -> void:
 	_t = 0.0
 	_set_invulnerability(false)
 	_restore_floor_snap()
+	_notify_player_roll_state(false)
 
 func _resolve_direction() -> Vector3:
 	var move_dir := Vector3.ZERO
@@ -178,6 +180,13 @@ func _restore_floor_snap() -> void:
 	player.floor_snap_length = _saved_floor_snap_len
 	_has_saved_floor_snap = false
 
+func _notify_player_roll_state(active: bool) -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	if not player.has_method("set_roll_collider_override"):
+		return
+	player.call("set_roll_collider_override", active)
+
 func _should_skip_updates() -> bool:
 	if player == null or not is_instance_valid(player):
 		return false
@@ -187,3 +196,4 @@ func _should_skip_updates() -> bool:
 	if skip_variant is bool:
 		return skip_variant
 	return bool(skip_variant)
+
