@@ -13,7 +13,7 @@ enum SneakInputMode {
 	HOLD,
 }
 
-@export_enum("Toggle", "Hold") var sneak_input_mode: SneakInputMode = SneakInputMode.TOGGLE
+@export_enum("Toggle", "Hold") var sneak_input_mode: int = SneakInputMode.TOGGLE
 
 var input_actions: Dictionary = {}
 var _input_cache: Dictionary = {}
@@ -58,9 +58,9 @@ func update_input(allow_input: bool, move_dir: Vector3) -> void:
 		_talk_active = false
 	talk_record["active"] = _talk_active
 	_input_cache["talk"] = talk_record
-	var crouch_pressed := crouch_record.get("pressed", false)
-	var crouch_just_pressed := crouch_record.get("just_pressed", false)
-	var crouch_just_released := crouch_record.get("just_released", false)
+	var crouch_pressed: bool = crouch_record.get("pressed", false)
+	var crouch_just_pressed: bool = crouch_record.get("just_pressed", false)
+	var crouch_just_released: bool = crouch_record.get("just_released", false)
 	if allow_input:
 		match sneak_input_mode:
 			SneakInputMode.TOGGLE:
@@ -159,10 +159,10 @@ func set_exit_sneak_callback(callback: Callable) -> void:
 func _request_exit_sneak() -> bool:
 	if not _exit_sneak_callback.is_valid():
 		return true
-	var result := _exit_sneak_callback.call()
-	if typeof(result) == TYPE_BOOL:
-		return result
-	return bool(result)
+	var result_variant: Variant = _exit_sneak_callback.call()
+	if result_variant is bool:
+		return result_variant
+	return bool(result_variant)
 
 func _initialize_input_cache() -> void:
 	_input_cache.clear()
