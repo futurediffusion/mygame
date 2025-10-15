@@ -128,7 +128,7 @@ func _consume_stamina() -> void:
 func _set_invulnerability(enabled: bool) -> void:
 	if player == null or not is_instance_valid(player):
 		return
-	if player.has_variable("invulnerable"):
+	if "invulnerable" in player:
 		player.invulnerable = enabled
 	else:
 		player.set("invulnerable", enabled)
