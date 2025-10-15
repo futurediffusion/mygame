@@ -3,7 +3,7 @@ class_name DodgeModule
 
 @export var stamina_cost: float = 20.0
 @export var roll_time: float = 0.5
-@export var roll_speed: float = 12.0
+@export var roll_speed: float = 24.0
 @export var iframe_start: float = 0.08
 @export var iframe_end: float = 0.28
 @export var allow_in_air: bool = false
