@@ -27,8 +27,10 @@
 animation = &"front jump"
 
 [sub_resource type="AnimationNodeOneShot" id="AnimationNodeOneShot_yr3on"]
-fadein_time = 0.05
-fadeout_time = 0.1
+fadein_time = 0.1
+fadeout_time = 0.5
+
+[sub_resource type="AnimationNodeTimeScale" id="AnimationNodeTimeScale_dodge"]
 
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_2ngu4"]
 animation = &"fall air loop"
@@ -89,9 +91,6 @@ min_space = 0.0
 
 [sub_resource type="AnimationNodeTimeScale" id="AnimationNodeTimeScale_xe83n"]
 
-[sub_resource type="AnimationNodeTimeScale" id="AnimationNodeTimeScale_dodge"]
-scale = 1.5
-
 [sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_yv3je"]
 animation = &"dodge"
 
@@ -99,15 +98,15 @@ animation = &"dodge"
 animation = &"sneak_enter"
 
 [sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_cwche"]
-graph_offset = Vector2(-718.428, -418.332)
+graph_offset = Vector2(18.9268, -457.038)
 nodes/AirBlend/node = SubResource("AnimationNodeBlend2_ogpgs")
 nodes/AirBlend/position = Vector2(-80, -380)
 nodes/Animation/node = SubResource("AnimationNodeAnimation_yr3on")
 nodes/Animation/position = Vector2(-100, -40)
 nodes/Dodge/node = SubResource("AnimationNodeOneShot_yr3on")
-nodes/Dodge/position = Vector2(340, -360)
+nodes/Dodge/position = Vector2(600, -360)
 nodes/DodgeSpeed/node = SubResource("AnimationNodeTimeScale_dodge")
-nodes/DodgeSpeed/position = Vector2(200, -220)
+nodes/DodgeSpeed/position = Vector2(400, -120)
 nodes/FallAnim/node = SubResource("AnimationNodeAnimation_2ngu4")
 nodes/FallAnim/position = Vector2(-480, 20)
 nodes/Jump/node = SubResource("AnimationNodeOneShot_jv5ih")
@@ -128,7 +127,7 @@ nodes/SprintSpeed/node = SubResource("AnimationNodeTimeScale_xe83n")
 nodes/SprintSpeed/position = Vector2(-640, -480)
 nodes/dodge/node = SubResource("AnimationNodeAnimation_yv3je")
 nodes/dodge/position = Vector2(180, -20)
-nodes/output/position = Vector2(520, -400)
+nodes/output/position = Vector2(1040, -400)
 nodes/sneak_enter/node = SubResource("AnimationNodeAnimation_3hm5d")
 nodes/sneak_enter/position = Vector2(-840, 80)
 node_connections = [&"AirBlend", 0, &"SneakExit", &"AirBlend", 1, &"FallAnim", &"Dodge", 0, &"Jump", &"Dodge", 1, &"DodgeSpeed", &"DodgeSpeed", 0, &"dodge", &"Jump", 0, &"AirBlend", &"Jump", 1, &"Animation", &"SneakBlend", 0, &"SprintSpeed", &"SneakBlend", 1, &"SneakEnter", &"SneakEnter", 0, &"SneakIdleWalk", &"SneakEnter", 1, &"sneak_enter", &"SneakExit", 0, &"SneakBlend", &"SneakExit", 1, &"SneakExitAnim", &"SprintSpeed", 0, &"Locomotion", &"output", 0, &"Dodge"]
@@ -185,6 +184,9 @@ state_module_path = NodePath("../State")
 
 [node name="Dodge" type="Node" parent="Modules"]
 script = ExtResource("9_vt0x1")
+stamina_cost = 10.0
+roll_time = 0.2
+roll_speed = 30.0
 
 [node name="AudioCtrl" type="Node" parent="Modules"]
 script = ExtResource("9_wa8qt")
@@ -210,6 +212,7 @@ parameters/LocomotionSpeed/AirBlend/blend_amount = 0
 parameters/LocomotionSpeed/Dodge/active = false
 parameters/LocomotionSpeed/Dodge/internal_active = false
 parameters/LocomotionSpeed/Dodge/request = 0
+parameters/LocomotionSpeed/DodgeSpeed/scale = 1.5
 parameters/LocomotionSpeed/Jump/active = false
 parameters/LocomotionSpeed/Jump/internal_active = false
 parameters/LocomotionSpeed/Jump/request = 0
