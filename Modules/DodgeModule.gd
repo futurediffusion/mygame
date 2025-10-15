@@ -94,15 +94,14 @@ func _resolve_direction() -> Vector3:
 	var move_dir := Vector3.ZERO
 	if player != null and is_instance_valid(player):
 		var cache_variant: Variant = player.call("get_input_cache") if player.has_method("get_input_cache") else null
-			if cache_variant is Dictionary:
-				var cache_dict: Dictionary = cache_variant
-				var move_record_variant := cache_dict.get("move")
-				if move_record_variant is Dictionary:
-					var move_record: Dictionary = move_record_variant
-					var camera_dir_variant := move_record.get("camera")
-					if camera_dir_variant is Vector3:
-						var camera_dir: Vector3 = camera_dir_variant
-						move_dir = camera_dir
+		if cache_variant is Dictionary:
+			var move_record_variant := cache_variant.get("move")
+			if move_record_variant is Dictionary:
+				var move_record: Dictionary = move_record_variant
+				var camera_dir_variant := move_record.get("camera")
+				if camera_dir_variant is Vector3:
+					var camera_dir: Vector3 = camera_dir_variant
+					move_dir = camera_dir
 		if move_dir.length_squared() < 0.0001:
 			var basis := player.global_transform.basis
 			move_dir = -basis.z
