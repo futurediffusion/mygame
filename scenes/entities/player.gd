@@ -297,6 +297,11 @@ func get_context_state() -> ContextState:
 func is_sneaking() -> bool:
 	return _is_sneaking
 
+func request_exit_sneak() -> bool:
+	if not _is_sneaking:
+		return true
+	return can_exit_sneak()
+
 # ============================================================================
 # INPUT PROCESSING
 # ============================================================================
@@ -324,6 +329,8 @@ func _initialize_input_components() -> void:
 			input_handler.combat_mode_switched.connect(_on_input_combat_mode_switched)
 		if not input_handler.build_mode_toggled.is_connected(_on_input_build_mode_toggled):
 			input_handler.build_mode_toggled.connect(_on_input_build_mode_toggled)
+		if input_handler.has_method("set_exit_sneak_callback"):
+			input_handler.set_exit_sneak_callback(Callable(self, &"request_exit_sneak"))
 	else:
 		LoggerService.warn(LOGGER_CONTEXT, "PlayerInputHandler no encontrado; se utilizará un caché de entrada vacío.")
 		var move_record := {
@@ -532,6 +539,54 @@ func _apply_sneak_collider(enable: bool) -> void:
 	else:
 		_set_capsule_dimensions(_standing_capsule_height, _standing_capsule_radius)
 		_apply_floor_snap_length(_standing_snap_length, true)
+
+func can_exit_sneak() -> bool:
+	if not _sneak_collider_active:
+		return true
+	if _capsule_shape == null or collision_shape == null or not is_inside_tree():
+		return true
+	var world := get_world_3d()
+	if world == null:
+		return true
+	var space_rid := world.space
+	if space_rid == RID():
+		return true
+	var stand_shape := _capsule_shape.duplicate(true) as CapsuleShape3D
+	if stand_shape == null:
+		return true
+	stand_shape.height = maxf(_standing_capsule_height, 0.01)
+	stand_shape.radius = maxf(_standing_capsule_radius, 0.01)
+	var local_transform := collision_shape.transform
+	var local_origin := local_transform.origin
+	local_origin.y = _collider_base_offset + stand_shape.radius + stand_shape.height * 0.5
+	local_transform.origin = local_origin
+	var test_body := PhysicsServer3D.body_create()
+	PhysicsServer3D.body_set_mode(test_body, PhysicsServer3D.BODY_MODE_KINEMATIC)
+	PhysicsServer3D.body_set_collision_layer(test_body, collision_layer)
+	PhysicsServer3D.body_set_collision_mask(test_body, collision_mask)
+	PhysicsServer3D.body_set_space(test_body, space_rid)
+	PhysicsServer3D.body_add_shape(test_body, stand_shape.get_rid(), local_transform)
+	PhysicsServer3D.body_set_state(test_body, PhysicsServer3D.BODY_STATE_TRANSFORM, global_transform)
+	var params := PhysicsTestMotionParameters3D.new()
+	params.from = global_transform
+	params.motion = Vector3.ZERO
+	params.margin = 0.001
+	params.recovery_as_collision = true
+	params.collide_separation_ray = true
+	params.collide_with_areas = true
+	params.collide_with_bodies = true
+	params.collision_mask = collision_mask
+	params.shape = 0
+	var exclude_bodies := PackedInt64Array()
+	exclude_bodies.append(get_rid().get_id())
+	params.exclude_bodies = exclude_bodies
+	var exclude_objects := PackedInt64Array()
+	exclude_objects.append(get_instance_id())
+	params.exclude_objects = exclude_objects
+	var result := PhysicsTestMotionResult3D.new()
+	var blocked := PhysicsServer3D.body_test_motion(test_body, params, result)
+	PhysicsServer3D.free_rid(test_body)
+	return not blocked
 
 func _set_capsule_dimensions(height: float, radius: float) -> void:
 	if _capsule_shape == null:

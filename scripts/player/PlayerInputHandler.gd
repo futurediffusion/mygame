@@ -8,6 +8,13 @@ signal interact_requested()
 signal combat_mode_switched(mode: String)
 signal build_mode_toggled(is_building: bool)
 
+enum SneakInputMode {
+	TOGGLE,
+	HOLD,
+}
+
+@export_enum("Toggle", "Hold") var sneak_input_mode: SneakInputMode = SneakInputMode.TOGGLE
+
 var input_actions: Dictionary = {}
 var _input_cache: Dictionary = {}
 var _is_sneaking := false
@@ -15,6 +22,8 @@ var _is_sitting := false
 var _is_build_mode := false
 var _using_ranged := false
 var _talk_active := false
+var _pending_hold_exit := false
+var _exit_sneak_callback: Callable = Callable()
 
 func set_input_actions(actions: Dictionary) -> void:
 	input_actions = actions.duplicate(true)
@@ -49,8 +58,37 @@ func update_input(allow_input: bool, move_dir: Vector3) -> void:
 		_talk_active = false
 	talk_record["active"] = _talk_active
 	_input_cache["talk"] = talk_record
-	if allow_input and crouch_record.get("just_pressed", false):
-		_is_sneaking = not _is_sneaking
+	var crouch_pressed := crouch_record.get("pressed", false)
+	var crouch_just_pressed := crouch_record.get("just_pressed", false)
+	var crouch_just_released := crouch_record.get("just_released", false)
+	if allow_input:
+		match sneak_input_mode:
+			SneakInputMode.TOGGLE:
+				if crouch_just_pressed:
+					if _is_sneaking:
+						if _request_exit_sneak():
+							_is_sneaking = false
+					else:
+						_is_sneaking = true
+						_pending_hold_exit = false
+			SneakInputMode.HOLD:
+				if crouch_pressed:
+					_is_sneaking = true
+					_pending_hold_exit = false
+				elif _is_sneaking and (crouch_just_released or _pending_hold_exit):
+					if _request_exit_sneak():
+						_is_sneaking = false
+						_pending_hold_exit = false
+					else:
+						_is_sneaking = true
+						_pending_hold_exit = true
+	elif sneak_input_mode == SneakInputMode.HOLD and _pending_hold_exit and _is_sneaking and not crouch_pressed:
+		if _request_exit_sneak():
+			_is_sneaking = false
+			_pending_hold_exit = false
+		else:
+			_is_sneaking = true
+			_pending_hold_exit = true
 	crouch_record["active"] = _is_sneaking
 	if allow_input and sit_record.get("just_pressed", false):
 		var previous := _is_sitting
@@ -114,6 +152,17 @@ func is_using_ranged() -> bool:
 
 func is_talk_active() -> bool:
 	return _talk_active
+
+func set_exit_sneak_callback(callback: Callable) -> void:
+	_exit_sneak_callback = callback
+
+func _request_exit_sneak() -> bool:
+	if not _exit_sneak_callback.is_valid():
+		return true
+	var result := _exit_sneak_callback.call()
+	if typeof(result) == TYPE_BOOL:
+		return result
+	return bool(result)
 
 func _initialize_input_cache() -> void:
 	_input_cache.clear()
