@@ -334,7 +334,7 @@ func _initialize_input_components() -> void:
 		_input_cache["context_state"] = ContextState.DEFAULT
 	if context_detector:
 		context_detector.reset()
-		_context_state = ContextState(context_detector.get_context_state())
+		_context_state = context_detector.get_context_state() as ContextState
 		if not context_detector.context_changed.is_connected(_on_context_changed):
 			context_detector.context_changed.connect(_on_context_changed)
 	else:
@@ -372,7 +372,7 @@ func _on_input_build_mode_toggled(is_building: bool) -> void:
 	build_mode_toggled.emit(is_building)
 
 func _on_context_changed(new_state: int, previous_state: int) -> void:
-	_context_state = ContextState(new_state)
+	_context_state = new_state as ContextState
 	if input_handler:
 		input_handler.set_context_state(new_state)
 		_input_cache = input_handler.get_input_cache()
