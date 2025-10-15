@@ -30,6 +30,7 @@ const INPUT_BOOTSTRAP_SCRIPT := preload("res://scripts/bootstrap/InputSetup.gd")
 const TREE_META_INPUT_BOOTSTRAPPED: StringName = &"input_bootstrap_initialized"
 const SIMCLOCK_SCRIPT := preload("res://Singletons/SimClock.gd")
 const LOGGER_CONTEXT := "Player"
+const FORCED_SNEAK_HEADROOM_INTERVAL := 0.1
 
 # ============================================================================
 # AUDIO SYSTEM
@@ -136,6 +137,7 @@ var _standing_snap_length := 0.3
 var _collider_base_offset := 0.0
 var _sneak_collider_active := false
 var _roll_collider_override := false
+var _forced_sneak_check_accumulator := 0.0
 var invulnerable := false
 
 # ============================================================================
@@ -284,6 +286,7 @@ func physics_tick(delta: float) -> void:
 		m_audio.physics_tick(delta)
 	_consume_sprint_stamina(delta, is_sprinting)
 	_track_stamina_cycle(delta, is_sprinting)
+	_update_forced_sneak_clearance(delta)
 
 func _on_state_landed(_is_hard: bool) -> void:
 	if combo and is_instance_valid(combo):
@@ -308,7 +311,7 @@ func is_sneaking() -> bool:
 func request_exit_sneak() -> bool:
 	if not _is_sneaking and not _forced_sneak:
 		return true
-	if not can_exit_sneak():
+	if not has_head_clearance():
 		return false
 	if _forced_sneak:
 		_set_forced_sneak(false)
@@ -321,9 +324,12 @@ func set_roll_collider_override(active: bool) -> void:
 	if active:
 		_sync_collider_to_context()
 		return
-	var can_stand := can_exit_sneak()
-	if not can_stand:
+	var has_headroom := has_head_clearance()
+	if not has_headroom:
 		_set_forced_sneak(true)
+		return
+	if _forced_sneak:
+		_set_forced_sneak(false)
 		return
 	_sync_collider_to_context()
 
@@ -556,6 +562,7 @@ func _set_forced_sneak(enabled: bool) -> void:
 	if _forced_sneak == enabled:
 		return
 	_forced_sneak = enabled
+	_forced_sneak_check_accumulator = 0.0
 	if input_handler and input_handler.has_method("force_sneak_state"):
 		input_handler.force_sneak_state(enabled)
 	_refresh_context_detector()
@@ -581,6 +588,23 @@ func _apply_sneak_collider(enable: bool) -> void:
 func can_exit_sneak() -> bool:
 	if not _sneak_collider_active:
 		return true
+	return has_head_clearance()
+
+func has_head_clearance() -> bool:
+	return _has_stand_clearance()
+
+func _update_forced_sneak_clearance(delta: float) -> void:
+	if not _forced_sneak:
+		_forced_sneak_check_accumulator = 0.0
+		return
+	_forced_sneak_check_accumulator += delta
+	if _forced_sneak_check_accumulator < FORCED_SNEAK_HEADROOM_INTERVAL:
+		return
+	_forced_sneak_check_accumulator = 0.0
+	if has_head_clearance():
+		_set_forced_sneak(false)
+
+func _has_stand_clearance() -> bool:
 	if _capsule_shape == null or collision_shape == null or not is_inside_tree():
 		return true
 	var world := get_world_3d()
