@@ -125,6 +125,7 @@ var _is_build_mode := false
 var _using_ranged := false
 var _is_sneaking := false
 var _forced_sneak := false
+var _ceiling_forced_sneak := false
 var _stamina_ratio_min := 1.0
 var _stamina_ratio_max_since_min := 1.0
 var _stamina_cycle_window := 12.0
@@ -261,7 +262,10 @@ func physics_tick(delta: float) -> void:
 	_skip_module_updates = is_paused or in_cinematic
 	_block_animation_updates = is_paused or in_cinematic
 	if context_detector:
-		context_detector.update_frame(_is_sitting, _talk_active, _is_sneaking or _forced_sneak, is_on_floor())
+		var forced := _forced_sneak
+		var sneaking_flag := _is_sneaking or forced
+		var floor_flag := is_on_floor() or forced
+		context_detector.update_frame(_is_sitting, _talk_active, sneaking_flag, floor_flag)
 	if not _skip_module_updates:
 		if m_state:
 			m_state.pre_move_update(delta)
@@ -320,22 +324,30 @@ func set_roll_collider_override(active: bool) -> void:
 		return
 	_roll_collider_override = active
 	if active:
+		_ceiling_forced_sneak = false
 		_sync_collider_to_context()
 		return
 	var can_stand := can_exit_sneak()
 	if not can_stand:
+		_ceiling_forced_sneak = true
 		_set_forced_sneak(true)
 		return
+	_ceiling_forced_sneak = false
 	_sync_collider_to_context()
 
 func _maintain_forced_sneak_state() -> void:
-	if not _forced_sneak:
-		return
 	if _roll_collider_override:
 		return
-	if not can_exit_sneak():
+	if not _forced_sneak and not _ceiling_forced_sneak:
 		return
-	_set_forced_sneak(false)
+	var can_stand := can_exit_sneak()
+	if not can_stand:
+		if _ceiling_forced_sneak and not _forced_sneak:
+			_set_forced_sneak(true)
+		return
+	_ceiling_forced_sneak = false
+	if _forced_sneak:
+		_set_forced_sneak(false)
 
 # ============================================================================
 # INPUT PROCESSING
@@ -560,7 +572,10 @@ func _cache_collider_defaults() -> void:
 
 func _refresh_context_detector() -> void:
 	if context_detector:
-		context_detector.update_frame(_is_sitting, _talk_active, _is_sneaking or _forced_sneak, is_on_floor())
+		var forced := _forced_sneak
+		var sneaking_flag := _is_sneaking or forced
+		var floor_flag := is_on_floor() or forced
+		context_detector.update_frame(_is_sitting, _talk_active, sneaking_flag, floor_flag)
 
 func _set_forced_sneak(enabled: bool) -> void:
 	if _forced_sneak == enabled:
@@ -568,6 +583,8 @@ func _set_forced_sneak(enabled: bool) -> void:
 	_forced_sneak = enabled
 	if input_handler and input_handler.has_method("force_sneak_state"):
 		input_handler.force_sneak_state(enabled)
+	if not enabled:
+		_ceiling_forced_sneak = false
 	_refresh_context_detector()
 	_sync_collider_to_context()
 
