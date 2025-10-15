@@ -56,7 +56,7 @@ const LOGGER_CONTEXT := "Player"
 @export_range(1.0, 50.0, 0.5) var accel_ground: float = GameConstants.DEFAULT_ACCEL_GROUND
 @export_range(1.0, 30.0, 0.5) var accel_air: float = GameConstants.DEFAULT_ACCEL_AIR
 @export_range(1.0, 50.0, 0.5) var decel: float = GameConstants.DEFAULT_DECEL
-@export_range(0.0, 89.0, 1.0) var max_slope_deg: float = 46.0
+@export_range(0.0, 89.0, 1.0) var max_slope_deg: float = 50.0
 @export_range(0.0, 2.0, 0.05) var snap_len: float = 0.3
 @export_group("Sneak Collider")
 @export_range(0.1, 2.0, 0.01) var sneak_capsule_height: float = 1.65

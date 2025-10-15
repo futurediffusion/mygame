@@ -15,6 +15,9 @@ var player: CharacterBody3D
 var _move_dir: Vector3 = Vector3.ZERO
 var _is_sprinting: bool = false
 var _combo: PerfectJumpCombo
+var _max_slope_deg: float = 50.0
+var _current_slope_speed: float = 1.0
+var _slope_lerp_speed: float = 6.0
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
@@ -36,6 +39,8 @@ func setup(p: CharacterBody3D) -> void:
 		speed_multiplier = max(player.speed_multiplier, 0.0)
 	if "fast_fall_speed_multiplier" in player:
 		fast_fall_speed_multiplier = max(player.fast_fall_speed_multiplier, 1.0)
+	if "max_slope_deg" in player:
+		_max_slope_deg = clampf(player.max_slope_deg, 0.0, 50.0)
 
 ## Registra el input de movimiento del frame actual.
 ## - `input_dir`: Vector3 (normalizado o cercano a 1) que indica la dirección deseada en el plano XZ.
@@ -60,6 +65,7 @@ func physics_tick(delta: float) -> void:
 func _update_horizontal_velocity(delta: float) -> void:
 	var on_floor := player.is_on_floor()
 	var target_speed := max_speed_ground if on_floor else max_speed_air
+	_update_slope_speed(on_floor, delta)
 	if not on_floor and player.velocity.y < 0.0:
 		target_speed *= max(fast_fall_speed_multiplier, 1.0)
 	if _is_sprinting and on_floor:
@@ -68,7 +74,7 @@ func _update_horizontal_velocity(delta: float) -> void:
 	var combo := _get_combo()
 	if combo:
 		combo_speed_mul = combo.speed_multiplier()
-	target_speed = max(target_speed, 0.0) * speed_multiplier * combo_speed_mul
+	target_speed = max(target_speed, 0.0) * speed_multiplier * combo_speed_mul * _current_slope_speed
 	var want := Vector2.ZERO
 	if _move_dir.length_squared() > 0.0001:
 		var flattened := Vector2(_move_dir.x, _move_dir.z)
@@ -96,3 +102,33 @@ func _get_combo() -> PerfectJumpCombo:
 			return _combo
 	_combo = player.get_node_or_null("PerfectJumpCombo") as PerfectJumpCombo
 	return _combo
+
+func _update_slope_speed(on_floor: bool, delta: float) -> void:
+	var target_speed_mul := 1.0
+	if on_floor and player != null and is_instance_valid(player):
+		var floor_normal := player.get_floor_normal()
+		if floor_normal.length_squared() > 0.0001:
+			floor_normal = floor_normal.normalized()
+			var slope_angle := acos(clampf(floor_normal.dot(Vector3.UP), -1.0, 1.0))
+			var slope_deg := rad_to_deg(slope_angle)
+			var effective_deg := min(slope_deg, _max_slope_deg)
+			if effective_deg > 0.01 and _move_dir.length_squared() > 0.0:
+				var downhill := Vector3.DOWN.slide(floor_normal)
+				if downhill.length_squared() > 0.0001:
+					downhill = downhill.normalized()
+					var input_dir := Vector3(_move_dir.x, 0.0, _move_dir.z)
+					if input_dir.length_squared() > 0.0:
+						input_dir = input_dir.normalized()
+						var alignment := downhill.dot(input_dir)
+						var slope_ratio := 0.0
+						if _max_slope_deg > 0.0:
+							slope_ratio = clampf(effective_deg / _max_slope_deg, 0.0, 1.0)
+						if alignment > 0.05:
+							var downhill_weight := clampf(alignment, 0.0, 1.0)
+							var progressive := downhill_weight * downhill_weight
+							target_speed_mul = 1.0 + slope_ratio * progressive
+						elif alignment < -0.05:
+							var uphill_weight := clampf(-alignment, 0.0, 1.0)
+							target_speed_mul = max(0.0, 1.0 - slope_ratio * uphill_weight)
+	var lerp_weight := clampf(delta * _slope_lerp_speed, 0.0, 1.0)
+	_current_slope_speed = lerp(_current_slope_speed, target_speed_mul, lerp_weight)
