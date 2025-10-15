@@ -59,7 +59,7 @@ const LOGGER_CONTEXT := "Player"
 @export_range(0.0, 89.0, 1.0) var max_slope_deg: float = 46.0
 @export_range(0.0, 2.0, 0.05) var snap_len: float = 0.3
 @export_group("Sneak Collider")
-@export_range(0.1, 2.0, 0.01) var sneak_capsule_height: float = 0.7
+@export_range(0.1, 2.0, 0.01) var sneak_capsule_height: float = 0.9
 @export_range(0.1, 1.5, 0.01) var sneak_capsule_radius: float = 0.45
 @export_range(0.0, 2.0, 0.01) var sneak_snap_len: float = 0.12
 
@@ -534,15 +534,27 @@ func _apply_sneak_collider(enable: bool) -> void:
 		_apply_floor_snap_length(_standing_snap_length, true)
 
 func _set_capsule_dimensions(height: float, radius: float) -> void:
+	if _capsule_shape == null:
+		return
+
 	var clamped_height := maxf(height, 0.01)
 	var clamped_radius := maxf(radius, 0.01)
+
+	var base_y := _collider_base_offset
+	if collision_shape and is_instance_valid(collision_shape):
+		var origin := collision_shape.transform.origin
+		base_y = origin.y - (_capsule_shape.radius + _capsule_shape.height * 0.5)
+
 	_capsule_shape.height = clamped_height
 	_capsule_shape.radius = clamped_radius
+
 	if collision_shape and is_instance_valid(collision_shape):
 		var basis := collision_shape.transform.basis
 		var origin := collision_shape.transform.origin
-		origin.y = _collider_base_offset + clamped_radius + clamped_height * 0.5
+		origin.y = base_y + clamped_radius + clamped_height * 0.5
 		collision_shape.transform = Transform3D(basis, origin)
+
+	_collider_base_offset = base_y
 
 func _apply_floor_snap_length(value: float, update_default: bool) -> void:
 	var clamped := maxf(value, 0.0)
