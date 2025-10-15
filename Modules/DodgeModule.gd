@@ -196,4 +196,3 @@ func _should_skip_updates() -> bool:
 	if skip_variant is bool:
 		return skip_variant
 	return bool(skip_variant)
-
