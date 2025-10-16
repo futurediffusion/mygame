@@ -454,9 +454,14 @@ func _attach_gear(gear: Dictionary) -> void:
 		if scene == null:
 			continue
 		var inst := scene.instantiate()
-		skeleton.add_child(inst)
-		skeleton.set_bone_pose_mode(skeleton.find_bone(bone_name), Skeleton3D.BONE_POSE_MODE_OVERRIDE)
-		skeleton.attach_child_to_bone(bone_name, inst)
+		var attachment := BoneAttachment3D.new()
+		attachment.bone_name = bone_name
+		attachment.name = "%s_attachment" % bone_name
+		for child in skeleton.get_children():
+			if child is BoneAttachment3D and (child as BoneAttachment3D).bone_name == bone_name:
+				child.queue_free()
+		skeleton.add_child(attachment)
+		attachment.add_child(inst)
 
 func _get_data_singleton() -> Data:
 	var tree := get_tree()
