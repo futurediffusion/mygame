@@ -194,7 +194,7 @@ func _ready() -> void:
 	if footstep_sfx == null:
 		missing_audio_nodes.append("FootstepSFX")
 	if not missing_audio_nodes.is_empty():
-		var missing_list: String = missing_audio_nodes.join(", ")
+		var missing_list: String = ", ".join(PackedStringArray(missing_audio_nodes))
 		LoggerService.warn(LOGGER_CONTEXT, "Nodos de audio faltantes (%s); SFX de jugador desactivados." % missing_list)
 
 	_cache_collider_defaults()
