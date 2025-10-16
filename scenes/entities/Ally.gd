@@ -31,6 +31,8 @@ enum State {
 @export var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 @export var snap_len: float = 0.3
 @export var sprint_enabled: bool = true
+@export var face_lerp: float = 0.18
+@export var model_forward_correction_deg: float = 0.0
 @export_enum("sword", "unarmed", "ranged") var weapon_kind: String = "sword"
 @export var player_visual_preset: PackedScene
 
