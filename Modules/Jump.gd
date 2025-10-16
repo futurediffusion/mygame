@@ -154,10 +154,6 @@ func _get_last_on_floor_time() -> float:
 
 func _do_jump(now_s: float) -> void:
 	var final_speed := jump_speed
-	if _owner_body != null and is_instance_valid(_owner_body) and _owner_body.has_method("consume_perfect_jump_scale"):
-		var perfect_scale := float(_owner_body.consume_perfect_jump_scale())
-		if perfect_scale > 0.0:
-			final_speed *= perfect_scale
 	_cache_floor_snap_target()
 	_owner_body.floor_snap_length = 0.0
 	if "snap_len" in _owner_body:

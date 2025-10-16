@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=4 uid="uid://dg70n4q4hda07"]
+[gd_scene load_steps=16 format=4 uid="uid://dg70n4q4hda07"]
 
 [ext_resource type="Script" uid="uid://1702mvf8w8cf" path="res://scenes/entities/Ally.gd" id="1_wx4v5"]
 [ext_resource type="Texture2D" uid="uid://uh7te6p55l03" path="res://art/characters/animations1_player2.png" id="2_rofai"]
@@ -9,7 +9,6 @@
 [ext_resource type="Script" uid="uid://dodge4n2u1r" path="res://Modules/DodgeModule.gd" id="6_dodge"]
 [ext_resource type="Script" uid="uid://buk7idb8jq37n" path="res://Modules/AnimationCtrl.gd" id="7_animctrl"]
 [ext_resource type="Script" uid="uid://ccjixfvtuv4yr" path="res://Modules/StateMachine.gd" id="8_fsm"]
-[ext_resource type="Script" uid="uid://dpr2epmd50orb" path="res://Modules/PerfectJumpCombo.gd" id="9_combo"]
 [ext_resource type="Script" uid="uid://l3svqyefmtjn" path="res://scripts/ally/AllyBrain.gd" id="10_brain"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_62j5s"]
@@ -176,9 +175,6 @@ radius = 1.5
 collision_layer = 2
 collision_mask = 29
 script = ExtResource("1_wx4v5")
-
-[node name="PerfectJumpCombo" type="Node" parent="."]
-script = ExtResource("9_combo")
 
 [node name="AllyBrain" type="Node" parent="."]
 script = ExtResource("10_brain")

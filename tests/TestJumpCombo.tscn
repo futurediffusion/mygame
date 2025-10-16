@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3 uid="uid://chkpgk8swpk7w"]
-
-[ext_resource type="Script" uid="uid://blo7brc12s1ln" path="res://tests/TestJumpCombo.gd" id="1"]
-
-[node name="TestJumpCombo" type="Node"]
-script = ExtResource("1")
