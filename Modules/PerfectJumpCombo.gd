@@ -155,17 +155,15 @@ func _apply_bonus() -> void:
 		_player.apply_perfect_jump_bonus(speed_mult, jump_mult)
 
 func _resolve_jump_node(player: Node) -> Object:
-	if player.has_node("Modules/Jump"):
-		var module_jump := player.get_node_or_null("Modules/Jump")
-		if module_jump != null and is_instance_valid(module_jump):
-			return module_jump
-	if player.has_node("Jump"):
-		var direct_jump := player.get_node_or_null("Jump")
-		if direct_jump != null and is_instance_valid(direct_jump):
-			return direct_jump
-	if "m_jump" in player:
-		var member_jump: Node = player.get("m_jump") as Node
-		if member_jump != null and is_instance_valid(member_jump):
+	var module_jump := player.get_node_or_null("Modules/Jump")
+	if module_jump != null and is_instance_valid(module_jump):
+		return module_jump
+	var direct_jump := player.get_node_or_null("Jump")
+	if direct_jump != null and is_instance_valid(direct_jump):
+		return direct_jump
+	if _has_property(player, "m_jump"):
+		var member_jump := player.get("m_jump")
+		if member_jump is Node and is_instance_valid(member_jump):
 			return member_jump
 	return null
 
@@ -179,6 +177,14 @@ func _resolve_capabilities() -> void:
 		var caps_variant: Variant = carrier.get("capabilities")
 		if caps_variant is Capabilities:
 			capabilities = caps_variant
+
+func _has_property(target: Object, property_name: StringName) -> bool:
+	if target == null or not is_instance_valid(target):
+		return false
+	for property_info in target.get_property_list():
+		if property_info.get("name", StringName()) == property_name:
+			return true
+	return false
 
 func _max_jump_level() -> int:
 	return max(max_combo, 1)
