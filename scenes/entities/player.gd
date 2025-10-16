@@ -13,6 +13,7 @@ signal context_state_changed(new_state: int, previous_state: int)
 signal talk_requested()
 signal sit_toggled(is_sitting: bool)
 signal interact_requested()
+signal landed(impact: float)
 signal combat_mode_switched(mode: String)
 signal build_mode_toggled(is_building: bool)
 
@@ -68,6 +69,9 @@ const FORCED_SNEAK_HEADROOM_INTERVAL := 0.1
 @export_group("Input Buffering")
 @export_range(0.0, 0.5, 0.01) var coyote_time: float = GameConstants.DEFAULT_COYOTE_TIME_S
 @export_range(0.0, 0.5, 0.01) var jump_buffer: float = GameConstants.DEFAULT_JUMP_BUFFER_S
+
+@export_group("Perfect Jump")
+@export_range(0.0, 1.0, 0.01) var perfect_bonus_duration: float = 0.35
 
 @export_group("Sprint Animation")
 @export_range(1.0, 2.0, 0.05) var sprint_anim_speed_scale: float = GameConstants.DEFAULT_SPRINT_ANIM_SPEED_SCALE
@@ -142,6 +146,11 @@ var _roll_collider_override := false
 var _forced_sneak_check_accumulator := 0.0
 var invulnerable := false
 
+var _perfect_speed_scale := 1.0
+var _perfect_jump_scale := 1.0
+var _perfect_timer := 0.0
+var _was_on_floor_landing := false
+
 # ============================================================================
 # INITIALIZATION
 # ============================================================================
@@ -169,11 +178,8 @@ func _ready() -> void:
 	if m_fsm:
 		m_fsm.setup(self)
 	if combo and is_instance_valid(combo):
-		combo.capabilities = capabilities
+		combo.setup(self)
 	_disable_module_clock_subscription()
-
-	if m_state and not m_state.landed.is_connected(_on_state_landed):
-		m_state.landed.connect(_on_state_landed)
 
 	if anim_tree == null:
 		LoggerService.warn(LOGGER_CONTEXT, "AnimationTree no encontrado; animaciones desactivadas en este modo.")
@@ -188,7 +194,7 @@ func _ready() -> void:
 	if footstep_sfx == null:
 		missing_audio_nodes.append("FootstepSFX")
 	if not missing_audio_nodes.is_empty():
-		LoggerService.warn(LOGGER_CONTEXT, "Nodos de audio faltantes (%s); SFX de jugador desactivados." % ", ".join(missing_audio_nodes))
+		LoggerService.warn(LOGGER_CONTEXT, "Nodos de audio faltantes (%s); SFX de jugador desactivados." % ", ",join(missing_audio_nodes))
 
 	_cache_collider_defaults()
 
@@ -217,7 +223,7 @@ func _ready() -> void:
 		_stamina_ratio_max_since_min = ratio
 
 	_sync_collider_to_context()
-
+	_was_on_floor_landing = is_on_floor()
 
 func _ensure_input_bootstrap() -> void:
 	var tree := get_tree()
@@ -244,8 +250,7 @@ func _on_clock_tick(group: StringName, dt: float) -> void:
 # MAIN PHYSICS LOOP
 # ============================================================================
 func physics_tick(delta: float) -> void:
-	if combo and is_instance_valid(combo):
-		combo.physics_tick(delta)
+	_update_perfect_bonus(delta)
 	var is_paused := false
 	var in_cinematic := false
 	if game_state:
@@ -298,6 +303,7 @@ func physics_tick(delta: float) -> void:
 	else:
 		velocity = Vector3.ZERO
 	move_and_slide()
+	_after_move_and_slide()
 	if m_state:
 		m_state.post_move_update()
 	if m_audio:
@@ -305,12 +311,40 @@ func physics_tick(delta: float) -> void:
 	_consume_sprint_stamina(delta, is_sprinting)
 	_track_stamina_cycle(delta, is_sprinting)
 	_update_forced_sneak_clearance(delta)
+func apply_perfect_jump_bonus(speed_mult: float, jump_mult: float) -> void:
+	_perfect_speed_scale = max(speed_mult, 1.0)
+	_perfect_jump_scale = max(jump_mult, 1.0)
+	_perfect_timer = max(perfect_bonus_duration, 0.0)
 
-func _on_state_landed(_is_hard: bool) -> void:
-	if combo and is_instance_valid(combo):
-		combo.capabilities = capabilities
-		combo.on_landed()
+func get_perfect_speed_scale() -> float:
+	return max(_perfect_speed_scale, 0.0)
 
+func get_perfect_jump_scale() -> float:
+	return max(_perfect_jump_scale, 1.0)
+
+func consume_perfect_jump_scale() -> float:
+	var scale := max(_perfect_jump_scale, 1.0)
+	_perfect_jump_scale = 1.0
+	return scale
+
+func _update_perfect_bonus(delta: float) -> void:
+	if _perfect_timer > 0.0:
+		_perfect_timer = maxf(_perfect_timer - delta, 0.0)
+		if _perfect_timer <= 0.0:
+			_perfect_speed_scale = 1.0
+			if _perfect_jump_scale > 1.0:
+				_perfect_jump_scale = 1.0
+	else:
+		if _perfect_speed_scale != 1.0:
+			_perfect_speed_scale = 1.0
+		if _perfect_jump_scale > 1.0:
+			_perfect_jump_scale = 1.0
+
+func _after_move_and_slide() -> void:
+	var now_on_floor := is_on_floor()
+	if now_on_floor and not _was_on_floor_landing and velocity.y >= 0.0:
+		landed.emit(absf(velocity.y))
+	_was_on_floor_landing = now_on_floor
 
 func should_skip_module_updates() -> bool:
 	return _skip_module_updates

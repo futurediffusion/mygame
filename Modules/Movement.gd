@@ -15,7 +15,6 @@ var player: CharacterBody3D
 var capabilities: Capabilities
 var _move_dir: Vector3 = Vector3.ZERO
 var _is_sprinting: bool = false
-var _combo: PerfectJumpCombo
 var _state_machine: StateMachineModule
 var _max_slope_deg: float = 50.0
 var _current_slope_speed: float = 1.0
@@ -81,11 +80,12 @@ func _update_horizontal_velocity(delta: float) -> void:
 		target_speed *= max(fast_fall_speed_multiplier, 1.0)
 	if _is_sprinting and on_floor:
 		target_speed = sprint_speed
-	var combo_speed_mul: float = 1.0
-	var combo := _get_combo()
-	if combo:
-		combo_speed_mul = combo.speed_multiplier()
-	target_speed = max(target_speed, 0.0) * speed_multiplier * combo_speed_mul * _current_slope_speed
+	var perfect_speed_scale := 1.0
+	if player != null and is_instance_valid(player) and player.has_method("get_perfect_speed_scale"):
+		var scale_value := float(player.get_perfect_speed_scale())
+		if scale_value > 0.0:
+			perfect_speed_scale = scale_value
+	target_speed = max(target_speed, 0.0) * speed_multiplier * perfect_speed_scale * _current_slope_speed
 	var want := Vector2.ZERO
 	if _move_dir.length_squared() > 0.0001:
 		var flattened := Vector2(_move_dir.x, _move_dir.z)
@@ -100,7 +100,6 @@ func _update_horizontal_velocity(delta: float) -> void:
 		current = current.move_toward(Vector2.ZERO, ground_friction * delta)
 	player.velocity.x = current.x
 	player.velocity.z = current.y
-
 
 func _resolve_state_machine() -> StateMachineModule:
 	if player == null or not is_instance_valid(player):
@@ -118,19 +117,6 @@ func _resolve_state_machine() -> StateMachineModule:
 	if direct != null:
 		_state_machine = direct
 	return _state_machine
-
-func _get_combo() -> PerfectJumpCombo:
-	if player == null or not is_instance_valid(player):
-		return null
-	if _combo and is_instance_valid(_combo):
-		return _combo
-	if "combo" in player:
-		var player_combo := player.combo as PerfectJumpCombo
-		if player_combo != null and is_instance_valid(player_combo):
-			_combo = player_combo
-			return _combo
-	_combo = player.get_node_or_null("PerfectJumpCombo") as PerfectJumpCombo
-	return _combo
 
 func _should_apply_velocity() -> bool:
 	var fsm := _resolve_state_machine()
