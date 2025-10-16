@@ -40,6 +40,7 @@ const FORCED_SNEAK_HEADROOM_INTERVAL := 0.1
 @onready var footstep_sfx: AudioStreamPlayer3D = get_node_or_null(^"FootstepSFX") as AudioStreamPlayer3D
 
 @export var stats: AllyStats
+@export var capabilities: Capabilities
 
 @export var sim_group: StringName = SIMCLOCK_SCRIPT.GROUP_LOCAL
 @export var priority: int = 10
@@ -109,6 +110,7 @@ const FORCED_SNEAK_HEADROOM_INTERVAL := 0.1
 @onready var m_anim: AnimationCtrlModule = $Modules/AnimationCtrl
 @onready var m_audio: AudioCtrlModule = $Modules/AudioCtrl
 @onready var m_dodge: DodgeModule = $Modules/Dodge
+@onready var m_fsm: StateMachineModule = $Modules/StateMachine
 
 var input_buffer: InputBuffer
 
@@ -146,6 +148,8 @@ var invulnerable := false
 func _ready() -> void:
 	if stats == null:
 		stats = AllyStats.new()
+	if capabilities == null:
+		capabilities = Capabilities.new()
 	_ensure_input_bootstrap()
 	_initialize_input_components()
 	_sprint_threshold = run_speed * 0.4
@@ -162,6 +166,8 @@ func _ready() -> void:
 		m.setup(self)
 	if m_dodge:
 		m_dodge.setup(self, m_anim, m_audio)
+	if m_fsm:
+		m_fsm.setup(self)
 	_disable_module_clock_subscription()
 
 	if m_state and not m_state.landed.is_connected(_on_state_landed):
@@ -253,9 +259,17 @@ func physics_tick(delta: float) -> void:
 	var is_sprinting := false
 	if allow_input:
 		is_sprinting = _update_sprint_state(delta, input_dir)
-	m_movement.set_frame_input(input_dir, is_sprinting)
+	var want_roll := allow_input and Input.is_action_just_pressed("roll")
+	var want_attack := allow_input and Input.is_action_just_pressed("attack")
+	var want_jump := allow_input and Input.is_action_just_pressed("jump")
+	if m_fsm != null and is_instance_valid(m_fsm):
+		m_fsm.set_intents(input_dir, is_sprinting, want_roll, want_attack, want_jump)
+	else:
+		if m_movement:
+			m_movement.set_frame_input(input_dir, is_sprinting)
+		if m_orientation:
+			m_orientation.set_frame_input(input_dir)
 	_sprint_threshold = run_speed * 0.4
-	m_orientation.set_frame_input(input_dir)
 	var air_time := 0.0
 	if m_jump and m_jump.has_method("get_air_time"):
 		air_time = m_jump.get_air_time()
@@ -265,6 +279,8 @@ func physics_tick(delta: float) -> void:
 	if context_detector:
 		context_detector.update_frame(_is_sitting, _talk_active, _is_sneaking or _forced_sneak, is_on_floor())
 	if not _skip_module_updates:
+		if m_fsm:
+			m_fsm.physics_tick(delta)
 		if m_state:
 			m_state.pre_move_update(delta)
 		if m_jump:
@@ -290,6 +306,7 @@ func physics_tick(delta: float) -> void:
 
 func _on_state_landed(_is_hard: bool) -> void:
 	if combo and is_instance_valid(combo):
+		combo.capabilities = capabilities
 		combo.on_landed()
 
 
@@ -380,7 +397,7 @@ func _initialize_input_components() -> void:
 	_sync_collider_to_context()
 
 func _disable_module_clock_subscription() -> void:
-	for module in [m_state, m_jump, m_movement, m_orientation, m_anim, m_audio, m_dodge]:
+	for module in [m_state, m_jump, m_movement, m_orientation, m_anim, m_audio, m_dodge, m_fsm]:
 		if module == null or not is_instance_valid(module):
 			continue
 		if module.has_method("set_clock_subscription"):

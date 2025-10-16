@@ -3,6 +3,7 @@ class_name OrientationModule
 
 var player: CharacterBody3D
 var model: Node3D
+var capabilities: Capabilities
 var face_lerp := 0.18
 var model_forward_correction_deg := 0.0
 var _model_correction_rad := 0.0
@@ -23,6 +24,10 @@ func setup(p: CharacterBody3D) -> void:
 		_max_tilt_rad = deg_to_rad(50.0)
 	_last_surface_normal = Vector3.UP
 	_last_yaw_angle = 0.0
+	if "capabilities" in p:
+		var caps_variant: Variant = p.get("capabilities")
+		if caps_variant is Capabilities:
+			capabilities = caps_variant
 
 ## Registra el input direccional que usará la orientación en el siguiente tick.
 ## - `input_dir`: Vector3 normalizado en XZ que representa la dirección objetivo del modelo.
@@ -30,6 +35,8 @@ func setup(p: CharacterBody3D) -> void:
 func set_frame_input(input_dir: Vector3) -> void:
 	assert(input_dir.is_finite(), "OrientationModule.set_frame_input recibió un input_dir no finito.")
 	assert(absf(input_dir.length()) <= 1.1, "OrientationModule.set_frame_input espera un vector normalizado (<= 1.1).")
+	if capabilities != null and not capabilities.can_move:
+		input_dir = Vector3.ZERO
 	_input_dir = input_dir
 
 func physics_tick(delta: float) -> void:
