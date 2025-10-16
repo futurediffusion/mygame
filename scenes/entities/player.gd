@@ -168,6 +168,8 @@ func _ready() -> void:
 		m_dodge.setup(self, m_anim, m_audio)
 	if m_fsm:
 		m_fsm.setup(self)
+	if combo and is_instance_valid(combo):
+		combo.capabilities = capabilities
 	_disable_module_clock_subscription()
 
 	if m_state and not m_state.landed.is_connected(_on_state_landed):
