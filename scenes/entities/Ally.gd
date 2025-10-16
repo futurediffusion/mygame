@@ -16,6 +16,7 @@ enum State {
 
 @export var state: State = State.IDLE
 @export var stats: AllyStats
+@export var capabilities: Capabilities
 @export var move_speed_base: float = 5.0
 @export var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
 @export var sprint_enabled: bool = true
@@ -69,6 +70,8 @@ var _active_state: AllyState = null
 func _ready() -> void:
 	if stats == null:
 		stats = AllyStats.new()
+	if capabilities == null:
+		capabilities = Capabilities.new()
 	_last_state = state
 	if player_visual_preset != null and _model_root != null:
 		_swap_visual(player_visual_preset)
