@@ -138,7 +138,7 @@ func _on_landed(_impact: float) -> void:
 		_armed = false
 		return
 	var elapsed := Time.get_ticks_msec() - _last_jump_time_ms
-		var window: int = max(_window_ms, 0)
+	var window: int = max(_window_ms, 0)
 	if elapsed <= window:
 		register_jump(true)
 		_apply_bonus()
@@ -149,8 +149,8 @@ func _on_landed(_impact: float) -> void:
 func _apply_bonus() -> void:
 	if _player == null or not is_instance_valid(_player):
 		return
-		var speed_mult: float = max(bonus_speed, 1.0)
-		var jump_mult: float = max(bonus_jump, 1.0)
+	var speed_mult: float = max(bonus_speed, 1.0)
+	var jump_mult: float = max(bonus_jump, 1.0)
 	if _player.has_method("apply_perfect_jump_bonus"):
 		_player.apply_perfect_jump_bonus(speed_mult, jump_mult)
 
