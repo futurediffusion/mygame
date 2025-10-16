@@ -19,6 +19,8 @@ var _orientation: OrientationModule
 var _capabilities: Capabilities
 
 var _current_state: State = State.IDLE
+var _previous_state: State = State.IDLE
+var _state_changed_this_tick: bool = false
 var _intent_move_dir: Vector3 = Vector3.ZERO
 var _intent_is_sprinting: bool = false
 var _intent_want_dodge: bool = false
@@ -50,12 +52,15 @@ func change_state(new_state: State) -> void:
 	if new_state == _current_state:
 		return
 	var previous := _current_state
+	_previous_state = previous
 	_current_state = new_state
+	_state_changed_this_tick = true
 	state_changed.emit(new_state, previous)
 
 func physics_tick(_dt: float) -> void:
 	if _owner_body == null or not is_instance_valid(_owner_body):
 		return
+	_state_changed_this_tick = false
 	_refresh_capabilities()
 	if _owner_body.has_method("should_skip_module_updates") and _owner_body.should_skip_module_updates():
 		_apply_movement(Vector3.ZERO, false)
@@ -85,7 +90,7 @@ func _apply_dodge_intent(move_dir: Vector3) -> bool:
 	var desired_dir := move_dir
 	if desired_dir.length_squared() < 0.0001:
 		desired_dir = _default_forward_dir()
-	return _dodge.request_roll(desired_dir)
+	return _dodge.start_dodge(desired_dir)
 
 func _apply_jump_intent() -> bool:
 	if not _intent_want_jump:
@@ -160,6 +165,22 @@ func _fetch_module(name: String) -> Node:
 		if from_modules != null and is_instance_valid(from_modules):
 			return from_modules
 	return _owner_body.get_node_or_null(name)
+
+
+func get_state() -> State:
+	return _current_state
+
+func get_move_intent() -> Vector3:
+	return _sanitize_move_dir(_intent_move_dir)
+
+func get_previous_state() -> State:
+	return _previous_state
+
+func just_entered(state: State) -> bool:
+	return _state_changed_this_tick and _current_state == state
+
+func is_in_state(state: State) -> bool:
+	return _current_state == state
 
 func _refresh_capabilities() -> void:
 	if _owner_body == null or not is_instance_valid(_owner_body):

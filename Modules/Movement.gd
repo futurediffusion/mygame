@@ -16,6 +16,7 @@ var capabilities: Capabilities
 var _move_dir: Vector3 = Vector3.ZERO
 var _is_sprinting: bool = false
 var _combo: PerfectJumpCombo
+var _state_machine: StateMachineModule
 var _max_slope_deg: float = 50.0
 var _current_slope_speed: float = 1.0
 var _slope_lerp_speed: float = 6.0
@@ -68,6 +69,8 @@ func physics_tick(delta: float) -> void:
 		return
 	if player.has_method("should_skip_module_updates") and player.should_skip_module_updates():
 		return
+	if not _should_apply_velocity():
+		return
 	_update_horizontal_velocity(delta)
 
 func _update_horizontal_velocity(delta: float) -> void:
@@ -98,6 +101,24 @@ func _update_horizontal_velocity(delta: float) -> void:
 	player.velocity.x = current.x
 	player.velocity.z = current.y
 
+
+func _resolve_state_machine() -> StateMachineModule:
+	if player == null or not is_instance_valid(player):
+		_state_machine = null
+		return null
+	if _state_machine != null and is_instance_valid(_state_machine):
+		return _state_machine
+	var modules_node := player.get_node_or_null("Modules")
+	if modules_node != null and is_instance_valid(modules_node):
+		var module_candidate := modules_node.get_node_or_null("StateMachine") as StateMachineModule
+		if module_candidate != null:
+			_state_machine = module_candidate
+			return _state_machine
+	var direct := player.get_node_or_null("StateMachine") as StateMachineModule
+	if direct != null:
+		_state_machine = direct
+	return _state_machine
+
 func _get_combo() -> PerfectJumpCombo:
 	if player == null or not is_instance_valid(player):
 		return null
@@ -110,6 +131,12 @@ func _get_combo() -> PerfectJumpCombo:
 			return _combo
 	_combo = player.get_node_or_null("PerfectJumpCombo") as PerfectJumpCombo
 	return _combo
+
+func _should_apply_velocity() -> bool:
+	var fsm := _resolve_state_machine()
+	if fsm != null and is_instance_valid(fsm):
+		return not fsm.is_in_state(StateMachineModule.State.DODGE)
+	return true
 
 func _update_slope_speed(on_floor: bool, delta: float) -> void:
 	var target_speed_mul := 1.0
