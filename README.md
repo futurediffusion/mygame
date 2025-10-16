@@ -34,6 +34,7 @@
 - `OrientationModule`: rotación del modelo según input con corrección de inclinación limitada al ángulo máximo del jugador.【F:Modules/Orientation.gd†L1-L87】
 - `AnimationCtrlModule`: controla AnimationTree (Locomotion/Sprint/Sneak/Air), OneShots de salto y blends de sigilo.【F:Modules/AnimationCtrl.gd†L1-L200】
 - `AudioCtrlModule`: efectos de pasos, salto y aterrizaje con temporizador opcional y perfiles de pitch/volumen para caminar o sigilo.【F:Modules/AudioCtrl.gd†L1-L123】
+- `DodgeModule`: ejecuta rodadas con consumo de stamina, ventanas de i-frames y restauración de `floor_snap`, tomando dirección de la FSM si no hay input explícito.【F:Modules/DodgeModule.gd†L1-L240】【F:Modules/StateMachine.gd†L24-L118】
 - `PerfectJumpCombo`: seguimiento del combo y multiplicadores.【F:Modules/PerfectJumpCombo.gd†L1-L120】
 
 ### Aliados y FSM (`scenes/entities/Ally.gd` + `scripts/ally/AllyBrain.gd`)
@@ -41,6 +42,7 @@
 
 ### Datos y progresión (`Singletons/Data.gd`, `Resources/AllyStats.gd`, `data/ally_archetypes.json`)
 - `Data` carga arquetipos JSON, fusiona defaults y fabrica `AllyStats` completos (base + skills + crecimiento). `AllyStats` gestiona límites, decaimientos por repetición y registro de ciclos de stamina. `TestDataIsolation` asegura respuestas inmutables.【F:Singletons/Data.gd†L1-L160】【F:Resources/AllyStats.gd†L1-L260】【F:data/ally_archetypes.json†L1-L120】【F:tests/TestDataIsolation.gd.uid†L1-L1】
+- `Capabilities` define banderas para permitir movimiento, salto, esquiva y ataques; Player, Ally y sus módulos lo consultan para bloquear acciones temporalmente.【F:Resources/Capabilities.gd†L1-L8】【F:scenes/entities/player.gd†L40-L168】【F:Modules/Movement.gd†L1-L63】【F:Modules/Jump.gd†L1-L88】【F:Modules/DodgeModule.gd†L1-L140】【F:Modules/StateMachine.gd†L1-L120】【F:scenes/entities/Ally.gd†L19-L120】
 
 ### UI y eventos (`Singletons/EventBus.gd`, `scenes/ui/HUD.gd`)
 - `EventBus` define señales globales (HUD, stamina, guardado) y `HUD` sólo se conecta al mensaje correspondiente, garantizando desacoplamiento.【F:Singletons/EventBus.gd†L1-L16】【F:scenes/ui/HUD.gd†L1-L28】
@@ -72,6 +74,7 @@ res://
 - `res://tests/TestClock.tscn`: comprueba orden de prioridad del `SimClock` mediante módulos dummy.【F:tests/TestClock.gd†L1-L28】
 - `res://tests/TestFastFall.tscn`: valida multiplicadores de caída rápida y velocidades horizontal/terrestre.【F:tests/TestFastFall.gd†L1-L70】
 - `res://tests/TestJumpCombo.tscn`: asegura progresión del combo perfecto hasta nivel 100 y reseteos correctos.【F:tests/TestJumpCombo.gd†L1-L80】
+- `res://tests/TestAllyStats.tscn`: cubre validaciones de `AllyStats`, disparando advertencias ante claves inválidas y asegurando clamps de estadísticas.【F:tests/TestAllyStats.gd†L1-L25】
 
 Ejecuta cada prueba en modo headless con:
 ```

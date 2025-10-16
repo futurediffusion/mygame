@@ -9,9 +9,11 @@
 - Todo módulo derivado de `ModuleBase` se registra en `SimClock` y recibe ticks por grupo/priority. No reintroduzcas `_physics_process` en módulos; usa `physics_tick(dt)` y deja que el `SimClock` llame al flujo correcto.【F:Modules/ModuleBase.gd†L1-L47】【F:Singletons/SimClock.gd†L1-L82】
 - El jugador orquesta a sus módulos en este orden: `State.pre_move_update()` → `Jump.physics_tick()` → `Movement.physics_tick()` → `Orientation.physics_tick()` → `AnimationCtrl.physics_tick()` → `move_and_slide()` → `State.post_move_update()` → `AudioCtrl.physics_tick()`. Respeta el orden para conservar coyote, fast fall y sincronía de animaciones.【F:scenes/entities/player.gd†L200-L286】
 - Aliados usan `AllyBrain.update_intents()` para alimentar el `StateMachineModule` y luego coordinan Movement/Orientation/Dodge/Animation antes de `move_and_slide()` dentro de `physics_tick()`. No llames `move_and_slide()` desde módulos ni desde la FSM.【F:scenes/entities/Ally.gd†L60-L220】【F:scripts/ally/AllyBrain.gd†L1-L80】【F:Modules/StateMachine.gd†L1-L210】
+- `DodgeModule` consume stamina, abre ventanas de invulnerabilidad y preserva `floor_snap`; la FSM le entrega dirección y mientras `is_rolling()` esté activo Movement debe abstenerse de aplicar velocidad horizontal.【F:Modules/DodgeModule.gd†L1-L240】【F:Modules/StateMachine.gd†L24-L118】【F:Modules/Movement.gd†L1-L88】【F:scenes/entities/player.gd†L120-L360】
 
 ## Buenas prácticas a mantener
 - Usa `class_name` en scripts reutilizables (módulos, recursos, autoloads) y conserva la indentación con tabs en GDScript.【F:Modules/Movement.gd†L1-L86】【F:Resources/AllyStats.gd†L1-L120】
+- `Capabilities` centraliza qué acciones están habilitadas; Player, Ally y módulos lo consultan. Si agregas habilidades nuevas, extiende el recurso y respeta estos checks antes de permitir acciones.【F:Resources/Capabilities.gd†L1-L8】【F:scenes/entities/player.gd†L40-L170】【F:Modules/Jump.gd†L1-L88】【F:Modules/DodgeModule.gd†L1-L140】【F:scenes/entities/Ally.gd†L19-L130】
 - Bootstrap de input: cualquier acción nueva debe agregarse en `scripts/bootstrap/InputSetup.gd`. El Player invoca este nodo diferido; evita duplicar lógica de InputMap en otros sitios.【F:scripts/bootstrap/InputSetup.gd†L1-L64】【F:scenes/entities/player.gd†L95-L140】
 - La UI se comunica por `EventBus`; conecta nuevas capas al bus y evita referencias directas entre HUD y gameplay.【F:Singletons/EventBus.gd†L1-L16】【F:scenes/ui/HUD.gd†L1-L28】
 - Stats y progresión vienen de `AllyStats` + `Data.gd`. Si ajustas atributos/skills, modifica `ally_archetypes.json` y deja que `Data.make_stats_from_archetype()` aplique defaults y overrides.【F:Singletons/Data.gd†L1-L160】【F:data/ally_archetypes.json†L1-L120】
@@ -28,6 +30,7 @@
 - `godot --headless --run res://tests/TestFastFall.tscn` — valida fast fall, gravedad y velocidades.【F:tests/TestFastFall.gd†L1-L70】
 - `godot --headless --run res://tests/TestJumpCombo.tscn` — comprueba la progresión del combo perfecto.【F:tests/TestJumpCombo.gd†L1-L80】
 - `godot --headless --run res://tests/TestClock.tscn` — confirma prioridades de `SimClock`.【F:tests/TestClock.gd†L1-L28】
+- `godot --headless --run res://tests/TestAllyStats.tscn` — asegura clamps y advertencias en `AllyStats`.【F:tests/TestAllyStats.gd†L1-L25】
 
 ## Checklist antes de comitear
 1. Tabs consistentes en GDScript y `class_name` presente cuando aplique.【F:Modules/Movement.gd†L1-L86】
