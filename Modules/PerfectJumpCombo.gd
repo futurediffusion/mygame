@@ -1,7 +1,7 @@
 extends Node
 class_name PerfectJumpCombo
 
-@export var perfect_window: float = 0.06
+@export var perfect_window: float = 0.15
 @export var combo_curve_gamma: float = 0.5
 @export var combo_speed_bonus_max: float = 3.0
 @export_range(1.0, 2.0, 0.01) var combo_jump_bonus_max: float = 2.0

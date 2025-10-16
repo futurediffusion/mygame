@@ -156,15 +156,12 @@ func _get_last_on_floor_time() -> float:
 func _do_jump(now_s: float) -> void:
 	var final_speed := jump_speed
 	var combo := _get_combo()
+	var was_perfect := false
 	if combo != null:
 		if capabilities != null and combo.capabilities == null:
 			combo.capabilities = capabilities
-		var was_perfect := combo.is_in_perfect_window()
-		if was_perfect:
-			combo.register_perfect()
-		else:
-			combo.register_failed_jump()
 		final_speed *= combo.jump_multiplier()
+		was_perfect = combo.is_in_perfect_window()
 	_cache_floor_snap_target()
 	_owner_body.floor_snap_length = 0.0
 	if "snap_len" in _owner_body:
@@ -177,6 +174,11 @@ func _do_jump(now_s: float) -> void:
 	_last_jump_time_s = now_s
 	_last_on_floor_time_s = -1.0
 	_air_time = 0.0
+	if combo != null:
+		if was_perfect:
+			combo.register_perfect()
+		else:
+			combo.register_failed_jump()
 	if _state != null and is_instance_valid(_state):
 		_state.emit_jumped()
 	_trigger_jump_animation()

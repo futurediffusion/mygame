@@ -90,6 +90,7 @@ var _block_animation_updates := false
 var _talk_active := false
 var _is_sitting := false
 var invulnerable := false
+var _was_on_floor_combo: bool = false
 
 func _ready() -> void:
 	if stats == null:
@@ -118,6 +119,7 @@ func _ready() -> void:
 		combo.capabilities = capabilities
 	if brain != null and is_instance_valid(brain):
 		brain.set_ally(self)
+	_was_on_floor_combo = is_on_floor()
 	var clock := _get_simclock()
 	if clock:
 		clock.register_module(self, sim_group, priority)
@@ -150,7 +152,15 @@ func physics_tick(dt: float) -> void:
 		m_orientation.physics_tick(dt)
 	if m_anim != null and is_instance_valid(m_anim) and not _block_animation_updates:
 		m_anim.physics_tick(dt)
+	var was_on_floor := _was_on_floor_combo
 	move_and_slide()
+	var on_floor_now := is_on_floor()
+	if combo != null and is_instance_valid(combo):
+		if combo.capabilities == null and capabilities != null:
+			combo.capabilities = capabilities
+		if not was_on_floor and on_floor_now:
+			combo.on_landed()
+	_was_on_floor_combo = on_floor_now
 	_track_stamina_cycle(dt)
 
 func _update_vertical_motion(dt: float) -> void:
