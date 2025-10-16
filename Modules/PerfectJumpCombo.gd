@@ -13,6 +13,8 @@ var _was_on_floor: bool = false
 var _landed_timer: float = 0.0
 var _combo_count: int = 0
 
+var capabilities: Capabilities
+
 signal combo_changed(value: int)
 signal perfect_jump()
 signal combo_reset()
@@ -21,6 +23,7 @@ func _ready() -> void:
 	_body = _resolve_body()
 	if _body != null and _body.is_on_floor():
 		_was_on_floor = true
+	_resolve_capabilities()
 
 func physics_tick(delta: float) -> void:
 	var body := _get_body()
@@ -42,6 +45,8 @@ func on_landed() -> void:
 	_was_on_floor = true
 
 func register_jump(was_perfect: bool) -> void:
+	if capabilities != null and not capabilities.can_jump:
+		return
 	if was_perfect:
 		var previous := _combo_count
 		_combo_count = min(_combo_count + 1, MAX_JUMP_LEVEL)
@@ -118,6 +123,7 @@ func _get_body() -> CharacterBody3D:
 	if _body != null and is_instance_valid(_body):
 		return _body
 	_body = _resolve_body()
+	_resolve_capabilities()
 	return _body
 
 func _resolve_body() -> CharacterBody3D:
@@ -128,3 +134,14 @@ func _resolve_body() -> CharacterBody3D:
 	if candidate is CharacterBody3D and is_instance_valid(candidate):
 		return candidate
 	return null
+func _resolve_capabilities() -> void:
+	var carrier: Object = _body
+	if carrier == null or not is_instance_valid(carrier):
+		carrier = owner
+	if carrier == null:
+		return
+	if "capabilities" in carrier:
+		var caps_variant: Variant = carrier.get("capabilities")
+		if caps_variant is Capabilities:
+			capabilities = caps_variant
+

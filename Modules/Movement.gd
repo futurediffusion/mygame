@@ -12,6 +12,7 @@ var sprint_speed: float = GameConstants.DEFAULT_SPRINT_SPEED
 var speed_multiplier: float = 1.0
 
 var player: CharacterBody3D
+var capabilities: Capabilities
 var _move_dir: Vector3 = Vector3.ZERO
 var _is_sprinting: bool = false
 var _combo: PerfectJumpCombo
@@ -41,6 +42,10 @@ func setup(p: CharacterBody3D) -> void:
 		fast_fall_speed_multiplier = max(player.fast_fall_speed_multiplier, 1.0)
 	if "max_slope_deg" in player:
 		_max_slope_deg = clampf(player.max_slope_deg, 0.0, 50.0)
+	if "capabilities" in player:
+		var caps_variant: Variant = player.get("capabilities")
+		if caps_variant is Capabilities:
+			capabilities = caps_variant
 
 ## Registra el input de movimiento del frame actual.
 ## - `input_dir`: Vector3 (normalizado o cercano a 1) que indica la dirección deseada en el plano XZ.
@@ -49,6 +54,9 @@ func setup(p: CharacterBody3D) -> void:
 func set_frame_input(input_dir: Vector3, is_sprinting: bool) -> void:
 	assert(input_dir.is_finite(), "MovementModule.set_frame_input recibió un input_dir no finito.")
 	assert(absf(input_dir.length()) <= 1.1, "MovementModule.set_frame_input espera un vector normalizado (<= 1.1).")
+	if capabilities != null and not capabilities.can_move:
+		input_dir = Vector3.ZERO
+		is_sprinting = false
 	_move_dir = input_dir
 	_is_sprinting = is_sprinting
 

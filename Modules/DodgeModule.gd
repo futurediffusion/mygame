@@ -12,12 +12,15 @@ class_name DodgeModule
 var player: CharacterBody3D
 var anim_module: AnimationCtrlModule
 var stamina: Stamina
+var capabilities: Capabilities
 
 var _rolling: bool = false
 var _t: float = 0.0
 var _dir: Vector3 = Vector3.ZERO
 var _saved_floor_snap_len: float = 0.0
 var _has_saved_floor_snap: bool = false
+var _queued_roll_dir: Vector3 = Vector3.ZERO
+var _has_queued_roll: bool = false
 
 func setup(owner_body: CharacterBody3D, animation_ctrl: AnimationCtrlModule = null, _audio_ctrl: AudioCtrlModule = null) -> void:
 	player = owner_body
@@ -31,6 +34,10 @@ func setup(owner_body: CharacterBody3D, animation_ctrl: AnimationCtrlModule = nu
 			anim_module = player.get_node_or_null("AnimationCtrl") as AnimationCtrlModule
 	if "stamina" in player:
 		stamina = player.stamina
+	if "capabilities" in player:
+		var caps_variant: Variant = player.get("capabilities")
+		if caps_variant is Capabilities:
+			capabilities = caps_variant
 
 func physics_tick(dt: float) -> void:
 	if player == null or not is_instance_valid(player):
@@ -41,25 +48,53 @@ func physics_tick(dt: float) -> void:
 		return
 	if _rolling:
 		_update_roll(dt)
-	else:
-		_check_input()
+		return
+	if _has_queued_roll:
+		var queued_dir := _queued_roll_dir
+		_has_queued_roll = false
+		_start_roll(queued_dir)
+		return
+	_check_input()
 
 func is_rolling() -> bool:
 	return _rolling
 
+func can_start_roll() -> bool:
+	if _rolling:
+		return false
+	if player == null or not is_instance_valid(player):
+		return false
+	if capabilities != null and not capabilities.can_dodge:
+		return false
+	if not allow_in_air and not player.is_on_floor():
+		return false
+	return _has_required_stamina()
+
+func request_roll(dir: Vector3) -> bool:
+	if not can_start_roll():
+		return false
+	var desired_dir := dir
+	if desired_dir.length_squared() > 0.0001:
+		desired_dir = desired_dir.normalized()
+	else:
+		desired_dir = _resolve_direction()
+	_has_queued_roll = true
+	_queued_roll_dir = desired_dir
+	return true
+
 func _check_input() -> void:
 	if not Input.is_action_just_pressed("roll"):
 		return
-	if not allow_in_air and not player.is_on_floor():
-		return
-	if not _has_required_stamina():
-		return
-	_start_roll()
+	request_roll(_resolve_direction())
 
-func _start_roll() -> void:
+func _start_roll(dir: Vector3) -> void:
+	if _rolling:
+		return
+	if capabilities != null and not capabilities.can_dodge:
+		return
 	_rolling = true
 	_t = 0.0
-	_dir = _resolve_direction()
+	_dir = dir
 	if _dir.length_squared() > 0.0001:
 		_dir = _dir.normalized()
 	else:
