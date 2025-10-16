@@ -62,7 +62,7 @@ func setup(owner_body: CharacterBody3D, state: StateModule = null, input: InputB
 		_state = owner_body.get_node("Modules/State") as StateModule
 	elif _state == null and owner_body.has_node("State"):
 		_state = owner_body.get_node("State") as StateModule
-_cache_floor_snap_target()
+	_cache_floor_snap_target()
 
 func physics_tick(dt: float) -> void:
 	if _owner_body == null or not is_instance_valid(_owner_body):

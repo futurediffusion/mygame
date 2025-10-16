@@ -194,7 +194,8 @@ func _ready() -> void:
 	if footstep_sfx == null:
 		missing_audio_nodes.append("FootstepSFX")
 	if not missing_audio_nodes.is_empty():
-		LoggerService.warn(LOGGER_CONTEXT, "Nodos de audio faltantes (%s); SFX de jugador desactivados." % ", ",join(missing_audio_nodes))
+		var missing_list: String = missing_audio_nodes.join(", ")
+		LoggerService.warn(LOGGER_CONTEXT, "Nodos de audio faltantes (%s); SFX de jugador desactivados." % missing_list)
 
 	_cache_collider_defaults()
 
@@ -323,7 +324,7 @@ func get_perfect_jump_scale() -> float:
 	return max(_perfect_jump_scale, 1.0)
 
 func consume_perfect_jump_scale() -> float:
-	var scale := max(_perfect_jump_scale, 1.0)
+	var scale: float = max(_perfect_jump_scale, 1.0)
 	_perfect_jump_scale = 1.0
 	return scale
 
