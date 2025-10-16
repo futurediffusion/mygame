@@ -115,7 +115,7 @@ func _default_forward_dir() -> Vector3:
 	if _owner_body == null or not is_instance_valid(_owner_body):
 		return Vector3.ZERO
 	var basis := _owner_body.global_transform.basis
-	var forward := basis.z
+	var forward := -basis.z
 	forward.y = 0.0
 	if forward.length_squared() < 0.0001:
 		forward = Vector3.FORWARD
