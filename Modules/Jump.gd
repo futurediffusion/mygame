@@ -1,6 +1,8 @@
 extends ModuleBase
 class_name JumpModule
 
+signal jump_performed(impulse: float)
+
 @export var jump_speed: float = GameConstants.DEFAULT_JUMP_SPEED
 @export var coyote_time: float = GameConstants.DEFAULT_COYOTE_TIME_S
 @export var max_hold_time: float = GameConstants.DEFAULT_JUMP_HOLD_MAX_S
@@ -15,8 +17,6 @@ var capabilities: Capabilities
 var _owner_body: CharacterBody3D
 var _state: StateModule
 var _input: InputBuffer
-var _combo: PerfectJumpCombo
-
 const PARAM_JUMP: StringName = &"parameters/Jump/request"
 
 var _jumping: bool = false
@@ -62,8 +62,7 @@ func setup(owner_body: CharacterBody3D, state: StateModule = null, input: InputB
 		_state = owner_body.get_node("Modules/State") as StateModule
 	elif _state == null and owner_body.has_node("State"):
 		_state = owner_body.get_node("State") as StateModule
-	_combo = _get_combo()
-	_cache_floor_snap_target()
+_cache_floor_snap_target()
 
 func physics_tick(dt: float) -> void:
 	if _owner_body == null or not is_instance_valid(_owner_body):
@@ -155,13 +154,10 @@ func _get_last_on_floor_time() -> float:
 
 func _do_jump(now_s: float) -> void:
 	var final_speed := jump_speed
-	var combo := _get_combo()
-	var was_perfect := false
-	if combo != null:
-		if capabilities != null and combo.capabilities == null:
-			combo.capabilities = capabilities
-		final_speed *= combo.jump_multiplier()
-		was_perfect = combo.is_in_perfect_window()
+	if _owner_body != null and is_instance_valid(_owner_body) and _owner_body.has_method("consume_perfect_jump_scale"):
+		var perfect_scale := float(_owner_body.consume_perfect_jump_scale())
+		if perfect_scale > 0.0:
+			final_speed *= perfect_scale
 	_cache_floor_snap_target()
 	_owner_body.floor_snap_length = 0.0
 	if "snap_len" in _owner_body:
@@ -174,29 +170,13 @@ func _do_jump(now_s: float) -> void:
 	_last_jump_time_s = now_s
 	_last_on_floor_time_s = -1.0
 	_air_time = 0.0
-	if combo != null:
-		if was_perfect:
-			combo.register_perfect()
-		else:
-			combo.register_failed_jump()
 	if _state != null and is_instance_valid(_state):
 		_state.emit_jumped()
 	_trigger_jump_animation()
 	_play_jump_audio()
 	if camera_rig != null and is_instance_valid(camera_rig) and camera_rig.has_method("_play_jump_kick"):
 		camera_rig.call_deferred("_play_jump_kick")
-
-func _get_combo() -> PerfectJumpCombo:
-	if _combo != null and is_instance_valid(_combo):
-		return _combo
-	if player != null and is_instance_valid(player):
-		if "combo" in player:
-			var player_combo := player.combo as PerfectJumpCombo
-			if player_combo != null and is_instance_valid(player_combo):
-				_combo = player_combo
-				return _combo
-		_combo = player.get_node_or_null("PerfectJumpCombo") as PerfectJumpCombo
-	return _combo
+	jump_performed.emit(final_speed)
 
 func _trigger_jump_animation() -> void:
 	if not _tree_has_param(PARAM_JUMP):

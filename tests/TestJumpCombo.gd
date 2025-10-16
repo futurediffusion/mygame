@@ -1,13 +1,17 @@
 extends Node
 
-class MockBody:
+class MockPlayer:
 	extends CharacterBody3D
+	signal landed(impact: float)
 
 	var jump_velocity: float = 8.5
 	var coyote_time: float = 0.12
 	var gravity: float = 24.8
 	var sim_on_floor: bool = true
-	var combo_node: PerfectJumpCombo
+	var capabilities: Capabilities = Capabilities.new()
+	var perfect_bonus_log: Array[Dictionary] = []
+	var perfect_speed_scale: float = 1.0
+	var perfect_jump_scale: float = 1.0
 
 	func is_on_floor() -> bool:
 		return sim_on_floor
@@ -15,59 +19,80 @@ class MockBody:
 	func should_skip_module_updates() -> bool:
 		return false
 
-	func get_node_or_null(path: NodePath) -> Node:
-		if String(path) == "PerfectJumpCombo" and combo_node != null:
-			return combo_node
-		return null
+	func apply_perfect_jump_bonus(speed_mult: float, jump_mult: float) -> void:
+		perfect_bonus_log.append({"speed": speed_mult, "jump": jump_mult})
+		perfect_speed_scale = speed_mult
+		perfect_jump_scale = jump_mult
 
-	func set_on_floor(value: bool) -> void:
-		sim_on_floor = value
+	func get_perfect_speed_scale() -> float:
+		return perfect_speed_scale
+
+	func consume_perfect_jump_scale() -> float:
+		var value := perfect_jump_scale
+		perfect_jump_scale = 1.0
+		return value
 
 func _ready() -> void:
-	var body := MockBody.new()
+	var body := MockPlayer.new()
+	add_child(body)
+	var modules := Node.new()
+	modules.name = "Modules"
+	body.add_child(modules)
+	var jump_module := JumpModule.new()
+	jump_module.name = "Jump"
+	modules.add_child(jump_module)
+	var state_module := StateModule.new()
+	state_module.setup(body)
+	var input_buffer := InputBuffer.new()
+	body.add_child(input_buffer)
+	input_buffer.jump_buffer_time = body.coyote_time
+	jump_module.setup(body, state_module, input_buffer)
 	var combo := PerfectJumpCombo.new()
-	combo._body = body
-	combo.reset_combo()
-	combo._was_on_floor = true
-	combo._landed_timer = combo.perfect_window
-	body.combo_node = combo
+	combo.name = "PerfectJumpCombo"
+	body.add_child(combo)
+	combo.setup(body)
+	combo.window_ms = 150
 
-	var state := StateModule.new()
-	state.setup(body)
-
-	var input := InputBuffer.new()
-	var jump := JumpModule.new()
-	jump.setup(body, state, input)
-	jump._combo = combo
+	var jump_impulses: Array[float] = []
+	jump_module.jump_performed.connect(func(impulse: float) -> void:
+		jump_impulses.append(impulse)
+	)
+	var perfect_events := 0
+	combo.perfect_jump.connect(func() -> void:
+		perfect_events += 1
+	)
 
 	var now_s := Time.get_ticks_msec() * 0.001
-	input.last_jump_pressed_s = now_s
-	input.jump_is_held = true
-	state.last_on_floor_time_s = now_s
-
+	input_buffer.last_jump_pressed_s = now_s
+	input_buffer.jump_is_held = true
+	state_module.last_on_floor_time_s = now_s
+	body.sim_on_floor = true
 	var dt := 0.016
-	jump.physics_tick(dt)
+	jump_module.physics_tick(dt)
+	assert(jump_impulses.size() == 1, "JumpModule should emit jump_performed when jumping.")
+	assert(is_equal_approx(jump_impulses[0], body.jump_velocity), "Initial impulse should use base jump velocity.")
+	body.landed.emit(body.velocity.y)
+	assert(combo.get_combo() == 1, "Perfect combo should increment after a quick landing.")
+	assert(perfect_events == 1, "Perfect jump event should fire once.")
+	assert(body.perfect_bonus_log.size() == 1, "Perfect bonus should be applied once.")
+	assert(is_equal_approx(body.perfect_speed_scale, combo.bonus_speed), "Speed bonus should match combo configuration.")
+	assert(is_equal_approx(body.perfect_jump_scale, combo.bonus_jump), "Jump bonus should match combo configuration.")
 
-	assert(combo.get_combo() == 1, "Perfect jump should increment combo counter.")
-	assert(combo.jump_multiplier() > 1.0, "Combo multiplier should increase after a perfect jump.")
+	body.sim_on_floor = true
+	input_buffer.last_jump_pressed_s = Time.get_ticks_msec() * 0.001
+	input_buffer.jump_is_held = true
+	state_module.last_on_floor_time_s = Time.get_ticks_msec() * 0.001
+	var expected_bonus := body.perfect_jump_scale
+	jump_module.physics_tick(dt)
+	assert(jump_impulses.size() == 2, "Second jump should also emit an impulse.")
+	assert(is_equal_approx(jump_impulses[1], body.jump_velocity * expected_bonus), "Perfect jump multiplier should modify the next jump impulse.")
+	assert(is_equal_approx(body.perfect_jump_scale, 1.0), "Jump multiplier should reset after being consumed.")
 
-	combo.register_failed_jump()
-	assert(combo.get_combo() == 0, "Failed jumps should reset combo counter.")
-
-	combo.reset_combo()
-	combo._was_on_floor = true
-	combo._landed_timer = combo.perfect_window
-	var previous_multiplier := combo.jump_multiplier()
-	for level in range(combo.get_max_jump_level()):
-		combo.register_jump(true)
-		var current_level := combo.get_jump_level()
-		var current_multiplier := combo.jump_multiplier()
-		assert(current_level == level + 1, "Jump level should advance sequentially.")
-		assert(current_multiplier >= previous_multiplier, "Jump multiplier must not decrease when the combo grows.")
-		previous_multiplier = current_multiplier
-		combo._landed_timer = combo.perfect_window
-	assert(is_equal_approx(combo.jump_multiplier(), combo.combo_jump_bonus_max), "Jump multiplier should reach the configured 200% cap at max level.")
-	assert(combo.get_jump_level() == combo.get_max_jump_level(), "Jump combo should max out at level %d." % combo.get_max_jump_level())
+	combo._last_jump_time_ms -= combo.window_ms + 50
+	body.landed.emit(body.velocity.y)
+	assert(combo.get_combo() == 0, "Late landing should reset the combo.")
+	assert(perfect_events == 1, "No additional perfect jump should trigger on late landing.")
+	assert(body.perfect_bonus_log.size() == 1, "No new bonus should be applied when landing outside the window.")
 
 	print("JUMP_COMBO_OK", combo.get_combo())
 	get_tree().quit()

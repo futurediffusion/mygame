@@ -1,5 +1,6 @@
 extends CharacterBody3D
 class_name Ally
+signal landed(impact: float)
 const SIMCLOCK_SCRIPT := preload("res://Singletons/SimClock.gd")
 const GAME_CONSTANTS := preload("res://scripts/core/GameConstants.gd")
 const LOGGER_CONTEXT := "Ally"
@@ -116,7 +117,7 @@ func _ready() -> void:
 	if m_fsm != null and is_instance_valid(m_fsm):
 		m_fsm.setup(self)
 	if combo != null and is_instance_valid(combo):
-		combo.capabilities = capabilities
+		combo.setup(self)
 	if brain != null and is_instance_valid(brain):
 		brain.set_ally(self)
 	_was_on_floor_combo = is_on_floor()
@@ -131,8 +132,6 @@ func _on_clock_tick(group: StringName, dt: float) -> void:
 		physics_tick(dt)
 
 func physics_tick(dt: float) -> void:
-	if combo != null and is_instance_valid(combo):
-		combo.physics_tick(dt)
 	_update_vertical_motion(dt)
 	_update_air_time(dt)
 	_update_input_cache()
@@ -152,15 +151,8 @@ func physics_tick(dt: float) -> void:
 		m_orientation.physics_tick(dt)
 	if m_anim != null and is_instance_valid(m_anim) and not _block_animation_updates:
 		m_anim.physics_tick(dt)
-	var was_on_floor := _was_on_floor_combo
 	move_and_slide()
-	var on_floor_now := is_on_floor()
-	if combo != null and is_instance_valid(combo):
-		if combo.capabilities == null and capabilities != null:
-			combo.capabilities = capabilities
-		if not was_on_floor and on_floor_now:
-			combo.on_landed()
-	_was_on_floor_combo = on_floor_now
+	_after_move_and_slide()
 	_track_stamina_cycle(dt)
 
 func _update_vertical_motion(dt: float) -> void:
@@ -183,6 +175,12 @@ func _update_input_cache() -> void:
 			"raw": Vector2(flat.x, flat.z)
 		}
 	}
+
+func _after_move_and_slide() -> void:
+	var now_on_floor := is_on_floor()
+	if now_on_floor and not _was_on_floor_combo and velocity.y >= 0.0:
+		landed.emit(absf(velocity.y))
+	_was_on_floor_combo = now_on_floor
 
 func get_brain_intents() -> Dictionary:
 	return {
