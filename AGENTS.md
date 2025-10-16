@@ -17,7 +17,6 @@
 - Bootstrap de input: cualquier acción nueva debe agregarse en `scripts/bootstrap/InputSetup.gd`. El Player invoca este nodo diferido; evita duplicar lógica de InputMap en otros sitios.【F:scripts/bootstrap/InputSetup.gd†L1-L64】【F:scenes/entities/player.gd†L95-L140】
 - La UI se comunica por `EventBus`; conecta nuevas capas al bus y evita referencias directas entre HUD y gameplay.【F:Singletons/EventBus.gd†L1-L16】【F:scenes/ui/HUD.gd†L1-L28】
 - Stats y progresión vienen de `AllyStats` + `Data.gd`. Si ajustas atributos/skills, modifica `ally_archetypes.json` y deja que `Data.make_stats_from_archetype()` aplique defaults y overrides.【F:Singletons/Data.gd†L1-L160】【F:data/ally_archetypes.json†L1-L120】
-- Mantén el combo de salto (`PerfectJumpCombo`) conectado cuando cambies saltos/velocidades: Player delega a `combo.register_jump()` y las pruebas headless lo cubren.【F:Modules/PerfectJumpCombo.gd†L1-L120】【F:tests/TestJumpCombo.gd†L1-L80】
 - Usa `Flags.ALLY_TICK_GROUP` para módulos de aliados y valida prioridades antes de registrar nuevos nodos en el reloj.【F:scripts/core/Flags.gd†L1-L4】【F:scenes/entities/Ally.gd†L1-L60】
 
 ## Prácticas a evitar
@@ -28,7 +27,6 @@
 
 ## Pruebas recomendadas
 - `godot --headless --run res://tests/TestFastFall.tscn` — valida fast fall, gravedad y velocidades.【F:tests/TestFastFall.gd†L1-L70】
-- `godot --headless --run res://tests/TestJumpCombo.tscn` — comprueba la progresión del combo perfecto.【F:tests/TestJumpCombo.gd†L1-L80】
 - `godot --headless --run res://tests/TestClock.tscn` — confirma prioridades de `SimClock`.【F:tests/TestClock.gd†L1-L28】
 - `godot --headless --run res://tests/TestAllyStats.tscn` — asegura clamps y advertencias en `AllyStats`.【F:tests/TestAllyStats.gd†L1-L25】
 
@@ -37,7 +35,7 @@
 2. `SimClock.register_module()` llamado con grupo/prioridad correctos, sin `await` ni `yield`.【F:Modules/ModuleBase.gd†L1-L47】
 3. HUD y eventos pasan por `EventBus`; no hay acoplamientos directos.【F:Singletons/EventBus.gd†L1-L16】
 4. Cambios en estadísticas reflejados en JSON + `Data.gd`; sin hardcodear valores en lógica.【F:Singletons/Data.gd†L1-L160】
-5. Pruebas headless relevantes ejecutadas si se tocó física, SimClock o combo.【F:tests/TestFastFall.gd†L1-L70】【F:tests/TestJumpCombo.gd†L1-L80】
+5. Pruebas headless relevantes ejecutadas si se tocó física o SimClock.【F:tests/TestFastFall.gd†L1-L70】
 6. Player y aliados siguen registrándose al `SimClock`; valida orden de módulos en `player.gd` tras cualquier refactor.【F:scenes/entities/player.gd†L168-L286】
 
 ## Seguimiento de backlog

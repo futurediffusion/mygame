@@ -70,9 +70,6 @@ const FORCED_SNEAK_HEADROOM_INTERVAL := 0.1
 @export_range(0.0, 0.5, 0.01) var coyote_time: float = GameConstants.DEFAULT_COYOTE_TIME_S
 @export_range(0.0, 0.5, 0.01) var jump_buffer: float = GameConstants.DEFAULT_JUMP_BUFFER_S
 
-@export_group("Perfect Jump")
-@export_range(0.0, 1.0, 0.01) var perfect_bonus_duration: float = 0.35
-
 @export_group("Sprint Animation")
 @export_range(1.0, 2.0, 0.05) var sprint_anim_speed_scale: float = GameConstants.DEFAULT_SPRINT_ANIM_SPEED_SCALE
 @export_range(0.0, 1.0, 0.05) var sprint_blend_bias: float = GameConstants.DEFAULT_SPRINT_BLEND_BIAS
@@ -101,7 +98,6 @@ const FORCED_SNEAK_HEADROOM_INTERVAL := 0.1
 @onready var camera_rig: Node = get_node_or_null(^"CameraRig")
 @onready var game_state: GameStateAutoload = get_node_or_null(^"/root/GameState")
 @onready var trigger_area: Area3D = get_node_or_null(^"TriggerArea")
-@onready var combo: PerfectJumpCombo = $PerfectJumpCombo
 @onready var input_handler: PlayerInputHandler = $PlayerInputHandler
 @onready var context_detector: PlayerContextDetector = $PlayerContextDetector
 @onready var collision_shape: CollisionShape3D = get_node_or_null(^"CollisionShape3D")
@@ -146,9 +142,6 @@ var _roll_collider_override := false
 var _forced_sneak_check_accumulator := 0.0
 var invulnerable := false
 
-var _perfect_speed_scale := 1.0
-var _perfect_jump_scale := 1.0
-var _perfect_timer := 0.0
 var _was_on_floor_landing := false
 
 # ============================================================================
@@ -177,9 +170,7 @@ func _ready() -> void:
 		m_dodge.setup(self, m_anim, m_audio)
 	if m_fsm:
 		m_fsm.setup(self)
-	if combo and is_instance_valid(combo):
-		combo.setup(self)
-	_disable_module_clock_subscription()
+_disable_module_clock_subscription()
 
 	if anim_tree == null:
 		LoggerService.warn(LOGGER_CONTEXT, "AnimationTree no encontrado; animaciones desactivadas en este modo.")
@@ -251,7 +242,6 @@ func _on_clock_tick(group: StringName, dt: float) -> void:
 # MAIN PHYSICS LOOP
 # ============================================================================
 func physics_tick(delta: float) -> void:
-	_update_perfect_bonus(delta)
 	var is_paused := false
 	var in_cinematic := false
 	if game_state:
@@ -312,34 +302,6 @@ func physics_tick(delta: float) -> void:
 	_consume_sprint_stamina(delta, is_sprinting)
 	_track_stamina_cycle(delta, is_sprinting)
 	_update_forced_sneak_clearance(delta)
-func apply_perfect_jump_bonus(speed_mult: float, jump_mult: float) -> void:
-	_perfect_speed_scale = max(speed_mult, 1.0)
-	_perfect_jump_scale = max(jump_mult, 1.0)
-	_perfect_timer = max(perfect_bonus_duration, 0.0)
-
-func get_perfect_speed_scale() -> float:
-	return max(_perfect_speed_scale, 0.0)
-
-func get_perfect_jump_scale() -> float:
-	return max(_perfect_jump_scale, 1.0)
-
-func consume_perfect_jump_scale() -> float:
-	var scale: float = max(_perfect_jump_scale, 1.0)
-	_perfect_jump_scale = 1.0
-	return scale
-
-func _update_perfect_bonus(delta: float) -> void:
-	if _perfect_timer > 0.0:
-		_perfect_timer = maxf(_perfect_timer - delta, 0.0)
-		if _perfect_timer <= 0.0:
-			_perfect_speed_scale = 1.0
-			if _perfect_jump_scale > 1.0:
-				_perfect_jump_scale = 1.0
-	else:
-		if _perfect_speed_scale != 1.0:
-			_perfect_speed_scale = 1.0
-		if _perfect_jump_scale > 1.0:
-			_perfect_jump_scale = 1.0
 
 func _after_move_and_slide() -> void:
 	var now_on_floor := is_on_floor()

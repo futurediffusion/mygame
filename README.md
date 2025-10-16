@@ -2,7 +2,7 @@
 
 ## Resumen ejecutivo
 - **Motor comprobado:** Godot Engine 4.4 con renderer Forward+, según `project.godot` y los autoloads activos (`SimClock`, `EventBus`, `GameState`, `Save`, `Flags`).【F:project.godot†L1-L40】【F:Singletons/SimClock.gd†L1-L99】【F:Singletons/EventBus.gd†L1-L16】【F:Singletons/GameState.gd†L1-L46】【F:Singletons/Save.gd†L1-L32】
-- **Estado jugable:** El jugador modular funciona en tercera persona con cámara orbital, sprint y salto variable. Ahora conserva `floor_snap` tras los saltos y adapta la velocidad a la pendiente antes de animar, manteniendo sincronía con stamina, combo y audio.【F:scenes/entities/player.gd†L229-L333】【F:Modules/Jump.gd†L118-L183】【F:Modules/Movement.gd†L56-L113】【F:Modules/AnimationCtrl.gd†L1-L200】
+- **Estado jugable:** El jugador modular funciona en tercera persona con cámara orbital, sprint y salto variable. Ahora conserva `floor_snap` tras los saltos y adapta la velocidad a la pendiente antes de animar, manteniendo sincronía con stamina y audio.【F:scenes/entities/player.gd†L229-L333】【F:Modules/Jump.gd†L118-L183】【F:Modules/Movement.gd†L56-L113】【F:Modules/AnimationCtrl.gd†L1-L200】
 - **Sistemas activos:** Aliados comparten el `StateMachineModule` del jugador mediante `AllyBrain`, conservan progresión data-driven y siguen desacoplados del HUD por `EventBus`; el bootstrap de Input y el `SimClock` multinivel siguen vigentes. El sigilo del jugador mantiene colisionador dinámico y modos Toggle/Hold con audio calibrado.【F:scenes/entities/Ally.gd†L1-L330】【F:scripts/ally/AllyBrain.gd†L1-L60】【F:Modules/StateMachine.gd†L1-L200】【F:Resources/AllyStats.gd†L1-L160】【F:Singletons/EventBus.gd†L1-L16】【F:scripts/bootstrap/InputSetup.gd†L1-L64】【F:Singletons/SimClock.gd†L1-L99】【F:scenes/entities/player.gd†L318-L590】【F:scripts/player/PlayerInputHandler.gd†L8-L116】【F:Modules/AudioCtrl.gd†L1-L123】
 
 ## Novedades desde R3
@@ -16,7 +16,6 @@
 ## Estado verificado del build R4
 - Registro del jugador y módulos al `SimClock` local; el ciclo `physics_tick` centraliza movimiento, salto, animación, audio y seguimiento de stamina, ahora con módulos desuscritos del reloj global para evitar ticks dobles.【F:scenes/entities/player.gd†L229-L365】【F:Modules/ModuleBase.gd†L1-L69】
 - Stamina con drenaje/regeneración configurable y consumo durante sprint controlado por estadísticas de aliados.【F:scripts/player/Stamina.gd†L1-L24】【F:scenes/entities/player.gd†L429-L478】【F:Resources/AllyStats.gd†L1-L120】
-- Combo perfecto de salto con ventana de aterrizaje, multiplicadores de velocidad/altura y pruebas headless de regresión.【F:Modules/PerfectJumpCombo.gd†L1-L130】【F:tests/TestJumpCombo.gd†L1-L80】
 - Aliados comparten la tubería modular del jugador (Brain → StateMachine → Movement/Orientation/Dodge/Animation), manteniendo la progresión de skills ligada a `AllyStats`.【F:scenes/entities/Ally.gd†L1-L360】【F:scripts/ally/AllyBrain.gd†L1-L80】【F:Modules/StateMachine.gd†L1-L210】【F:Resources/AllyStats.gd†L120-L260】
 - HUD que sólo escucha `EventBus.hud_message`, con auto-ocultado mediante timers.【F:Singletons/EventBus.gd†L1-L16】【F:scenes/ui/HUD.gd†L1-L28】
 
@@ -28,14 +27,13 @@
 - Registra acciones de input (incluido bootstrap diferido), calcula dirección relativa a cámara, controla sprint, estado de contexto y conecta módulos antes de `move_and_slide()`. Maneja agua, sneak toggle/hold, colisionador dinámico y señales de interacción.【F:scenes/entities/player.gd†L29-L590】
 
 ### Módulos del jugador (`Modules/`)
-- `MovementModule`: aceleración suelo/aire, fast fall, multiplicadores de combo y ajuste progresivo de velocidad según pendiente.【F:Modules/Movement.gd†L1-L113】
-- `JumpModule`: buffer + coyote, salto variable, animación/audio, combo y restauración de `floor_snap` tras despegar.【F:Modules/Jump.gd†L1-L183】
+- `MovementModule`: aceleración suelo/aire, fast fall y ajuste progresivo de velocidad según pendiente.【F:Modules/Movement.gd†L1-L113】
+- `JumpModule`: buffer + coyote, salto variable, animación/audio y restauración de `floor_snap` tras despegar.【F:Modules/Jump.gd†L1-L183】
 - `StateModule`: gravedad, `floor_snap`, eventos de aterrizaje y fast fall, exponiendo setters para sincronizar con el jugador.【F:Modules/State.gd†L1-L92】
 - `OrientationModule`: rotación del modelo según input con corrección de inclinación limitada al ángulo máximo del jugador.【F:Modules/Orientation.gd†L1-L87】
 - `AnimationCtrlModule`: controla AnimationTree (Locomotion/Sprint/Sneak/Air), OneShots de salto y blends de sigilo.【F:Modules/AnimationCtrl.gd†L1-L200】
 - `AudioCtrlModule`: efectos de pasos, salto y aterrizaje con temporizador opcional y perfiles de pitch/volumen para caminar o sigilo.【F:Modules/AudioCtrl.gd†L1-L123】
 - `DodgeModule`: ejecuta rodadas con consumo de stamina, ventanas de i-frames y restauración de `floor_snap`, tomando dirección de la FSM si no hay input explícito.【F:Modules/DodgeModule.gd†L1-L240】【F:Modules/StateMachine.gd†L24-L118】
-- `PerfectJumpCombo`: seguimiento del combo y multiplicadores.【F:Modules/PerfectJumpCombo.gd†L1-L120】
 
 ### Aliados y FSM (`scenes/entities/Ally.gd` + `scripts/ally/AllyBrain.gd`)
 - Aliados usan `AllyBrain` para recopilar intenciones y las envían al `StateMachineModule`, reutilizando los módulos de movimiento/orientación/dodge del jugador sin mover el cuerpo directamente. El `SimClock` regional controla el tick y la progresión de `AllyStats` sigue data-driven.【F:scenes/entities/Ally.gd†L1-L360】【F:scripts/ally/AllyBrain.gd†L1-L80】【F:Modules/StateMachine.gd†L1-L200】【F:scripts/core/Flags.gd†L1-L4】
@@ -67,13 +65,12 @@ res://
  ├─ scenes/ui/HUD.tscn (HUD desacoplado)
  ├─ scenes/world/*.tscn (arenas de prueba)
  ├─ data/ally_archetypes.json (arquetipos data-driven)
- ├─ tests/ (escenas headless para SimClock, FastFall, JumpCombo)
+ ├─ tests/ (escenas headless para SimClock, FastFall, DataIsolation)
 ```
 
 ## Pruebas y validación disponibles
 - `res://tests/TestClock.tscn`: comprueba orden de prioridad del `SimClock` mediante módulos dummy.【F:tests/TestClock.gd†L1-L28】
 - `res://tests/TestFastFall.tscn`: valida multiplicadores de caída rápida y velocidades horizontal/terrestre.【F:tests/TestFastFall.gd†L1-L70】
-- `res://tests/TestJumpCombo.tscn`: asegura progresión del combo perfecto hasta nivel 100 y reseteos correctos.【F:tests/TestJumpCombo.gd†L1-L80】
 - `res://tests/TestAllyStats.tscn`: cubre validaciones de `AllyStats`, disparando advertencias ante claves inválidas y asegurando clamps de estadísticas.【F:tests/TestAllyStats.gd†L1-L25】
 
 Ejecuta cada prueba en modo headless con:
@@ -87,7 +84,7 @@ godot --headless --run res://tests/TestFastFall.tscn
 - Indentación con tabs en GDScript para mantener compatibilidad con el proyecto (ver módulos y `player.gd`).【F:Modules/Movement.gd†L1-L113】【F:scenes/entities/player.gd†L1-L590】
 - HUD y UI consumen eventos mediante `EventBus`; no acoplar escenas directamente.【F:Singletons/EventBus.gd†L1-L16】【F:scenes/ui/HUD.gd†L1-L28】
 - Datos de aliados se modifican vía JSON + `Data.gd`, no hardcodeando stats en lógica.【F:Singletons/Data.gd†L1-L160】【F:data/ally_archetypes.json†L1-L120】
-- Tests críticos corren en headless (`TestFastFall`, `TestJumpCombo`, `TestDataIsolation`) y dependen del orden de tick del `SimClock`. Manténlos actualizados tras tocar prioridades, física o manejo de datos.【F:tests/TestFastFall.tscn†L1-L8】【F:tests/TestJumpCombo.tscn†L1-L8】【F:tests/TestDataIsolation.gd.uid†L1-L1】
+- Tests críticos corren en headless (`TestFastFall`, `TestDataIsolation`) y dependen del orden de tick del `SimClock`. Manténlos actualizados tras tocar prioridades, física o manejo de datos.【F:tests/TestFastFall.tscn†L1-L8】【F:tests/TestDataIsolation.gd.uid†L1-L1】
 
 ## Limitaciones y backlog identificados
 ### Pendientes globales

@@ -80,12 +80,7 @@ func _update_horizontal_velocity(delta: float) -> void:
 		target_speed *= max(fast_fall_speed_multiplier, 1.0)
 	if _is_sprinting and on_floor:
 		target_speed = sprint_speed
-	var perfect_speed_scale := 1.0
-	if player != null and is_instance_valid(player) and player.has_method("get_perfect_speed_scale"):
-		var scale_value := float(player.get_perfect_speed_scale())
-		if scale_value > 0.0:
-			perfect_speed_scale = scale_value
-	target_speed = max(target_speed, 0.0) * speed_multiplier * perfect_speed_scale * _current_slope_speed
+	target_speed = max(target_speed, 0.0) * speed_multiplier * _current_slope_speed
 	var want := Vector2.ZERO
 	if _move_dir.length_squared() > 0.0001:
 		var flattened := Vector2(_move_dir.x, _move_dir.z)

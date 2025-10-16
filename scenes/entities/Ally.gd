@@ -60,7 +60,6 @@ var anim_tree: AnimationTree
 @onready var anim_player: AnimationPlayer = null
 @onready var seat_anchor: Node3D = $SeatAnchor
 @onready var model: Node3D = $Model
-@onready var combo: PerfectJumpCombo = $PerfectJumpCombo
 @onready var brain: AllyBrain = $AllyBrain
 @onready var m_movement: MovementModule = $Modules/Movement
 @onready var m_jump: JumpModule = $Modules/Jump
@@ -91,7 +90,7 @@ var _block_animation_updates := false
 var _talk_active := false
 var _is_sitting := false
 var invulnerable := false
-var _was_on_floor_combo: bool = false
+var _was_on_floor_prev: bool = false
 
 func _ready() -> void:
 	if stats == null:
@@ -116,11 +115,9 @@ func _ready() -> void:
 		m_dodge.setup(self, m_anim)
 	if m_fsm != null and is_instance_valid(m_fsm):
 		m_fsm.setup(self)
-	if combo != null and is_instance_valid(combo):
-		combo.setup(self)
 	if brain != null and is_instance_valid(brain):
 		brain.set_ally(self)
-	_was_on_floor_combo = is_on_floor()
+	_was_on_floor_prev = is_on_floor()
 	var clock := _get_simclock()
 	if clock:
 		clock.register_module(self, sim_group, priority)
@@ -178,9 +175,9 @@ func _update_input_cache() -> void:
 
 func _after_move_and_slide() -> void:
 	var now_on_floor := is_on_floor()
-	if now_on_floor and not _was_on_floor_combo and velocity.y >= 0.0:
+	if now_on_floor and not _was_on_floor_prev and velocity.y >= 0.0:
 		landed.emit(absf(velocity.y))
-	_was_on_floor_combo = now_on_floor
+	_was_on_floor_prev = now_on_floor
 
 func get_brain_intents() -> Dictionary:
 	return {
