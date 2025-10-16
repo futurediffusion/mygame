@@ -455,7 +455,7 @@ func _attach_gear(gear: Dictionary) -> void:
 			continue
 		var inst := scene.instantiate()
 		skeleton.add_child(inst)
-		skeleton.set_bone_pose_mode(skeleton.find_bone(bone_name), Skeleton3D.BONE_POSE_INDIVIDUAL)
+		skeleton.set_bone_pose_mode(skeleton.find_bone(bone_name), Skeleton3D.BONE_POSE_OVERRIDE)
 		skeleton.attach_child_to_bone(bone_name, inst)
 
 func _get_data_singleton() -> Data:
