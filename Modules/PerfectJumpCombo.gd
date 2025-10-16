@@ -164,8 +164,8 @@ func _resolve_jump_node(player: Node) -> Object:
 		if direct_jump != null and is_instance_valid(direct_jump):
 			return direct_jump
 	if "m_jump" in player:
-			var member_jump: Node = player.get("m_jump") as Node
-			if member_jump != null and is_instance_valid(member_jump):
+		var member_jump: Node = player.get("m_jump") as Node
+		if member_jump != null and is_instance_valid(member_jump):
 			return member_jump
 	return null
 
