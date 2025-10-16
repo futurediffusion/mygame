@@ -1,4 +1,4 @@
-[gd_scene load_steps=49 format=3 uid="uid://l4e1k3jkgu8s"]
+[gd_scene load_steps=50 format=3 uid="uid://l4e1k3jkgu8s"]
 
 [ext_resource type="Script" uid="uid://wgpmntr5gt2u" path="res://scenes/entities/player.gd" id="1_08t41"]
 [ext_resource type="PackedScene" uid="uid://cvgcaefwbrg4n" path="res://art/characters/animations1.glb" id="1_ucweq"]
@@ -18,6 +18,7 @@
 [ext_resource type="Script" uid="uid://0120b173f37a" path="res://scripts/player/PlayerInputHandler.gd" id="9_yf4ct"]
 [ext_resource type="Script" uid="uid://dpr2epmd50orb" path="res://Modules/PerfectJumpCombo.gd" id="9_zq1h7"]
 [ext_resource type="Script" uid="uid://ba1beeb5f7cc4" path="res://scripts/player/PlayerContextDetector.gd" id="9_zr6my"]
+[ext_resource type="Script" uid="uid://state_machine_module" path="res://Modules/StateMachine.gd" id="9_yk9xm"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1yk18"]
 
@@ -197,6 +198,9 @@ script = ExtResource("9_vt0x1")
 stamina_cost = 10.0
 roll_time = 0.2
 roll_speed = 30.0
+
+[node name="StateMachine" type="Node" parent="Modules"]
+script = ExtResource("9_yk9xm")
 
 [node name="AudioCtrl" type="Node" parent="Modules"]
 script = ExtResource("9_wa8qt")

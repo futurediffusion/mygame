@@ -10,6 +10,7 @@ class_name JumpModule
 var player: CharacterBody3D
 var anim_tree: AnimationTree
 var camera_rig: Node
+var capabilities: Capabilities
 
 var _owner_body: CharacterBody3D
 var _state: StateModule
@@ -26,6 +27,9 @@ var _air_time: float = 0.0
 var _last_jump_velocity: float = 0.0
 var _floor_snap_to_restore: float = 0.0
 var _restore_snap_pending: bool = false
+var _manual_jump_triggered: bool = false
+var _manual_jump_request_time_s: float = -1.0
+var _manual_jump_buffer_time: float = 0.2
 
 func _ready() -> void:
 	pass
@@ -45,6 +49,14 @@ func setup(owner_body: CharacterBody3D, state: StateModule = null, input: InputB
 		anim_tree = owner_body.anim_tree
 	if "camera_rig" in owner_body:
 		camera_rig = owner_body.camera_rig
+	if "capabilities" in owner_body:
+		var caps_variant: Variant = owner_body.get("capabilities")
+		if caps_variant is Capabilities:
+			capabilities = caps_variant
+	if "jump_buffer" in owner_body:
+		var buffer_variant: Variant = owner_body.get("jump_buffer")
+		if buffer_variant is float or buffer_variant is int:
+			_manual_jump_buffer_time = maxf(float(buffer_variant), 0.0)
 	_last_on_floor_time_s = Time.get_ticks_msec() * 0.001 if _owner_body.is_on_floor() else -1.0
 	if _state == null and owner_body.has_node("Modules/State"):
 		_state = owner_body.get_node("Modules/State") as StateModule
@@ -75,13 +87,26 @@ func physics_tick(dt: float) -> void:
 		still_holding = _input.jump_is_held
 	else:
 		still_holding = Input.is_action_pressed("jump")
-	var buffered_jump := _input != null and _input.is_jump_buffered(now_s)
-	var wants_jump := buffered_jump
-	if _input == null and Input.is_action_just_pressed("jump"):
-		wants_jump = true
+	var buffered_jump := false
+	if _input != null:
+		buffered_jump = _input.is_jump_buffered(now_s)
+	var manual_request_active := false
+	if _manual_jump_triggered:
+		if _manual_jump_request_time_s < 0.0 or (now_s - _manual_jump_request_time_s) <= _manual_jump_buffer_time:
+			manual_request_active = true
+		else:
+			_manual_jump_triggered = false
+	var wants_jump := manual_request_active
+	if not wants_jump:
+		if _input != null:
+			wants_jump = buffered_jump
+		else:
+			wants_jump = Input.is_action_just_pressed("jump")
 	if wants_jump and _can_jump(on_floor, now_s, last_floor_time):
 		_do_jump(now_s)
-		if buffered_jump:
+		if manual_request_active:
+			_manual_jump_triggered = false
+		elif buffered_jump and _input != null:
 			_input.consume_jump_buffer()
 	if _jumping:
 		if still_holding and _hold_timer_s < max_hold_time and _owner_body.velocity.y > 0.0:
@@ -105,7 +130,20 @@ func physics_tick(dt: float) -> void:
 func get_air_time() -> float:
 	return _air_time
 
+func request_jump() -> bool:
+	if _owner_body == null or not is_instance_valid(_owner_body):
+		return false
+	if capabilities != null and not capabilities.can_jump:
+		return false
+	if _owner_body.has_method("should_skip_module_updates") and _owner_body.should_skip_module_updates():
+		return false
+	_manual_jump_triggered = true
+	_manual_jump_request_time_s = Time.get_ticks_msec() * 0.001
+	return true
+
 func _can_jump(on_floor: bool, now_s: float, last_floor_time: float) -> bool:
+	if capabilities != null and not capabilities.can_jump:
+		return false
 	if on_floor:
 		return true
 	return last_floor_time >= 0.0 and (now_s - last_floor_time) <= coyote_time
