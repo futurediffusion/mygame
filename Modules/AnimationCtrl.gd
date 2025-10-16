@@ -86,6 +86,9 @@ var _current_air_blend := 0.0
 var _state_machine: AnimationNodeStateMachinePlayback
 var _state_machine_graph: AnimationNodeStateMachine
 var _state_machine_started := false
+var _state_machine_module: StateMachineModule
+var _dodge_module: DodgeModule
+var _last_fsm_state: int = StateMachineModule.State.IDLE
 var _state_locomotion: StringName = STATE_LOCOMOTION
 var _locomotion_params: Array[StringName] = []
 var _sprint_scale_params: Array[StringName] = []
@@ -137,6 +140,7 @@ func setup(p: CharacterBody3D) -> void:
 	if "fall_clip_name" in p:
 		fall_clip_name = p.fall_clip_name
 
+	_cache_related_modules()
 	if anim_tree == null and animation_tree_path != NodePath():
 		anim_tree = get_node_or_null(animation_tree_path) as AnimationTree
 	if anim_player == null and player != null and is_instance_valid(player):
@@ -212,6 +216,99 @@ func is_dodging() -> bool:
 		return legacy_variant == true
 	return false
 
+
+
+func _cache_related_modules() -> void:
+	if player == null or not is_instance_valid(player):
+		_state_machine_module = null
+		_dodge_module = null
+		return
+	var modules_node := player.get_node_or_null("Modules")
+	if modules_node != null and is_instance_valid(modules_node):
+		var sm := modules_node.get_node_or_null("StateMachine") as StateMachineModule
+		if sm != null:
+			_state_machine_module = sm
+		var dodge := modules_node.get_node_or_null("Dodge") as DodgeModule
+		if dodge != null:
+			_dodge_module = dodge
+	if _state_machine_module == null:
+		var sm_direct := player.get_node_or_null("StateMachine") as StateMachineModule
+		if sm_direct != null:
+			_state_machine_module = sm_direct
+	if _dodge_module == null:
+		var dodge_direct := player.get_node_or_null("Dodge") as DodgeModule
+		if dodge_direct != null:
+			_dodge_module = dodge_direct
+
+func _resolve_state_machine_module() -> StateMachineModule:
+	if _state_machine_module != null and is_instance_valid(_state_machine_module):
+		return _state_machine_module
+	if player == null or not is_instance_valid(player):
+		_state_machine_module = null
+		return null
+	var modules_node := player.get_node_or_null("Modules")
+	if modules_node != null and is_instance_valid(modules_node):
+		var candidate := modules_node.get_node_or_null("StateMachine") as StateMachineModule
+		if candidate != null:
+			_state_machine_module = candidate
+			return _state_machine_module
+	var direct := player.get_node_or_null("StateMachine") as StateMachineModule
+	if direct != null:
+		_state_machine_module = direct
+	return _state_machine_module
+
+func _resolve_dodge_module() -> DodgeModule:
+	if _dodge_module != null and is_instance_valid(_dodge_module):
+		return _dodge_module
+	if player == null or not is_instance_valid(player):
+		_dodge_module = null
+		return null
+	var modules_node := player.get_node_or_null("Modules")
+	if modules_node != null and is_instance_valid(modules_node):
+		var candidate := modules_node.get_node_or_null("Dodge") as DodgeModule
+		if candidate != null:
+			_dodge_module = candidate
+			return _dodge_module
+	var direct := player.get_node_or_null("Dodge") as DodgeModule
+	if direct != null:
+		_dodge_module = direct
+	return _dodge_module
+
+func _update_dodge_state() -> void:
+	var dodge_module := _resolve_dodge_module()
+	var state_machine := _resolve_state_machine_module()
+	var dodge_started := false
+	var is_dodging := false
+	if dodge_module != null and is_instance_valid(dodge_module):
+		if dodge_module.just_fired():
+			dodge_started = true
+		is_dodging = dodge_module.is_rolling()
+	if state_machine != null and is_instance_valid(state_machine):
+		var current_state := state_machine.get_state()
+		if state_machine.just_entered(StateMachineModule.State.DODGE):
+			dodge_started = true
+		is_dodging = is_dodging or current_state == StateMachineModule.State.DODGE
+		_last_fsm_state = current_state
+	elif dodge_module == null:
+		is_dodging = false
+	if dodge_started:
+		play_dodge()
+	_set_dodge_active(is_dodging)
+
+func _set_dodge_active(active: bool) -> void:
+	if anim_tree == null or not is_instance_valid(anim_tree):
+		return
+	var applied := false
+	for param in _dodge_active_params:
+		anim_tree.set(param, active)
+		applied = true
+	if applied:
+		return
+	if _tree_has_param(PARAM_DODGE_ACTIVE):
+		anim_tree.set(PARAM_DODGE_ACTIVE, active)
+	elif _tree_has_param(PARAM_DODGE_ACTIVE_LEGACY):
+		anim_tree.set(PARAM_DODGE_ACTIVE_LEGACY, active)
+
 func _cache_sneak_animation_lengths() -> void:
 	if anim_player == null or not is_instance_valid(anim_player):
 		return
@@ -231,6 +328,7 @@ func physics_tick(delta: float) -> void:
 		return
 	if player.has_method("should_block_animation_update") and player.should_block_animation_update():
 		return
+	_update_dodge_state()
 
 	var is_on_floor := player.is_on_floor()
 	if not is_on_floor:

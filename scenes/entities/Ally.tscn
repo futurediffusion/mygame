@@ -1,9 +1,15 @@
-[gd_scene load_steps=10 format=4 uid="uid://dg70n4q4hda07"]
+[gd_scene load_steps=16 format=4 uid="uid://dg70n4q4hda07"]
 
 [ext_resource type="Script" uid="uid://1702mvf8w8cf" path="res://scenes/entities/Ally.gd" id="1_wx4v5"]
 [ext_resource type="Texture2D" uid="uid://uh7te6p55l03" path="res://art/characters/animations1_player2.png" id="2_rofai"]
 [ext_resource type="AnimationLibrary" uid="uid://d2yeay5avcx06" path="res://data/animations/animations.res" id="3_w43w0"]
-[ext_resource type="Script" uid="uid://b007sfhngrtgy" path="res://Modules/AllyFSMModule.gd" id="4_allyfsm"]
+[ext_resource type="Script" uid="uid://cnm5jyf244aty" path="res://Modules/Movement.gd" id="4_movement"]
+[ext_resource type="Script" uid="uid://d7166l6er61r" path="res://Modules/Orientation.gd" id="5_orientation"]
+[ext_resource type="Script" uid="uid://dodge4n2u1r" path="res://Modules/DodgeModule.gd" id="6_dodge"]
+[ext_resource type="Script" uid="uid://buk7idb8jq37n" path="res://Modules/AnimationCtrl.gd" id="7_animctrl"]
+[ext_resource type="Script" uid="uid://state_machine_module" path="res://Modules/StateMachine.gd" id="8_fsm"]
+[ext_resource type="Script" uid="uid://dpr2epmd50orb" path="res://Modules/PerfectJumpCombo.gd" id="9_combo"]
+[ext_resource type="Script" path="res://scripts/ally/AllyBrain.gd" id="10_brain"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_62j5s"]
 radius = 0.4
@@ -170,9 +176,29 @@ collision_layer = 2
 collision_mask = 29
 script = ExtResource("1_wx4v5")
 
-[node name="FSMModule" type="Node" parent="."]
-script = ExtResource("4_allyfsm")
-owner_ally = NodePath(".")
+[node name="PerfectJumpCombo" type="Node" parent="."]
+script = ExtResource("9_combo")
+
+[node name="AllyBrain" type="Node" parent="."]
+script = ExtResource("10_brain")
+ally_path = NodePath("..")
+
+[node name="Modules" type="Node" parent="."]
+
+[node name="Movement" type="Node" parent="Modules"]
+script = ExtResource("4_movement")
+
+[node name="Orientation" type="Node" parent="Modules"]
+script = ExtResource("5_orientation")
+
+[node name="Dodge" type="Node" parent="Modules"]
+script = ExtResource("6_dodge")
+
+[node name="AnimationCtrl" type="Node" parent="Modules"]
+script = ExtResource("7_animctrl")
+
+[node name="StateMachine" type="Node" parent="Modules"]
+script = ExtResource("8_fsm")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)

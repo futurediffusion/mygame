@@ -8,7 +8,7 @@
 ## Arquitectura clave
 - Todo módulo derivado de `ModuleBase` se registra en `SimClock` y recibe ticks por grupo/priority. No reintroduzcas `_physics_process` en módulos; usa `physics_tick(dt)` y deja que el `SimClock` llame al flujo correcto.【F:Modules/ModuleBase.gd†L1-L47】【F:Singletons/SimClock.gd†L1-L82】
 - El jugador orquesta a sus módulos en este orden: `State.pre_move_update()` → `Jump.physics_tick()` → `Movement.physics_tick()` → `Orientation.physics_tick()` → `AnimationCtrl.physics_tick()` → `move_and_slide()` → `State.post_move_update()` → `AudioCtrl.physics_tick()`. Respeta el orden para conservar coyote, fast fall y sincronía de animaciones.【F:scenes/entities/player.gd†L200-L286】
-- Aliados ejecutan su FSM en `fsm_step(dt)` y recién después hacen `move_and_slide()` en `physics_tick()`. No llames `move_and_slide()` desde la FSM.【F:scenes/entities/Ally.gd†L60-L160】
+- Aliados usan `AllyBrain.update_intents()` para alimentar el `StateMachineModule` y luego coordinan Movement/Orientation/Dodge/Animation antes de `move_and_slide()` dentro de `physics_tick()`. No llames `move_and_slide()` desde módulos ni desde la FSM.【F:scenes/entities/Ally.gd†L60-L220】【F:scripts/ally/AllyBrain.gd†L1-L80】【F:Modules/StateMachine.gd†L1-L210】
 
 ## Buenas prácticas a mantener
 - Usa `class_name` en scripts reutilizables (módulos, recursos, autoloads) y conserva la indentación con tabs en GDScript.【F:Modules/Movement.gd†L1-L86】【F:Resources/AllyStats.gd†L1-L120】
@@ -16,7 +16,7 @@
 - La UI se comunica por `EventBus`; conecta nuevas capas al bus y evita referencias directas entre HUD y gameplay.【F:Singletons/EventBus.gd†L1-L16】【F:scenes/ui/HUD.gd†L1-L28】
 - Stats y progresión vienen de `AllyStats` + `Data.gd`. Si ajustas atributos/skills, modifica `ally_archetypes.json` y deja que `Data.make_stats_from_archetype()` aplique defaults y overrides.【F:Singletons/Data.gd†L1-L160】【F:data/ally_archetypes.json†L1-L120】
 - Mantén el combo de salto (`PerfectJumpCombo`) conectado cuando cambies saltos/velocidades: Player delega a `combo.register_jump()` y las pruebas headless lo cubren.【F:Modules/PerfectJumpCombo.gd†L1-L120】【F:tests/TestJumpCombo.gd†L1-L80】
-- Usa `Flags.ALLY_TICK_GROUP` para módulos de aliados y valida prioridades antes de registrar nuevos nodos en el reloj.【F:scripts/core/Flags.gd†L1-L4】【F:Modules/AllyFSMModule.gd†L1-L35】
+- Usa `Flags.ALLY_TICK_GROUP` para módulos de aliados y valida prioridades antes de registrar nuevos nodos en el reloj.【F:scripts/core/Flags.gd†L1-L4】【F:scenes/entities/Ally.gd†L1-L60】
 
 ## Prácticas a evitar
 - No accedas a autoloads sin validar su tipo: precarga el script (`preload("res://Singletons/SimClock.gd")`) y verifica con `is`. Evita castings directos sin checar.【F:Modules/ModuleBase.gd†L1-L47】【F:scenes/entities/player.gd†L45-L94】

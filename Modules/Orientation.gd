@@ -8,6 +8,7 @@ var face_lerp := 0.18
 var model_forward_correction_deg := 0.0
 var _model_correction_rad := 0.0
 var _input_dir := Vector3.ZERO
+var _state_machine: StateMachineModule
 var _max_tilt_rad: float = deg_to_rad(50.0)
 var _last_surface_normal: Vector3 = Vector3.UP
 var _last_yaw_angle: float = 0.0
@@ -44,7 +45,33 @@ func physics_tick(delta: float) -> void:
 		return
 	if player.has_method("should_skip_module_updates") and player.should_skip_module_updates():
 		return
+	if not _should_apply_orientation():
+		return
 	update_model_rotation(delta, _input_dir)
+
+
+func _resolve_state_machine() -> StateMachineModule:
+	if player == null or not is_instance_valid(player):
+		_state_machine = null
+		return null
+	if _state_machine != null and is_instance_valid(_state_machine):
+		return _state_machine
+	var modules_node := player.get_node_or_null("Modules")
+	if modules_node != null and is_instance_valid(modules_node):
+		var module_candidate := modules_node.get_node_or_null("StateMachine") as StateMachineModule
+		if module_candidate != null:
+			_state_machine = module_candidate
+			return _state_machine
+	var direct := player.get_node_or_null("StateMachine") as StateMachineModule
+	if direct != null:
+		_state_machine = direct
+	return _state_machine
+
+func _should_apply_orientation() -> bool:
+	var fsm := _resolve_state_machine()
+	if fsm != null and is_instance_valid(fsm):
+		return not fsm.is_in_state(StateMachineModule.State.DODGE)
+	return true
 
 func update_model_rotation(_delta: float, input_dir: Vector3) -> void:
 	if model == null or not is_instance_valid(model):

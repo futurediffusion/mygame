@@ -1,6 +1,8 @@
 extends CharacterBody3D
+class_name Ally
 const SIMCLOCK_SCRIPT := preload("res://Singletons/SimClock.gd")
-const ALLY_STATE_SCRIPT := preload("res://scripts/ally_fsm/AllyState.gd")
+const GAME_CONSTANTS := preload("res://scripts/core/GameConstants.gd")
+const LOGGER_CONTEXT := "Ally"
 
 enum State {
 	IDLE,
@@ -18,7 +20,16 @@ enum State {
 @export var stats: AllyStats
 @export var capabilities: Capabilities
 @export var move_speed_base: float = 5.0
+@export var walk_speed: float = 3.5
+@export var run_speed: float = 5.0
+@export var sprint_speed: float = 6.5
+@export var accel_ground: float = GAME_CONSTANTS.DEFAULT_ACCEL_GROUND
+@export var accel_air: float = GAME_CONSTANTS.DEFAULT_ACCEL_AIR
+@export var decel: float = GAME_CONSTANTS.DEFAULT_DECEL
+@export var max_slope_deg: float = 45.0
+@export var fast_fall_speed_multiplier: float = GAME_CONSTANTS.DEFAULT_FAST_FALL_MULT
 @export var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
+@export var snap_len: float = 0.3
 @export var sprint_enabled: bool = true
 @export_enum("sword", "unarmed", "ranged") var weapon_kind: String = "sword"
 @export var player_visual_preset: PackedScene
@@ -39,47 +50,67 @@ enum State {
 @export var anim_aim_ranged: String = "aim_ranged"
 @export var anim_build: String = "build"
 
-@export var sit_offset: Vector3 = Vector3(0, 0, 0)
+@export var sit_offset: Vector3 = Vector3.ZERO
+
+var anim_tree: AnimationTree
 
 @onready var anim_player: AnimationPlayer = null
 @onready var seat_anchor: Node3D = $SeatAnchor
-@onready var _model_root: Node3D = $Model
+@onready var model: Node3D = $Model
+@onready var combo: PerfectJumpCombo = $PerfectJumpCombo
+@onready var brain: AllyBrain = $AllyBrain
+@onready var m_movement: MovementModule = $Modules/Movement
+@onready var m_orientation: OrientationModule = $Modules/Orientation
+@onready var m_dodge: DodgeModule = $Modules/Dodge
+@onready var m_anim: AnimationCtrlModule = $Modules/AnimationCtrl
+@onready var m_fsm: StateMachineModule = $Modules/StateMachine
 
 var _target_dir: Vector3 = Vector3.ZERO
 var _combat_target: Node3D
+var _pending_dodge: bool = false
+var _pending_attack: bool = false
+var _pending_jump: bool = false
 var _is_crouched: bool = false
 var _is_in_water: bool = false
 var _is_sprinting: bool = false
-var _t_stealth_accum: float = 0.0
-var _t_swim_accum: float = 0.0
-var _t_build_accum: float = 0.0
-var _t_move_accum: float = 0.0
 var _stamina_ratio_min: float = 1.0
 var _stamina_ratio_max_since_min: float = 1.0
 var _stamina_cycle_window: float = 10.0
 var _t_stamina_window: float = 0.0
 var _current_seat: Node3D
 var _talk_timer: SceneTreeTimer
-var _last_state: State = State.IDLE
-var _fsm_tick_ran: bool = false
-var _last_tick_counter: int = -1
-var _moved_this_tick: bool = false
-var _states: Dictionary = {}
-var _active_state: AllyState = null
+var _input_cache: Dictionary = {}
+var _air_time: float = 0.0
+var _model_root: Node3D = null
+var _skip_module_updates := false
+var _block_animation_updates := false
+var _talk_active := false
+var _is_sitting := false
+var invulnerable := false
 
 func _ready() -> void:
 	if stats == null:
 		stats = AllyStats.new()
 	if capabilities == null:
 		capabilities = Capabilities.new()
-	_last_state = state
+	_model_root = model
+	anim_tree = get_node_or_null(^"AnimationTree") as AnimationTree
 	if player_visual_preset != null and _model_root != null:
 		_swap_visual(player_visual_preset)
 		if anim_player == null:
 			_bind_anim_player_from(self)
 	else:
 		_bind_anim_player_from(self)
-	_setup_states()
+	floor_snap_length = snap_len
+	for module in [m_movement, m_orientation, m_anim]:
+		if module != null and is_instance_valid(module):
+			module.setup(self)
+	if m_dodge != null and is_instance_valid(m_dodge):
+		m_dodge.setup(self, m_anim)
+	if m_fsm != null and is_instance_valid(m_fsm):
+		m_fsm.setup(self)
+	if brain != null and is_instance_valid(brain):
+		brain.set_ally(self)
 	var clock := _get_simclock()
 	if clock:
 		clock.register_module(self, sim_group, priority)
@@ -90,74 +121,72 @@ func _on_clock_tick(group: StringName, dt: float) -> void:
 	if group == sim_group:
 		physics_tick(dt)
 
-func fsm_step(dt: float) -> void:
-	# Lee sensores y decide velocidad deseada; no llames move_and_slide() aquí.
-	if _states.is_empty():
-		_setup_states()
-	if state != _last_state:
-		_change_state(state)
+func physics_tick(dt: float) -> void:
+	if combo != null and is_instance_valid(combo):
+		combo.physics_tick(dt)
+	_update_vertical_motion(dt)
+	_update_air_time(dt)
+	_update_input_cache()
+	if brain != null and is_instance_valid(brain):
+		brain.update_intents(dt)
+	if m_anim != null and is_instance_valid(m_anim):
+		m_anim.set_frame_anim_inputs(_is_sprinting and sprint_enabled, _air_time)
+	if m_fsm != null and is_instance_valid(m_fsm):
+		m_fsm.physics_tick(dt)
+	if m_movement != null and is_instance_valid(m_movement):
+		m_movement.physics_tick(dt)
+	if m_dodge != null and is_instance_valid(m_dodge):
+		m_dodge.physics_tick(dt)
+	if m_orientation != null and is_instance_valid(m_orientation):
+		m_orientation.physics_tick(dt)
+	if m_anim != null and is_instance_valid(m_anim) and not _block_animation_updates:
+		m_anim.physics_tick(dt)
+	move_and_slide()
+	_track_stamina_cycle(dt)
+
+func _update_vertical_motion(dt: float) -> void:
 	if _is_in_water:
 		velocity.y = lerpf(velocity.y, 0.0, dt * 2.0)
 	else:
 		velocity.y -= gravity * dt
-	if _active_state != null:
-		_active_state.update(dt)
 
-func physics_tick(dt: float) -> void:
-	var tick_counter := -1
-	if OS.is_debug_build():
-		var clock := _get_simclock()
-		if clock != null:
-			tick_counter = clock.get_group_tick_counter(sim_group)
-			assert(tick_counter != _last_tick_counter, "Ally movido dos veces en el mismo tick")
-			_last_tick_counter = tick_counter
-		else:
-			assert(!_moved_this_tick, "Ally movido dos veces en el mismo tick")
-			_moved_this_tick = true
-	if not _fsm_tick_ran and has_method("fsm_step"):
-		fsm_step(dt)
-	_fsm_tick_ran = false
+func _update_air_time(dt: float) -> void:
+	if is_on_floor():
+		_air_time = 0.0
+	else:
+		_air_time += dt
 
-	_ally_physics_update(dt)
-	move_and_slide()
-	if OS.is_debug_build() and tick_counter == -1:
-		_moved_this_tick = false
-
-func _setup_states() -> void:
-	if not _states.is_empty():
-		return
-	_states = {
-		State.IDLE: ALLY_STATE_SCRIPT.IdleState.new(self),
-		State.MOVE: ALLY_STATE_SCRIPT.MoveState.new(self),
-		State.COMBAT_MELEE: ALLY_STATE_SCRIPT.CombatMeleeState.new(self),
-		State.COMBAT_RANGED: ALLY_STATE_SCRIPT.CombatRangedState.new(self),
-		State.BUILD: ALLY_STATE_SCRIPT.BuildState.new(self),
-		State.SNEAK: ALLY_STATE_SCRIPT.SneakState.new(self),
-		State.SWIM: ALLY_STATE_SCRIPT.SwimState.new(self),
-		State.TALK: ALLY_STATE_SCRIPT.TalkState.new(self),
-		State.SIT: ALLY_STATE_SCRIPT.SitState.new(self),
+func _update_input_cache() -> void:
+	var flat := _flat_dir(_target_dir)
+	_input_cache = {
+		"move": {
+			"camera": flat,
+			"raw": Vector2(flat.x, flat.z)
+		}
 	}
-	_active_state = _states.get(state, null)
-	if _active_state != null:
-		_active_state.enter(null)
-	_last_state = state
 
-func _change_state(new_state: State) -> void:
-	if _states.is_empty():
-		_setup_states()
-	var previous_state_enum := _last_state
-	var previous_state := _active_state
-	var next_state: AllyState = _states.get(new_state, null)
-	if previous_state != null:
-		previous_state.exit(next_state)
-	_active_state = next_state
-	if Engine.is_editor_hint():
-		var previous_name := _state_enum_name(previous_state_enum)
-		var current_name := _state_enum_name(new_state)
-		print_verbose("[FSM] Ally %s: %s → %s" % [name, previous_name, current_name])
-	if _active_state != null:
-		_active_state.enter(previous_state)
-	_last_state = new_state
+func get_brain_intents() -> Dictionary:
+	return {
+		"move_dir": _flat_dir(_target_dir),
+		"is_sprinting": _is_sprinting and sprint_enabled,
+		"want_dodge": _pending_dodge,
+		"want_attack": _pending_attack,
+		"want_jump": _pending_jump
+	}
+
+func clear_brain_triggers() -> void:
+	_pending_dodge = false
+	_pending_attack = false
+	_pending_jump = false
+
+func request_dodge() -> void:
+	_pending_dodge = true
+
+func request_jump() -> void:
+	_pending_jump = true
+
+func request_attack() -> void:
+	_pending_attack = true
 
 func register_ranged_attack() -> void:
 	if not stats:
@@ -185,10 +214,12 @@ func set_move_dir(dir: Vector3) -> void:
 func engage_melee(target: Node3D) -> void:
 	_combat_target = target
 	state = State.COMBAT_MELEE
+	request_attack()
 
 func engage_ranged(target: Node3D) -> void:
 	_combat_target = target
 	state = State.COMBAT_RANGED
+	request_attack()
 
 func set_crouched(on: bool) -> void:
 	_is_crouched = on
@@ -198,15 +229,11 @@ func set_crouched(on: bool) -> void:
 	else:
 		if state == State.SNEAK:
 			if _is_in_water:
-				if _target_dir != Vector3.ZERO:
-					state = State.SWIM
-				else:
-					state = State.IDLE
+				state = State.SWIM
+			elif _target_dir != Vector3.ZERO:
+				state = State.MOVE
 			else:
-				if _target_dir != Vector3.ZERO:
-					state = State.MOVE
-				else:
-					state = State.IDLE
+				state = State.IDLE
 
 func set_sprinting(on: bool) -> void:
 	if sprint_enabled:
@@ -232,7 +259,10 @@ func start_talking(seconds: float = -1.0) -> void:
 	if state == State.SIT:
 		return
 	_cleanup_talk_timer()
+	_target_dir = Vector3.ZERO
 	state = State.TALK
+	_talk_active = true
+	_play_anim(anim_talk_loop)
 	if seconds > 0.0:
 		var timer := get_tree().create_timer(seconds)
 		if timer:
@@ -243,12 +273,15 @@ func stop_talking() -> void:
 	_cleanup_talk_timer()
 	if state == State.TALK:
 		state = State.IDLE
+	_talk_active = false
 
 func sit_on(seat: Node3D) -> void:
 	_current_seat = seat
+	_target_dir = Vector3.ZERO
 	_snap_to_seat()
 	_play_anim(anim_sit_down)
 	state = State.SIT
+	_is_sitting = true
 
 func stand_up() -> void:
 	if state != State.SIT:
@@ -256,6 +289,7 @@ func stand_up() -> void:
 	_current_seat = null
 	_play_anim(anim_stand_up)
 	state = State.IDLE
+	_is_sitting = false
 
 func _flat_dir(vector: Vector3) -> Vector3:
 	var result := Vector3(vector.x, 0.0, vector.z)
@@ -307,15 +341,17 @@ func _track_stamina_cycle(dt: float) -> void:
 		_stamina_ratio_max_since_min = 1.0
 		_t_stamina_window = 0.0
 
-func _ally_physics_update(dt: float) -> void:
-	_track_stamina_cycle(dt)
+func should_skip_module_updates() -> bool:
+	return _skip_module_updates
 
-# R3→R4 MIGRATION: Utilidad de logging para FSM Ally.
-func _state_enum_name(value: State) -> String:
-	for key in State.keys():
-		if State[key] == value:
-			return key
-	return str(value)
+func should_block_animation_update() -> bool:
+	return _block_animation_updates
+
+func get_input_cache() -> Dictionary:
+	return _input_cache.duplicate(true)
+
+func is_sneaking() -> bool:
+	return _is_crouched
 
 func _cleanup_talk_timer() -> void:
 	if _talk_timer and is_instance_valid(_talk_timer):
@@ -398,54 +434,53 @@ func _apply_material_overrides(dict_paths: Dictionary) -> void:
 			if dict_paths.has(mesh_instance.name):
 				var resource_path := String(dict_paths[mesh_instance.name])
 				var material := load(resource_path) as Material
-				if material != null and mesh_instance.mesh != null:
-					for surface in range(mesh_instance.mesh.get_surface_count()):
-						mesh_instance.set_surface_override_material(surface, material)
+				if material != null:
+					mesh_instance.set_surface_override_material(0, material)
 		for child in node.get_children():
 			queue.push_back(child)
 
 func _attach_gear(gear: Dictionary) -> void:
-	if _model_root == null or gear.is_empty():
+	if _model_root == null:
 		return
 	var skeleton := _find_skeleton(_model_root)
 	if skeleton == null:
 		return
-	for child in skeleton.get_children():
-		if child is BoneAttachment3D and child.has_meta("gear_slot"):
-			child.queue_free()
 	for slot in gear.keys():
+		var bone_name := _slot_to_bone(slot)
+		if bone_name == "":
+			continue
 		var scene_path := String(gear[slot])
 		var scene := load(scene_path) as PackedScene
 		if scene == null:
 			continue
-		var attachment := BoneAttachment3D.new()
-		attachment.bone_name = _slot_to_bone(slot)
-		attachment.name = "Gear_%s" % slot
-		attachment.set_meta("gear_slot", slot)
-		skeleton.add_child(attachment)
-		var inst: Node = scene.instantiate()
-		attachment.add_child(inst)
+		var inst := scene.instantiate()
+		skeleton.add_child(inst)
+		skeleton.set_bone_pose_mode(skeleton.find_bone(bone_name), Skeleton3D.BONE_POSE_INDIVIDUAL)
+		skeleton.attach_child_to_bone(bone_name, inst)
 
 func _get_data_singleton() -> Data:
-	var tree: SceneTree = get_tree()
+	var tree := get_tree()
 	if tree == null:
 		return null
-	var root: Node = tree.get_root()
-	if root == null:
+	var autoload := tree.get_root().get_node_or_null(^"/root/Data")
+	if autoload == null:
 		return null
-	var node: Node = root.get_node_or_null(^"Data")
-	if node == null:
-		return null
-	return node as Data
+	if autoload is Data:
+		return autoload as Data
+	return null
 
 func _slot_to_bone(slot: String) -> String:
 	match slot:
 		"head":
-			return "Head"
+			return "mixamorig_Head"
 		"back":
-			return "Spine2"
+			return "mixamorig_Spine2"
+		"right_hand":
+			return "mixamorig_RightHand"
+		"left_hand":
+			return "mixamorig_LeftHand"
 		_:
-			return "Spine"
+			return ""
 
 func _tint_meshes(color: Color) -> void:
 	if _model_root == null:
@@ -456,15 +491,11 @@ func _tint_meshes(color: Color) -> void:
 		var node: Node = queue.pop_back()
 		if node is MeshInstance3D:
 			var mesh_instance := node as MeshInstance3D
-			var mesh := mesh_instance.mesh
-			if mesh == null:
-				continue
-			for surface in range(mesh.get_surface_count()):
-				var material := mesh_instance.get_active_material(surface)
-				if material is StandardMaterial3D:
-					var duplicated := material.duplicate() as StandardMaterial3D
-					duplicated.albedo_color = color
-					mesh_instance.set_surface_override_material(surface, duplicated)
+			var material := mesh_instance.get_active_material(0)
+			if material is StandardMaterial3D:
+				var standard := material.duplicate() as StandardMaterial3D
+				standard.albedo_color = color
+				mesh_instance.set_surface_override_material(0, standard)
 		for child in node.get_children():
 			queue.push_back(child)
 
@@ -476,22 +507,10 @@ func _find_skeleton(root: Node) -> Skeleton3D:
 	while queue.size() > 0:
 		var node: Node = queue.pop_back()
 		if node is Skeleton3D:
-			return node
+			return node as Skeleton3D
 		for child in node.get_children():
 			queue.push_back(child)
 	return null
-
-# ------------------------------------------------------------------------------
-# Ejemplos de uso (comentados):
-# ally.set_move_dir(Vector3.FORWARD)
-# ally.set_crouched(true)
-# ally.set_in_water(true)
-# ally.sit_on(seat_node)
-# ally.stand_up()
-# ally.start_talking(3.0)
-# ally.stop_talking()
-# ally.player_visual_preset = load("res://scenes/entities/PlayerModel.tscn")
-# jump_module.jump_started.connect(ally.notify_jump_started)
 
 func _get_simclock() -> SimClockAutoload:
 	var tree: SceneTree = get_tree()
@@ -503,3 +522,6 @@ func _get_simclock() -> SimClockAutoload:
 	if autoload is SIMCLOCK_SCRIPT:
 		return autoload as SimClockAutoload
 	return null
+
+func set_roll_collider_override(_active: bool) -> void:
+	pass

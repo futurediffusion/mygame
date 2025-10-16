@@ -13,6 +13,7 @@ var player: CharacterBody3D
 var anim_module: AnimationCtrlModule
 var stamina: Stamina
 var capabilities: Capabilities
+var _state_machine: StateMachineModule
 
 var _rolling: bool = false
 var _t: float = 0.0
@@ -21,6 +22,8 @@ var _saved_floor_snap_len: float = 0.0
 var _has_saved_floor_snap: bool = false
 var _queued_roll_dir: Vector3 = Vector3.ZERO
 var _has_queued_roll: bool = false
+var _just_started: bool = false
+var _just_finished: bool = false
 
 func setup(owner_body: CharacterBody3D, animation_ctrl: AnimationCtrlModule = null, _audio_ctrl: AudioCtrlModule = null) -> void:
 	player = owner_body
@@ -38,10 +41,13 @@ func setup(owner_body: CharacterBody3D, animation_ctrl: AnimationCtrlModule = nu
 		var caps_variant: Variant = player.get("capabilities")
 		if caps_variant is Capabilities:
 			capabilities = caps_variant
+	_state_machine = _resolve_state_machine()
 
 func physics_tick(dt: float) -> void:
 	if player == null or not is_instance_valid(player):
 		return
+	_just_started = false
+	_just_finished = false
 	if _should_skip_updates():
 		if _rolling:
 			_end_roll()
@@ -54,12 +60,11 @@ func physics_tick(dt: float) -> void:
 		_has_queued_roll = false
 		_start_roll(queued_dir)
 		return
-	_check_input()
 
 func is_rolling() -> bool:
 	return _rolling
 
-func can_start_roll() -> bool:
+func can_start() -> bool:
 	if _rolling:
 		return false
 	if player == null or not is_instance_valid(player):
@@ -70,22 +75,22 @@ func can_start_roll() -> bool:
 		return false
 	return _has_required_stamina()
 
-func request_roll(dir: Vector3) -> bool:
-	if not can_start_roll():
+
+func start_dodge(dir: Vector3) -> bool:
+	if not can_start():
 		return false
-	var desired_dir := dir
-	if desired_dir.length_squared() > 0.0001:
-		desired_dir = desired_dir.normalized()
-	else:
-		desired_dir = _resolve_direction()
+	var desired_dir := _sanitize_direction(dir)
+	if desired_dir.length_squared() < 0.0001:
+		desired_dir = _fallback_direction()
 	_has_queued_roll = true
 	_queued_roll_dir = desired_dir
 	return true
 
-func _check_input() -> void:
-	if not Input.is_action_just_pressed("roll"):
-		return
-	request_roll(_resolve_direction())
+func finished() -> bool:
+	return _just_finished
+
+func just_fired() -> bool:
+	return _just_started
 
 func _start_roll(dir: Vector3) -> void:
 	if _rolling:
@@ -104,6 +109,7 @@ func _start_roll(dir: Vector3) -> void:
 	if preserve_floor_snap:
 		player.floor_snap_length = 0.0
 	_notify_player_roll_state(true)
+	_just_started = true
 	if anim_module != null and is_instance_valid(anim_module):
 		anim_module.play_dodge()
 
@@ -126,31 +132,24 @@ func _end_roll() -> void:
 	_set_invulnerability(false)
 	_restore_floor_snap()
 	_notify_player_roll_state(false)
+	_just_finished = true
 
-func _resolve_direction() -> Vector3:
-	var move_dir := Vector3.ZERO
-	var has_input := false
-	if player != null and is_instance_valid(player):
-		var cache_variant: Variant = player.call("get_input_cache") if player.has_method("get_input_cache") else null
-		if cache_variant is Dictionary:
-			var cache_dict := cache_variant as Dictionary
-			var move_record_variant: Variant = cache_dict.get("move")
-			if move_record_variant is Dictionary:
-				var move_record := move_record_variant as Dictionary
-				var raw_dir_variant: Variant = move_record.get("raw")
-				if raw_dir_variant is Vector2:
-					var raw_dir := raw_dir_variant as Vector2
-					has_input = raw_dir.length_squared() > 0.0001
-				if has_input:
-					var camera_dir_variant: Variant = move_record.get("camera")
-					if camera_dir_variant is Vector3:
-						move_dir = camera_dir_variant as Vector3
-	if not has_input or move_dir.length_squared() < 0.0001:
-		move_dir = _get_player_forward_dir()
-	move_dir.y = 0.0
-	if not move_dir.is_finite():
-		move_dir = Vector3.ZERO
-	return move_dir
+func _sanitize_direction(dir: Vector3) -> Vector3:
+	if not dir.is_finite():
+		return Vector3.ZERO
+	if dir.length_squared() > 1.0:
+		dir = dir.normalized()
+	return Vector3(dir.x, 0.0, dir.z)
+
+func _fallback_direction() -> Vector3:
+	var state_machine := _resolve_state_machine()
+	if state_machine != null and is_instance_valid(state_machine):
+		var intent := state_machine.get_move_intent()
+		if intent.length_squared() > 0.0001:
+			var flattened := Vector3(intent.x, 0.0, intent.z)
+			if flattened.length_squared() > 0.0001:
+				return flattened.normalized()
+	return _get_player_forward_dir()
 
 func _get_player_forward_dir() -> Vector3:
 	if player == null or not is_instance_valid(player):
@@ -169,6 +168,23 @@ func _get_player_forward_dir() -> Vector3:
 	if not forward.is_finite():
 		return Vector3.ZERO
 	return forward.normalized()
+
+func _resolve_state_machine() -> StateMachineModule:
+	if _state_machine != null and is_instance_valid(_state_machine):
+		return _state_machine
+	if player == null or not is_instance_valid(player):
+		_state_machine = null
+		return null
+	var modules_node := player.get_node_or_null("Modules")
+	if modules_node != null and is_instance_valid(modules_node):
+		var candidate := modules_node.get_node_or_null("StateMachine") as StateMachineModule
+		if candidate != null:
+			_state_machine = candidate
+			return _state_machine
+	var direct := player.get_node_or_null("StateMachine") as StateMachineModule
+	if direct != null:
+		_state_machine = direct
+	return _state_machine
 
 func _has_required_stamina() -> bool:
 	if stamina == null or not is_instance_valid(stamina):
