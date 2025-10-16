@@ -156,10 +156,15 @@ func _get_last_on_floor_time() -> float:
 func _do_jump(now_s: float) -> void:
 	var final_speed := jump_speed
 	var combo := _get_combo()
-	var was_perfect := false
 	if combo != null:
+		if capabilities != null and combo.capabilities == null:
+			combo.capabilities = capabilities
+		var was_perfect := combo.is_in_perfect_window()
+		if was_perfect:
+			combo.register_perfect()
+		else:
+			combo.register_failed_jump()
 		final_speed *= combo.jump_multiplier()
-		was_perfect = combo.is_in_perfect_window()
 	_cache_floor_snap_target()
 	_owner_body.floor_snap_length = 0.0
 	if "snap_len" in _owner_body:
@@ -178,8 +183,6 @@ func _do_jump(now_s: float) -> void:
 	_play_jump_audio()
 	if camera_rig != null and is_instance_valid(camera_rig) and camera_rig.has_method("_play_jump_kick"):
 		camera_rig.call_deferred("_play_jump_kick")
-	if combo != null:
-		combo.register_jump(was_perfect)
 
 func _get_combo() -> PerfectJumpCombo:
 	if _combo != null and is_instance_valid(_combo):

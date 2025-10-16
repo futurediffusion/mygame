@@ -62,6 +62,7 @@ var anim_tree: AnimationTree
 @onready var combo: PerfectJumpCombo = $PerfectJumpCombo
 @onready var brain: AllyBrain = $AllyBrain
 @onready var m_movement: MovementModule = $Modules/Movement
+@onready var m_jump: JumpModule = $Modules/Jump
 @onready var m_orientation: OrientationModule = $Modules/Orientation
 @onready var m_dodge: DodgeModule = $Modules/Dodge
 @onready var m_anim: AnimationCtrlModule = $Modules/AnimationCtrl
@@ -107,6 +108,8 @@ func _ready() -> void:
 	for module in [m_movement, m_orientation, m_anim]:
 		if module != null and is_instance_valid(module):
 			module.setup(self)
+	if m_jump != null and is_instance_valid(m_jump):
+		m_jump.setup(self)
 	if m_dodge != null and is_instance_valid(m_dodge):
 		m_dodge.setup(self, m_anim)
 	if m_fsm != null and is_instance_valid(m_fsm):
@@ -135,6 +138,8 @@ func physics_tick(dt: float) -> void:
 		m_anim.set_frame_anim_inputs(_is_sprinting and sprint_enabled, _air_time)
 	if m_fsm != null and is_instance_valid(m_fsm):
 		m_fsm.physics_tick(dt)
+	if m_jump != null and is_instance_valid(m_jump):
+		m_jump.physics_tick(dt)
 	if m_movement != null and is_instance_valid(m_movement):
 		m_movement.physics_tick(dt)
 	if m_dodge != null and is_instance_valid(m_dodge):
