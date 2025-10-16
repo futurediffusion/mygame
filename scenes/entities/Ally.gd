@@ -114,6 +114,8 @@ func _ready() -> void:
 		m_dodge.setup(self, m_anim)
 	if m_fsm != null and is_instance_valid(m_fsm):
 		m_fsm.setup(self)
+	if combo != null and is_instance_valid(combo):
+		combo.capabilities = capabilities
 	if brain != null and is_instance_valid(brain):
 		brain.set_ally(self)
 	var clock := _get_simclock()

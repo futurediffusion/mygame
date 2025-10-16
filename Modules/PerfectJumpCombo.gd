@@ -12,6 +12,7 @@ var _body: CharacterBody3D
 var _was_on_floor: bool = false
 var _landed_timer: float = 0.0
 var _combo_count: int = 0
+var _pending_landed: bool = false
 
 var capabilities: Capabilities
 
@@ -19,22 +20,29 @@ signal combo_changed(value: int)
 signal perfect_jump()
 signal combo_reset()
 
+const STATE_MODULE_SCRIPT := preload("res://Modules/State.gd")
+
 func _ready() -> void:
 	_body = _resolve_body()
 	if _body != null and _body.is_on_floor():
 		_was_on_floor = true
 	_resolve_capabilities()
+	_autowire_state_module(_body)
 
 func physics_tick(delta: float) -> void:
 	var body := _get_body()
 	if body == null:
 		_reset_timers()
 		return
+	if _pending_landed:
+		_open_perfect_window()
+		_was_on_floor = true
+		_pending_landed = false
 	var on_floor := body.is_on_floor()
 	if on_floor and not _was_on_floor:
 		_open_perfect_window()
 	_was_on_floor = on_floor
-	if on_floor:
+	if _was_on_floor:
 		if _landed_timer > 0.0:
 			_landed_timer = max(_landed_timer - delta, 0.0)
 	else:
@@ -43,6 +51,7 @@ func physics_tick(delta: float) -> void:
 func on_landed() -> void:
 	_open_perfect_window()
 	_was_on_floor = true
+	_pending_landed = true
 
 func register_jump(was_perfect: bool) -> void:
 	if capabilities != null and not capabilities.can_jump:
@@ -118,12 +127,14 @@ func _open_perfect_window() -> void:
 func _reset_timers() -> void:
 	_landed_timer = 0.0
 	_was_on_floor = false
+	_pending_landed = false
 
 func _get_body() -> CharacterBody3D:
 	if _body != null and is_instance_valid(_body):
 		return _body
 	_body = _resolve_body()
 	_resolve_capabilities()
+	_autowire_state_module(_body)
 	return _body
 
 func _resolve_body() -> CharacterBody3D:
@@ -134,6 +145,28 @@ func _resolve_body() -> CharacterBody3D:
 	if candidate is CharacterBody3D and is_instance_valid(candidate):
 		return candidate
 	return null
+
+func _autowire_state_module(body: CharacterBody3D = null) -> void:
+	var carrier := body
+	if carrier == null:
+		carrier = _get_body()
+	if carrier == null or not is_instance_valid(carrier):
+		return
+	var state_node: Node = null
+	if carrier.has_node("Modules/State"):
+		state_node = carrier.get_node_or_null("Modules/State")
+	elif carrier.has_node("State"):
+		state_node = carrier.get_node_or_null("State")
+	if state_node == null or not is_instance_valid(state_node):
+		return
+	if state_node is STATE_MODULE_SCRIPT:
+		var state_module := state_node as StateModule
+		if state_module != null and not state_module.landed.is_connected(_on_state_module_landed):
+			state_module.landed.connect(_on_state_module_landed)
+
+func _on_state_module_landed(_is_hard: bool) -> void:
+	on_landed()
+
 func _resolve_capabilities() -> void:
 	var carrier: Object = _body
 	if carrier == null or not is_instance_valid(carrier):
