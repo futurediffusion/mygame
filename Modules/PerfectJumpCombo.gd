@@ -34,15 +34,18 @@ func physics_tick(delta: float) -> void:
 	if body == null:
 		_reset_timers()
 		return
+	var on_floor := body.is_on_floor()
+	var just_landed := false
 	if _pending_landed:
 		_open_perfect_window()
-		_was_on_floor = true
+		just_landed = true
 		_pending_landed = false
-	var on_floor := body.is_on_floor()
-	if on_floor and not _was_on_floor:
+	elif on_floor and not _was_on_floor:
 		_open_perfect_window()
+		just_landed = true
+	on_floor = on_floor or just_landed
 	_was_on_floor = on_floor
-	if _was_on_floor:
+	if on_floor:
 		if _landed_timer > 0.0:
 			_landed_timer = max(_landed_timer - delta, 0.0)
 	else:
