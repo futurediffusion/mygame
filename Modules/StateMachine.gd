@@ -156,15 +156,15 @@ func _sanitize_move_dir(move_dir: Vector3) -> Vector3:
 		return move_dir.normalized()
 	return move_dir
 
-func _fetch_module(name: String) -> Node:
+func _fetch_module(module_name: String) -> Node:
 	if _owner_body == null or not is_instance_valid(_owner_body):
 		return null
 	var modules_node := _owner_body.get_node_or_null("Modules")
 	if modules_node != null and is_instance_valid(modules_node):
-		var from_modules := modules_node.get_node_or_null(name)
+		var from_modules := modules_node.get_node_or_null(module_name)
 		if from_modules != null and is_instance_valid(from_modules):
 			return from_modules
-	return _owner_body.get_node_or_null(name)
+	return _owner_body.get_node_or_null(module_name)
 
 
 func get_state() -> State:

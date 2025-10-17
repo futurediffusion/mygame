@@ -316,7 +316,7 @@ func physics_tick(delta: float) -> void:
 	if allow_input:
 		is_sprinting = _update_sprint_state(delta, input_dir)
 	var want_roll := allow_input and Input.is_action_just_pressed("roll")
-	var want_attack := allow_input and Input.is_action_just_pressed("attack")
+	var want_attack := allow_input and _is_attack_primary_just_pressed()
 	var want_jump := allow_input and Input.is_action_just_pressed("jump")
 	if m_fsm != null and is_instance_valid(m_fsm):
 		m_fsm.set_intents(input_dir, is_sprinting, want_roll, want_attack, want_jump)
@@ -522,6 +522,13 @@ func _get_camera_relative_input() -> Vector3:
 	if direction.length_squared() > 1.0:
 		return direction.normalized()
 	return direction
+
+func _is_attack_primary_just_pressed() -> bool:
+	if Input.is_action_just_pressed("attack_primary"):
+		return true
+	if InputMap.has_action("attack"):
+		return Input.is_action_just_pressed("attack")
+	return false
 
 func _on_perfect_jump_config_changed() -> void:
 	if not is_inside_tree():
