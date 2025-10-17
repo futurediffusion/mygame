@@ -364,6 +364,9 @@ func _handle_airborne(delta: float) -> void:
 	elif _time_in_air >= min_air_time_to_fall:
 		if vel_y <= 0.0:
 			should_trigger_fall = true
+		elif _state_machine != null and _state_machine.get_current_node() == _state_locomotion:
+			if _has_state(STATE_FALL):
+				should_trigger_fall = true
 	if should_trigger_fall and not _fall_triggered:
 		_travel_to_state(STATE_FALL)
 		_fall_triggered = true
