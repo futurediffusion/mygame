@@ -279,22 +279,22 @@ func _update_dodge_state() -> void:
 	var dodge_module := _resolve_dodge_module()
 	var state_machine := _resolve_state_machine_module()
 	var dodge_started := false
-	var is_dodging := false
+	var dodge_active := false
 	if dodge_module != null and is_instance_valid(dodge_module):
 		if dodge_module.just_fired():
 			dodge_started = true
-		is_dodging = dodge_module.is_rolling()
+		dodge_active = dodge_module.is_rolling()
 	if state_machine != null and is_instance_valid(state_machine):
 		var current_state := state_machine.get_state()
 		if state_machine.just_entered(StateMachineModule.State.DODGE):
 			dodge_started = true
-		is_dodging = is_dodging or current_state == StateMachineModule.State.DODGE
+		dodge_active = dodge_active or current_state == StateMachineModule.State.DODGE
 		_last_fsm_state = current_state
 	elif dodge_module == null:
-		is_dodging = false
+		dodge_active = false
 	if dodge_started:
 		play_dodge()
-	_set_dodge_active(is_dodging)
+	_set_dodge_active(dodge_active)
 
 func _set_dodge_active(active: bool) -> void:
 	if anim_tree == null or not is_instance_valid(anim_tree):
