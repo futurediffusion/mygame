@@ -72,40 +72,52 @@ const FORCED_SNEAK_HEADROOM_INTERVAL := 0.1
 @export_group("Perfect Jump Combo")
 @export var perfect_jump_enabled: bool = true:
 	set(value):
-		if field == value:
+		if _perfect_jump_enabled == value:
 			return
-		field = value
+		_perfect_jump_enabled = value
 		_on_perfect_jump_config_changed()
+	get:
+		return _perfect_jump_enabled
 @export_range(1, 400, 1) var perfect_jump_combo_max: int = 100:
 	set(value):
-		if field == value:
+		if _perfect_jump_combo_max == value:
 			return
-		field = value
+		_perfect_jump_combo_max = value
 		_on_perfect_jump_config_changed()
+	get:
+		return _perfect_jump_combo_max
 @export_range(0.0, 0.5, 0.005) var perfect_jump_window: float = 0.12:
 	set(value):
-		if field == value:
+		if is_equal_approx(_perfect_jump_window, value):
 			return
-		field = value
+		_perfect_jump_window = value
 		_on_perfect_jump_config_changed()
+	get:
+		return _perfect_jump_window
 @export_range(1.0, 5.0, 0.05) var perfect_jump_speed_bonus_max: float = 3.0:
 	set(value):
-		if field == value:
+		if is_equal_approx(_perfect_jump_speed_bonus_max, value):
 			return
-		field = value
+		_perfect_jump_speed_bonus_max = value
 		_on_perfect_jump_config_changed()
+	get:
+		return _perfect_jump_speed_bonus_max
 @export_range(1.0, 5.0, 0.05) var perfect_jump_height_bonus_max: float = 2.0:
 	set(value):
-		if field == value:
+		if is_equal_approx(_perfect_jump_height_bonus_max, value):
 			return
-		field = value
+		_perfect_jump_height_bonus_max = value
 		_on_perfect_jump_config_changed()
+	get:
+		return _perfect_jump_height_bonus_max
 @export_range(0.1, 3.0, 0.05) var perfect_jump_curve_gamma: float = 0.5:
 	set(value):
-		if field == value:
+		if is_equal_approx(_perfect_jump_curve_gamma, value):
 			return
-		field = value
+		_perfect_jump_curve_gamma = value
 		_on_perfect_jump_config_changed()
+	get:
+		return _perfect_jump_curve_gamma
 
 @export_group("Sprint Animation")
 @export_range(1.0, 2.0, 0.05) var sprint_anim_speed_scale: float = GameConstants.DEFAULT_SPRINT_ANIM_SPEED_SCALE
@@ -159,6 +171,12 @@ var _skip_module_updates := false
 var _block_animation_updates := false
 var _input_cache: Dictionary = {}
 var _context_state: ContextState = ContextState.DEFAULT
+var _perfect_jump_enabled := true
+var _perfect_jump_combo_max := 100
+var _perfect_jump_window := 0.12
+var _perfect_jump_speed_bonus_max := 3.0
+var _perfect_jump_height_bonus_max := 2.0
+var _perfect_jump_curve_gamma := 0.5
 var _talk_active := false
 var _is_sitting := false
 var _is_build_mode := false
