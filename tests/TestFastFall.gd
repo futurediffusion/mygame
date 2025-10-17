@@ -12,8 +12,8 @@ class MockPlayer:
 	var gravity: float = 10.0
 
 func _ready() -> void:
-	var player := MockPlayer.new()
-	var state := StateModule.new()
+	var player: MockPlayer = MockPlayer.new()
+	var state: StateModule = StateModule.new()
 	state.setup(player)
 	var initial_y := -2.0
 	player.velocity = Vector3(0.0, initial_y, 0.0)
@@ -30,7 +30,7 @@ func _ready() -> void:
 		expected_cross -= player.gravity * (fall_scale - 1.0) * dt
 	assert(is_equal_approx(player.velocity.y, expected_cross), "Fast fall multiplier should trigger even when transitioning from a held jump.")
 
-	var movement := MovementModule.new()
+	var movement: MovementModule = MovementModule.new()
 	movement.setup(player)
 	movement.max_speed_air = player.run_speed
 	var input_dir := Vector3(1.0, 0.0, 0.0)
