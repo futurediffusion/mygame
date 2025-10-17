@@ -142,6 +142,8 @@ const FORCED_SNEAK_HEADROOM_INTERVAL := 0.1
 @onready var yaw: Node3D = $CameraRig/Yaw
 @onready var model: Node3D = $Pivot/Model
 @onready var anim_tree: AnimationTree = get_node_or_null(^"Pivot/Model/StateMachine") as AnimationTree
+
+var attack_module: AttackModule
 @onready var anim_player: AnimationPlayer = get_node_or_null(^"Pivot/Model/AnimationPlayer") as AnimationPlayer
 @onready var stamina: Stamina = $Stamina
 @onready var camera_rig: Node = get_node_or_null(^"CameraRig")
@@ -225,6 +227,7 @@ func _ready() -> void:
 		m_dodge.setup(self, m_anim, m_audio)
 	if m_fsm:
 		m_fsm.setup(self)
+	_setup_attack_module()
 	_disable_module_clock_subscription()
 
 	if anim_tree == null:
@@ -451,11 +454,24 @@ func _initialize_input_components() -> void:
 	_sync_collider_to_context()
 
 func _disable_module_clock_subscription() -> void:
-	for module in [m_state, m_jump, m_movement, m_orientation, m_anim, m_audio, m_dodge, m_fsm]:
+	for module in [m_state, m_jump, m_movement, m_orientation, m_anim, m_audio, m_dodge, m_fsm, attack_module]:
 		if module == null or not is_instance_valid(module):
 			continue
 		if module.has_method("set_clock_subscription"):
 			module.set_clock_subscription(false)
+
+func _setup_attack_module() -> void:
+	if attack_module != null and is_instance_valid(attack_module):
+		return
+	var modules_root := get_node_or_null(^"Modules")
+	var parent_node: Node = self
+	if modules_root != null and is_instance_valid(modules_root):
+		parent_node = modules_root
+	attack_module = AttackModule.new()
+	attack_module.name = "Attack"
+	attack_module.animation_tree = anim_tree
+	parent_node.add_child(attack_module)
+	attack_module.set_clock_subscription(false)
 
 func _on_input_updated(cache: Dictionary, state: Dictionary) -> void:
 	_input_cache = cache
