@@ -347,6 +347,8 @@ func physics_tick(delta: float) -> void:
 			m_dodge.physics_tick(delta)
 		if m_orientation:
 			m_orientation.physics_tick(delta)
+		if not _block_animation_updates and attack_module and is_instance_valid(attack_module):
+			attack_module.physics_tick(delta)
 		if not _block_animation_updates and m_anim:
 			m_anim.physics_tick(delta)
 	else:
