@@ -303,7 +303,7 @@ func _get_jump_multiplier(combo_value: int) -> float:
 	return lerp(1.0, target_max, _get_combo_progress(combo_value))
 
 func _get_combo_progress(combo_value: int) -> float:
-	var effective_max := max(combo_max, 1)
+	var effective_max: int = max(combo_max, 1)
 	var ratio := clampf(float(combo_value) / float(effective_max), 0.0, 1.0)
 	var gamma := maxf(combo_curve_gamma, 0.01)
 	return pow(ratio, gamma)
