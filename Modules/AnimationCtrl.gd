@@ -358,18 +358,31 @@ func _handle_airborne(delta: float) -> void:
 	_time_in_air += delta
 
 	var vel_y := player.velocity.y
+	var fall_state_available := _has_state(STATE_FALL)
+	var current_sm_state := StringName()
+	if _state_machine != null:
+		current_sm_state = _state_machine.get_current_node()
+
 	var should_trigger_fall := false
 	if vel_y <= fall_speed_threshold:
 		should_trigger_fall = true
-	elif _time_in_air >= min_air_time_to_fall:
-		if vel_y <= 0.0:
+	elif _time_in_air >= min_air_time_to_fall and vel_y <= 0.0:
+		should_trigger_fall = true
+
+	if fall_state_available:
+		if current_sm_state == _state_locomotion:
 			should_trigger_fall = true
-		elif _state_machine != null and _state_machine.get_current_node() == _state_locomotion:
-			if _has_state(STATE_FALL):
+		elif _has_jumped and not String(current_sm_state).is_empty():
+			if current_sm_state != STATE_JUMP and current_sm_state != STATE_FALL:
 				should_trigger_fall = true
-	if should_trigger_fall and not _fall_triggered:
-		_travel_to_state(STATE_FALL)
-		_fall_triggered = true
+
+	if should_trigger_fall:
+		if fall_state_available:
+			if not _fall_triggered:
+				_fall_triggered = true
+			_travel_to_state(STATE_FALL)
+		else:
+			_fall_triggered = true
 
 	var target_air_blend := _calculate_fall_blend_target()
 	_current_air_blend = lerpf(_current_air_blend, target_air_blend, clampf(delta * fall_blend_lerp_speed, 0.0, 1.0))
