@@ -69,6 +69,13 @@ const FORCED_SNEAK_HEADROOM_INTERVAL := 0.1
 @export_group("Input Buffering")
 @export_range(0.0, 0.5, 0.01) var coyote_time: float = GameConstants.DEFAULT_COYOTE_TIME_S
 @export_range(0.0, 0.5, 0.01) var jump_buffer: float = GameConstants.DEFAULT_JUMP_BUFFER_S
+@export_group("Perfect Jump Combo")
+@export var perfect_jump_enabled: bool = true
+@export_range(1, 400, 1) var perfect_jump_combo_max: int = 100
+@export_range(0.0, 0.5, 0.005) var perfect_jump_window: float = 0.09
+@export_range(1.0, 5.0, 0.05) var perfect_jump_speed_bonus_max: float = 3.0
+@export_range(1.0, 5.0, 0.05) var perfect_jump_height_bonus_max: float = 2.0
+@export_range(0.1, 3.0, 0.05) var perfect_jump_curve_gamma: float = 0.5
 
 @export_group("Sprint Animation")
 @export_range(1.0, 2.0, 0.05) var sprint_anim_speed_scale: float = GameConstants.DEFAULT_SPRINT_ANIM_SPEED_SCALE
@@ -163,7 +170,7 @@ func _ready() -> void:
 	if m_state:
 		m_state.setup(self)
 	if m_jump:
-		m_jump.setup(self, m_state, input_buffer)
+		m_jump.setup(self, m_state, input_buffer, m_movement)
 	for m in [m_movement, m_orientation, m_anim, m_audio]:
 		m.setup(self)
 	if m_dodge:
@@ -458,6 +465,12 @@ func _update_module_stats() -> void:
 	if m_jump:
 		m_jump.jump_speed = jump_velocity
 		m_jump.coyote_time = coyote_time
+		m_jump.perfect_jump_enabled = perfect_jump_enabled
+		m_jump.combo_max = perfect_jump_combo_max
+		m_jump.perfect_window = perfect_jump_window
+		m_jump.combo_speed_bonus_max = perfect_jump_speed_bonus_max
+		m_jump.combo_jump_bonus_max = perfect_jump_height_bonus_max
+		m_jump.combo_curve_gamma = perfect_jump_curve_gamma
 	if m_movement:
 		m_movement.max_speed_ground = run_speed
 		m_movement.max_speed_air = run_speed
