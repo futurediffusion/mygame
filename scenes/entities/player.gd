@@ -170,7 +170,7 @@ func _ready() -> void:
 		m_dodge.setup(self, m_anim, m_audio)
 	if m_fsm:
 		m_fsm.setup(self)
-_disable_module_clock_subscription()
+	_disable_module_clock_subscription()
 
 	if anim_tree == null:
 		LoggerService.warn(LOGGER_CONTEXT, "AnimationTree no encontrado; animaciones desactivadas en este modo.")
