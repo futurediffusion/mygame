@@ -292,12 +292,15 @@ func _end_or_continue_combo() -> void:
 		return
 	if last_step == STEP_PUNCH3:
 		cooldown_until = _get_time_seconds() + COMBO_COOLDOWN
-	_abort_current_attack()
+	_finish_current_attack(false)
 
 func _abort_current_attack() -> void:
+	_finish_current_attack(true)
+
+func _finish_current_attack(cancel_animation: bool) -> void:
 	var last_step := combo_step
 	if last_step != 0:
-		_cancel_animation_step(last_step)
+		_cancel_animation_step(last_step, cancel_animation)
 	is_attacking = false
 	combo_step = 0
 	time_in_step = 0.0
@@ -313,16 +316,17 @@ func _abort_current_attack() -> void:
 	if last_step != 0:
 		attack_finished.emit(last_step)
 
-func _cancel_animation_step(step: int) -> void:
+func _cancel_animation_step(step: int, request_fade_out: bool = true) -> void:
 	var tree := _animation_tree
 	if tree == null or not is_instance_valid(tree):
 		return
 	var faded := false
 	var request_params: Array = _punch_request_params.get(step, [])
-	for param in request_params:
-		tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
-		faded = true
-	if faded:
+	if request_fade_out:
+		for param in request_params:
+			tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FADE_OUT)
+			faded = true
+	if request_fade_out and faded:
 		return
 	var active_params: Array = _punch_active_params.get(step, [])
 	for param in active_params:
