@@ -245,7 +245,7 @@ func _queue_next_step(step: int) -> void:
 	_buffer_time_remaining = 0.0
 
 func _start_combo_step(step: int) -> void:
-	var data := STEP_DATA.get(step, {})
+	var data: Dictionary = STEP_DATA.get(step, {})
 	if data.is_empty():
 		return
 	var tree := _animation_tree
