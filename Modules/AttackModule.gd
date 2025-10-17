@@ -87,14 +87,36 @@ func _refresh_parameter_cache() -> void:
 	if tree == null or not is_instance_valid(tree):
 		return
 	for path in PARAM_PUNCH_REQUESTS:
-		if tree.has_parameter(path):
+		if _tree_has_param(tree, path):
 			_punch_request_params.append(path)
 	for path in PARAM_PUNCH_ACTIVE_FLAGS:
-		if tree.has_parameter(path):
+		if _tree_has_param(tree, path):
 			_punch_active_params.append(path)
 	for path in PARAM_DODGE_ACTIVE_FLAGS:
-		if tree.has_parameter(path):
+		if _tree_has_param(tree, path):
 			_dodge_active_params.append(path)
+
+func _tree_has_param(tree: AnimationTree, param: StringName) -> bool:
+	if tree == null:
+		return false
+
+	if tree.has_method("has_parameter"):
+		var has_param_variant: Variant = tree.call("has_parameter", param)
+		if has_param_variant is bool:
+			if has_param_variant:
+				return true
+		elif has_param_variant == true:
+			return true
+
+	if tree.has_method("get_property_list"):
+		var property_list: Array = tree.get_property_list()
+		var target_name := String(param)
+		for prop in property_list:
+			if prop is Dictionary and prop.has("name"):
+				if String(prop["name"]) == target_name:
+					return true
+
+	return false
 
 func _is_any_param_true(tree: AnimationTree, params: Array[StringName]) -> bool:
 	for param in params:
