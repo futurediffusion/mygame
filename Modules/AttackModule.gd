@@ -26,9 +26,9 @@ func _input(event: InputEvent) -> void:
 func puede_atacar() -> bool:
 	if animation_tree == null or not is_instance_valid(animation_tree):
 		return false
-	if bool(animation_tree.get(PARAM_DODGE_ACTIVE)):
+	if animation_tree.get(PARAM_DODGE_ACTIVE):
 		return false
-	if bool(animation_tree.get(PARAM_PUNCH_ACTIVE)):
+	if animation_tree.get(PARAM_PUNCH_ACTIVE):
 		return false
 	return true
 
