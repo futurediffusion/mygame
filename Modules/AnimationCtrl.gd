@@ -82,6 +82,7 @@ var _has_jumped := false
 var _fall_triggered := false
 var _time_in_air := 0.0
 var _current_air_blend := 0.0
+var _force_fall_pose := false
 
 var _state_machine: AnimationNodeStateMachinePlayback
 var _state_machine_graph: AnimationNodeStateMachine
@@ -358,6 +359,7 @@ func _handle_airborne(delta: float) -> void:
 	_time_in_air += delta
 
 	var vel_y := player.velocity.y
+	var ascending := vel_y > 0.0
 	var fall_state_available := _has_state(STATE_FALL)
 	var current_sm_state := StringName()
 	if _state_machine != null:
@@ -381,11 +383,20 @@ func _handle_airborne(delta: float) -> void:
 			if not _fall_triggered:
 				_fall_triggered = true
 			_travel_to_state(STATE_FALL)
+			if ascending:
+				_force_fall_pose = true
+				_current_air_blend = 1.0
 		else:
 			_fall_triggered = true
 
+	if not ascending and _force_fall_pose:
+		_force_fall_pose = false
+
 	var target_air_blend := _calculate_fall_blend_target()
-	_current_air_blend = lerpf(_current_air_blend, target_air_blend, clampf(delta * fall_blend_lerp_speed, 0.0, 1.0))
+	if _force_fall_pose:
+		_current_air_blend = target_air_blend
+	else:
+		_current_air_blend = lerpf(_current_air_blend, target_air_blend, clampf(delta * fall_blend_lerp_speed, 0.0, 1.0))
 	_update_jump_fall_transition_blend()
 	_set_air_blend(_current_air_blend)
 
@@ -401,6 +412,7 @@ func _handle_grounded() -> void:
 			_airborne = false
 			_time_in_air = 0.0
 			_fall_triggered = false
+			_force_fall_pose = false
 			_has_jumped = false
 			_current_air_blend = 0.0
 			_stop_jump_one_shot()
@@ -413,6 +425,7 @@ func _handle_grounded() -> void:
 		_airborne = false
 		_time_in_air = 0.0
 		_fall_triggered = false
+		_force_fall_pose = false
 		_has_jumped = false
 		_current_air_blend = 0.0
 		_stop_jump_one_shot()
@@ -915,6 +928,7 @@ func _on_jumped() -> void:
 	_airborne = true
 	_time_in_air = 0.0
 	_fall_triggered = false
+	_force_fall_pose = false
 	_current_air_blend = 0.0
 	_update_jump_fall_transition_blend()
 	_set_locomotion_blend(0.0)
@@ -928,6 +942,7 @@ func _on_left_ground() -> void:
 	_airborne = true
 	_time_in_air = 0.0
 	_fall_triggered = false
+	_force_fall_pose = false
 	_current_air_blend = 0.0
 	_update_jump_fall_transition_blend()
 	_set_locomotion_blend(0.0)
@@ -940,6 +955,7 @@ func _on_landed(_is_hard: bool) -> void:
 	_has_jumped = false
 	_time_in_air = 0.0
 	_fall_triggered = false
+	_force_fall_pose = false
 	_current_air_blend = 0.0
 	_stop_jump_one_shot()
 	_update_jump_fall_transition_blend()
@@ -1154,6 +1170,8 @@ func _update_locomotion_jump_transition(blend_factor: float) -> void:
 	_set_transition_blend_time(_state_locomotion, STATE_JUMP, duration)
 
 func _calculate_fall_blend_target() -> float:
+	if _force_fall_pose:
+		return 1.0
 	if not _fall_triggered:
 		return 0.0
 	var elapsed := maxf(_time_in_air - fall_blend_ramp_delay, 0.0)
