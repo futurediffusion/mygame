@@ -70,12 +70,42 @@ const FORCED_SNEAK_HEADROOM_INTERVAL := 0.1
 @export_range(0.0, 0.5, 0.01) var coyote_time: float = GameConstants.DEFAULT_COYOTE_TIME_S
 @export_range(0.0, 0.5, 0.01) var jump_buffer: float = GameConstants.DEFAULT_JUMP_BUFFER_S
 @export_group("Perfect Jump Combo")
-@export var perfect_jump_enabled: bool = true
-@export_range(1, 400, 1) var perfect_jump_combo_max: int = 100
-@export_range(0.0, 0.5, 0.005) var perfect_jump_window: float = 0.09
-@export_range(1.0, 5.0, 0.05) var perfect_jump_speed_bonus_max: float = 3.0
-@export_range(1.0, 5.0, 0.05) var perfect_jump_height_bonus_max: float = 2.0
-@export_range(0.1, 3.0, 0.05) var perfect_jump_curve_gamma: float = 0.5
+@export var perfect_jump_enabled: bool = true:
+	set(value):
+		if field == value:
+			return
+		field = value
+		_on_perfect_jump_config_changed()
+@export_range(1, 400, 1) var perfect_jump_combo_max: int = 100:
+	set(value):
+		if field == value:
+			return
+		field = value
+		_on_perfect_jump_config_changed()
+@export_range(0.0, 0.5, 0.005) var perfect_jump_window: float = 0.12:
+	set(value):
+		if field == value:
+			return
+		field = value
+		_on_perfect_jump_config_changed()
+@export_range(1.0, 5.0, 0.05) var perfect_jump_speed_bonus_max: float = 3.0:
+	set(value):
+		if field == value:
+			return
+		field = value
+		_on_perfect_jump_config_changed()
+@export_range(1.0, 5.0, 0.05) var perfect_jump_height_bonus_max: float = 2.0:
+	set(value):
+		if field == value:
+			return
+		field = value
+		_on_perfect_jump_config_changed()
+@export_range(0.1, 3.0, 0.05) var perfect_jump_curve_gamma: float = 0.5:
+	set(value):
+		if field == value:
+			return
+		field = value
+		_on_perfect_jump_config_changed()
 
 @export_group("Sprint Animation")
 @export_range(1.0, 2.0, 0.05) var sprint_anim_speed_scale: float = GameConstants.DEFAULT_SPRINT_ANIM_SPEED_SCALE
@@ -458,6 +488,13 @@ func _get_camera_relative_input() -> Vector3:
 	if direction.length_squared() > 1.0:
 		return direction.normalized()
 	return direction
+
+func _on_perfect_jump_config_changed() -> void:
+	if not is_inside_tree():
+		return
+	if m_jump == null or not is_instance_valid(m_jump):
+		return
+	_update_module_stats()
 
 func _update_module_stats() -> void:
 	if input_buffer:
