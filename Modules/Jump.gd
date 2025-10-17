@@ -13,7 +13,7 @@ signal perfect_jump_performed(combo_count: int)
 @export_group("Perfect Jump Combo")
 @export var perfect_jump_enabled: bool = true
 @export var combo_max: int = 100
-@export_range(0.0, 0.5, 0.005) var perfect_window: float = 0.09
+@export_range(0.0, 0.5, 0.005) var perfect_window: float = 0.12
 @export_range(1.0, 5.0, 0.05) var combo_speed_bonus_max: float = 3.0
 @export_range(1.0, 5.0, 0.05) var combo_jump_bonus_max: float = 2.0
 @export_range(0.1, 3.0, 0.05) var combo_curve_gamma: float = 0.5
@@ -267,9 +267,10 @@ func _update_perfect_window(on_floor: bool, dt: float) -> void:
 		_landed_timer_s = 0.0
 		_was_on_floor_prev = on_floor
 		return
-	if on_floor and not _was_on_floor_prev:
+	var just_landed := on_floor and not _was_on_floor_prev
+	if just_landed:
 		_landed_timer_s = maxf(perfect_window, 0.0)
-	if on_floor:
+	elif on_floor:
 		if _landed_timer_s > 0.0:
 			_landed_timer_s = maxf(_landed_timer_s - dt, 0.0)
 	else:
