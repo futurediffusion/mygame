@@ -17,6 +17,18 @@ const STEP_PUNCH3 := 3
 
 const STEP_ORDER := [STEP_PUNCH1, STEP_PUNCH2, STEP_PUNCH3]
 
+const ATTACK_ID_TO_STEP := {
+	"P1": STEP_PUNCH1,
+	"P2": STEP_PUNCH2,
+	"P3": STEP_PUNCH3,
+}
+
+const STEP_TO_ATTACK_ID := {
+	STEP_PUNCH1: StringName("P1"),
+	STEP_PUNCH2: StringName("P2"),
+	STEP_PUNCH3: StringName("P3"),
+}
+
 const STEP_DATA := {
 	STEP_PUNCH1: {
 		"duration": 0.42,
@@ -100,6 +112,7 @@ var combo_step: int = 0
 var time_in_step: float = 0.0
 var buffered_attack: bool = false
 var hit_active: bool = false
+var current_attack_id: StringName = StringName()
 var already_hit: Dictionary = {}
 var cooldown_until: float = 0.0
 
@@ -109,6 +122,7 @@ var _move_lock_remaining: float = 0.0
 var _window_open_emitted: bool = false
 var _window_close_emitted: bool = false
 var _current_step_data: Dictionary = {}
+var _manual_window_control: bool = false
 
 var _punch_request_params: Dictionary = {}
 var _punch_active_params: Dictionary = {}
@@ -157,8 +171,9 @@ func physics_tick(dt: float) -> void:
 	var window_open := float(data.get("window_open", 0.0))
 	var window_close := float(data.get("window_close", 0.0))
 	var combo_window := float(data.get("combo_window", 0.0))
-	if not _window_open_emitted and time_in_step >= window_open:
+	if not _manual_window_control and not _window_open_emitted and time_in_step >= window_open:
 		_window_open_emitted = true
+		current_attack_id = STEP_TO_ATTACK_ID.get(combo_step, StringName())
 		hit_active = true
 		already_hit.clear()
 		attack_window_opened.emit(combo_step)
@@ -168,7 +183,7 @@ func physics_tick(dt: float) -> void:
 			_buffer_time_remaining = 0.0
 	var combo_window_close := window_open + combo_window
 	var window_should_close := time_in_step >= window_close
-	if window_should_close and hit_active:
+	if not _manual_window_control and window_should_close and hit_active:
 		hit_active = false
 		if not _window_close_emitted:
 			_window_close_emitted = true
@@ -192,23 +207,59 @@ func puede_atacar() -> bool:
 		return false
 	return true
 
-func on_attack_overlap(target_id, hit_info) -> void:
+func on_attack_overlap(target_id, hit_point: Vector3, hit_normal: Vector3) -> void:
 	if not hit_active:
 		return
 	if already_hit.has(target_id):
 		return
-	var data := _current_step_data
+	var data := _get_active_attack_data()
 	if data.is_empty():
 		return
 	already_hit[target_id] = true
+	var step_id := _get_step_from_attack_id(current_attack_id)
+	if step_id == 0:
+		step_id = combo_step
 	var payload := {
-		"step": combo_step,
+		"step": step_id,
 		"damage": data.get("damage", 0),
 		"impulse": data.get("impulse", Vector3.ZERO),
 		"tag": data.get("tag", &""),
-		"hit_info": hit_info,
+		"hit_point": hit_point,
+		"hit_normal": hit_normal,
 	}
-	attack_hit.emit(combo_step, target_id, payload)
+	attack_hit.emit(step_id, target_id, payload)
+
+func attack_start_hit(attack_id: Variant) -> void:
+	if not is_attacking:
+		return
+	var normalized_id := _normalize_attack_id(attack_id)
+	if normalized_id == StringName():
+		return
+	var step := _get_step_from_attack_id(normalized_id)
+	if step == 0 or step != combo_step:
+		return
+	current_attack_id = normalized_id
+	_manual_window_control = true
+	hit_active = true
+	already_hit.clear()
+	if not _window_open_emitted:
+		_window_open_emitted = true
+		attack_window_opened.emit(combo_step)
+
+func attack_end_hit(attack_id: Variant) -> void:
+	if not is_attacking:
+		return
+	var normalized_id := _normalize_attack_id(attack_id)
+	if normalized_id == StringName():
+		return
+	if current_attack_id != normalized_id:
+		return
+	hit_active = false
+	already_hit.clear()
+	current_attack_id = StringName()
+	if not _window_close_emitted:
+		_window_close_emitted = true
+		attack_window_closed.emit(combo_step)
 
 func get_move_lock_remaining() -> float:
 	return maxf(_move_lock_remaining, 0.0)
@@ -255,6 +306,7 @@ func _start_combo_step(step: int) -> void:
 	combo_step = step
 	time_in_step = 0.0
 	hit_active = false
+	current_attack_id = STEP_TO_ATTACK_ID.get(step, StringName())
 	already_hit.clear()
 	buffered_attack = false
 	_buffer_time_remaining = 0.0
@@ -263,6 +315,7 @@ func _start_combo_step(step: int) -> void:
 	_window_close_emitted = false
 	_current_step_data = data
 	_queued_next_step = 0
+	_manual_window_control = false
 	_fire_step(step)
 	attack_started.emit(step)
 
@@ -299,6 +352,9 @@ func _abort_current_attack() -> void:
 
 func _finish_current_attack(cancel_animation: bool) -> void:
 	var last_step := combo_step
+	if hit_active and last_step != 0 and not _window_close_emitted:
+		_window_close_emitted = true
+		attack_window_closed.emit(last_step)
 	if last_step != 0:
 		_cancel_animation_step(last_step, cancel_animation)
 	is_attacking = false
@@ -306,6 +362,7 @@ func _finish_current_attack(cancel_animation: bool) -> void:
 	time_in_step = 0.0
 	buffered_attack = false
 	hit_active = false
+	current_attack_id = StringName()
 	already_hit.clear()
 	_queued_next_step = 0
 	_buffer_time_remaining = 0.0
@@ -313,8 +370,29 @@ func _finish_current_attack(cancel_animation: bool) -> void:
 	_window_open_emitted = false
 	_window_close_emitted = false
 	_current_step_data = {}
+	_manual_window_control = false
 	if last_step != 0:
 		attack_finished.emit(last_step)
+
+func _get_step_from_attack_id(attack_id: StringName) -> int:
+	if attack_id == StringName():
+		return 0
+	return ATTACK_ID_TO_STEP.get(String(attack_id), 0)
+
+func _normalize_attack_id(attack_id: Variant) -> StringName:
+	if attack_id is StringName:
+		return attack_id
+	if attack_id is String:
+		return StringName(attack_id)
+	return StringName()
+
+func _get_active_attack_data() -> Dictionary:
+	var step := _get_step_from_attack_id(current_attack_id)
+	if step == 0:
+		step = combo_step
+	if step == 0:
+		return {}
+	return STEP_DATA.get(step, {})
 
 func _cancel_animation_step(step: int, request_fade_out: bool = true) -> void:
 	var tree := _animation_tree
