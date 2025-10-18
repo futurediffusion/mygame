@@ -574,8 +574,8 @@ func _resolve_hitbox(hand: StringName) -> Node3D:
 
 func _activate_hitbox_for_attack(attack_id: StringName) -> void:
 	_active_hitbox_id = attack_id
-	var config := ATTACK_TO_HITBOX.get(attack_id, null)
-	if config == null:
+	var config: Dictionary = ATTACK_TO_HITBOX.get(attack_id, {})
+	if config.is_empty():
 		_clear_hitbox_tracking()
 		return
 	_active_hand_bone = config.get("hand_bone", StringName())
