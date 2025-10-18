@@ -206,14 +206,12 @@ func physics_tick(dt: float) -> void:
 	time_in_step += dt
 	if _move_lock_remaining > 0.0:
 		_move_lock_remaining = maxf(_move_lock_remaining - dt, 0.0)
-	if buffered_attack:
-		_buffer_time_remaining = maxf(_buffer_time_remaining - dt, 0.0)
-		if _buffer_time_remaining <= 0.0:
-			buffered_attack = false
 	var window_open := float(data.get("window_open", 0.0))
 	var window_close := float(data.get("window_close", 0.0))
 	var combo_window := float(data.get("combo_window", 0.0))
-	if not _manual_window_control and not _window_open_emitted and time_in_step >= window_open:
+	var combo_window_close := window_open + combo_window
+	var window_reached := time_in_step >= window_open
+	if not _manual_window_control and not _window_open_emitted and window_reached:
 		_window_open_emitted = true
 		current_attack_id = STEP_TO_ATTACK_ID.get(combo_step, StringName())
 		hit_active = true
@@ -224,7 +222,6 @@ func physics_tick(dt: float) -> void:
 			_queue_next_step(combo_step + 1)
 			buffered_attack = false
 			_buffer_time_remaining = 0.0
-	var combo_window_close := window_open + combo_window
 	var window_should_close := time_in_step >= window_close
 	if not _manual_window_control and window_should_close and hit_active:
 		hit_active = false
@@ -232,6 +229,10 @@ func physics_tick(dt: float) -> void:
 		if not _window_close_emitted:
 			_window_close_emitted = true
 			attack_window_closed.emit(combo_step)
+	if buffered_attack:
+		_buffer_time_remaining = maxf(_buffer_time_remaining - dt, 0.0)
+		if _buffer_time_remaining <= 0.0 and not window_reached:
+			buffered_attack = false
 	if not window_should_close and time_in_step > combo_window_close and buffered_attack:
 		buffered_attack = false
 		_buffer_time_remaining = 0.0
@@ -291,6 +292,10 @@ func attack_start_hit(attack_id: Variant) -> void:
 	if not _window_open_emitted:
 		_window_open_emitted = true
 		attack_window_opened.emit(combo_step)
+	if buffered_attack and combo_step < STEP_PUNCH3:
+		_queue_next_step(combo_step + 1)
+		buffered_attack = false
+		_buffer_time_remaining = 0.0
 
 
 func attack_end_hit(attack_id: Variant) -> void:
