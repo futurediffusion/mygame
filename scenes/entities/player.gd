@@ -786,3 +786,9 @@ func _get_simclock() -> SimClockAutoload:
 	if autoload is SIMCLOCK_SCRIPT:
 		return autoload as SimClockAutoload
 	return null
+
+func attack_start_hit(attack_id):
+	pass
+
+func attack_end_hit(attack_id):
+	pass
