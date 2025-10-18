@@ -29,6 +29,9 @@ const STEP_TO_ATTACK_ID := {
 	STEP_PUNCH3: StringName("P3"),
 }
 
+const PUNCH_SPEED_SCALE := 1.5
+const STEP_FINISH_GRACE := 0.08
+
 const HAND_RIGHT := StringName("right")
 const HAND_LEFT := StringName("left")
 
@@ -148,6 +151,10 @@ var _manual_window_control: bool = false
 var _punch_request_params: Dictionary = {}
 var _punch_active_params: Dictionary = {}
 var _dodge_active_params: Array[StringName] = []
+
+var _animation_player: AnimationPlayer
+var _original_anim_speed_scale: float = 1.0
+var _anim_speed_override_active: bool = false
 
 @export var skeleton_path: NodePath = NodePath("../../Pivot/Model/Armature/Skeleton3D")
 @export var right_hand_hitbox_path: NodePath = NodePath("../../Hitboxes/RightHandHitbox")
@@ -386,6 +393,7 @@ func _start_combo_step(step: int) -> void:
 	_queued_next_step = 0
 	_manual_window_control = false
 	_fire_step(step)
+	_apply_attack_speed_scale()
 	attack_started.emit(step)
 
 func _fire_step(step: int) -> void:
@@ -404,6 +412,8 @@ func _fire_step(step: int) -> void:
 
 func _end_or_continue_combo() -> void:
 	var last_step := combo_step
+	if last_step != 0 and _should_delay_finish(last_step):
+		return
 	if hit_active:
 		hit_active = false
 		_on_hit_window_closed()
@@ -446,6 +456,7 @@ func _finish_current_attack(cancel_animation: bool) -> void:
 	_manual_window_control = false
 	if last_step != 0:
 		attack_finished.emit(last_step)
+	_restore_animation_speed()
 
 func _get_step_from_attack_id(attack_id: StringName) -> int:
 	if attack_id == StringName():
@@ -482,6 +493,68 @@ func _cancel_animation_step(step: int, request_fade_out: bool = true) -> void:
 	var active_params: Array = _punch_active_params.get(step, [])
 	for param in active_params:
 		tree.set(param, false)
+
+func _should_delay_finish(step: int) -> bool:
+	var tree := _animation_tree
+	if tree == null or not is_instance_valid(tree):
+		return false
+	var active_params: Array = _punch_active_params.get(step, [])
+	if active_params.is_empty():
+		return false
+	if not _is_any_param_true(tree, active_params):
+		return false
+	var data := _current_step_data
+	if data.is_empty():
+		return false
+	var duration := float(data.get("duration", 0.0))
+	if duration <= 0.0:
+		return false
+	if time_in_step >= duration + STEP_FINISH_GRACE:
+		return false
+	return true
+
+func _ensure_animation_player() -> AnimationPlayer:
+	if _animation_player != null and is_instance_valid(_animation_player):
+		if not _anim_speed_override_active:
+			_original_anim_speed_scale = _animation_player.speed_scale
+		return _animation_player
+	var tree := _animation_tree
+	if tree == null or not is_instance_valid(tree):
+		return null
+	var node: Node = null
+	var player_path: NodePath = tree.anim_player
+	if player_path != NodePath():
+		node = tree.get_node_or_null(player_path)
+	if node == null:
+		var owner := tree.get_parent()
+		while owner != null:
+			if owner is AnimationPlayer:
+				node = owner
+				break
+			owner = owner.get_parent()
+	if node is AnimationPlayer:
+		_animation_player = node
+		if not _anim_speed_override_active:
+			_original_anim_speed_scale = _animation_player.speed_scale
+		return _animation_player
+	return null
+
+func _apply_attack_speed_scale() -> void:
+	var anim_player := _ensure_animation_player()
+	if anim_player == null:
+		return
+	if not _anim_speed_override_active:
+		_original_anim_speed_scale = anim_player.speed_scale
+		_anim_speed_override_active = true
+	anim_player.speed_scale = PUNCH_SPEED_SCALE
+
+func _restore_animation_speed() -> void:
+	if not _anim_speed_override_active:
+		return
+	var anim_player := _ensure_animation_player()
+	if anim_player != null and is_instance_valid(anim_player):
+		anim_player.speed_scale = _original_anim_speed_scale
+	_anim_speed_override_active = false
 
 func _refresh_parameter_cache() -> void:
 	_punch_request_params.clear()
