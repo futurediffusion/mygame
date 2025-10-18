@@ -1,4 +1,4 @@
-[gd_scene load_steps=55 format=3 uid="uid://l4e1k3jkgu8s"]
+[gd_scene load_steps=56 format=3 uid="uid://l4e1k3jkgu8s"]
 
 [ext_resource type="Script" uid="uid://wgpmntr5gt2u" path="res://scenes/entities/player.gd" id="1_08t41"]
 [ext_resource type="PackedScene" uid="uid://cvgcaefwbrg4n" path="res://art/characters/animations1.glb" id="1_ucweq"]
@@ -199,6 +199,9 @@ graph_offset = Vector2(-63, -14)
 [sub_resource type="SphereShape3D" id="SphereShape3D_trigger"]
 radius = 1.0
 
+[sub_resource type="SphereShape3D" id="SphereShape3D_hitbox"]
+radius = 0.25
+
 [node name="Player" type="CharacterBody3D" groups=["player"]]
 collision_mask = 30
 script = ExtResource("1_08t41")
@@ -378,6 +381,22 @@ max_distance = 10.0
 [node name="FootstepSFX" type="AudioStreamPlayer3D" parent="."]
 stream = ExtResource("7_dnykm")
 volume_db = -5.036
+
+[node name="Hitboxes" type="Node3D" parent="."]
+
+[node name="RightHandHitbox" type="Area3D" parent="Hitboxes"]
+collision_layer = 0
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hitboxes/RightHandHitbox"]
+shape = SubResource("SphereShape3D_hitbox")
+
+[node name="LeftHandHitbox" type="Area3D" parent="Hitboxes"]
+collision_layer = 0
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hitboxes/LeftHandHitbox"]
+shape = SubResource("SphereShape3D_hitbox")
 
 [node name="TriggerArea" type="Area3D" parent="."]
 collision_layer = 0
