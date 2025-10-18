@@ -788,7 +788,9 @@ func _get_simclock() -> SimClockAutoload:
 	return null
 
 func attack_start_hit(attack_id):
-	pass
+	if attack_module and is_instance_valid(attack_module):
+		attack_module.attack_start_hit(attack_id)
 
 func attack_end_hit(attack_id):
-	pass
+	if attack_module and is_instance_valid(attack_module):
+		attack_module.attack_end_hit(attack_id)
