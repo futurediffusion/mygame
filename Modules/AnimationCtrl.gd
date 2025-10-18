@@ -313,12 +313,14 @@ func _set_dodge_active(active: bool) -> void:
 func _cache_sneak_animation_lengths() -> void:
 	if anim_player == null or not is_instance_valid(anim_player):
 		return
-	var enter_anim: Animation = anim_player.get_animation(CLIP_SNEAK_ENTER)
-	if enter_anim != null:
-		_sneak_enter_clip_length = maxf(enter_anim.length, 0.0)
-	var exit_anim: Animation = anim_player.get_animation(CLIP_SNEAK_EXIT)
-	if exit_anim != null:
-		_sneak_exit_clip_length = maxf(exit_anim.length, 0.0)
+	if anim_player.has_animation(CLIP_SNEAK_ENTER):
+		var enter_anim: Animation = anim_player.get_animation(CLIP_SNEAK_ENTER)
+		if enter_anim != null:
+			_sneak_enter_clip_length = maxf(enter_anim.length, 0.0)
+	if anim_player.has_animation(CLIP_SNEAK_EXIT):
+		var exit_anim: Animation = anim_player.get_animation(CLIP_SNEAK_EXIT)
+		if exit_anim != null:
+			_sneak_exit_clip_length = maxf(exit_anim.length, 0.0)
 	var enter_duration := _calculate_sneak_enter_duration()
 	_apply_sneak_enter_settings(enter_duration)
 

@@ -526,7 +526,7 @@ func _get_camera_relative_input() -> Vector3:
 	return direction
 
 func _is_attack_primary_just_pressed() -> bool:
-	if Input.is_action_just_pressed("attack_primary"):
+	if InputMap.has_action("attack_primary") and Input.is_action_just_pressed("attack_primary"):
 		return true
 	if InputMap.has_action("attack"):
 		return Input.is_action_just_pressed("attack")

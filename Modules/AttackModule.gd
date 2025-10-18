@@ -526,12 +526,12 @@ func _ensure_animation_player() -> AnimationPlayer:
 	if player_path != NodePath():
 		node = tree.get_node_or_null(player_path)
 	if node == null:
-		var owner := tree.get_parent()
-		while owner != null:
-			if owner is AnimationPlayer:
-				node = owner
+		var parent_candidate := tree.get_parent()
+		while parent_candidate != null:
+			if parent_candidate is AnimationPlayer:
+				node = parent_candidate
 				break
-			owner = owner.get_parent()
+			parent_candidate = parent_candidate.get_parent()
 	if node is AnimationPlayer:
 		_animation_player = node
 		if not _anim_speed_override_active:
@@ -607,7 +607,7 @@ func _is_any_param_true(tree: AnimationTree, params: Array[StringName]) -> bool:
 	return false
 
 func _is_attack_event(event: InputEvent) -> bool:
-	if event.is_action_pressed(ACTION_ATTACK_PRIMARY) and not event.is_echo():
+	if InputMap.has_action(ACTION_ATTACK_PRIMARY) and event.is_action_pressed(ACTION_ATTACK_PRIMARY) and not event.is_echo():
 		return true
 	if InputMap.has_action(ACTION_ATTACK_FALLBACK) and event.is_action_pressed(ACTION_ATTACK_FALLBACK) and not event.is_echo():
 		return true
