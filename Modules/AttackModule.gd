@@ -340,8 +340,8 @@ func _queue_or_buffer_next() -> void:
 	var data := _current_step_data
 	if data.is_empty():
 		return
-	var window_open := float(data.get(\"window_open\", 0.0))
-	var combo_window := float(data.get(\"combo_window\", 0.0))
+	var window_open := float(data.get("window_open", 0.0))
+	var combo_window := float(data.get("combo_window", 0.0))
 	var combo_window_close := window_open + combo_window
 	if time_in_step >= window_open and time_in_step <= combo_window_close:
 		_queue_next_step(combo_step + 1)
@@ -374,7 +374,7 @@ func _start_combo_step(step: int) -> void:
 	already_hit.clear()
 	buffered_attack = false
 	_buffer_time_remaining = 0.0
-	_move_lock_remaining = float(data.get(\"lock_move\", 0.0))
+	_move_lock_remaining = float(data.get("lock_move", 0.0))
 	_window_open_emitted = false
 	_window_close_emitted = false
 	_current_step_data = data
@@ -503,19 +503,19 @@ func _refresh_parameter_cache() -> void:
 func _tree_has_param(tree: AnimationTree, param: StringName) -> bool:
 	if tree == null:
 		return false
-	if tree.has_method(\"has_parameter\"):
-		var has_param_variant: Variant = tree.call(\"has_parameter\", param)
+	if tree.has_method("has_parameter"):
+		var has_param_variant: Variant = tree.call("has_parameter", param)
 		if has_param_variant is bool:
 			if has_param_variant:
 				return true
 		elif has_param_variant == true:
 			return true
-	if tree.has_method(\"get_property_list\"):
+	if tree.has_method("get_property_list"):
 		var property_list: Array = tree.get_property_list()
 		var target_name := String(param)
 		for prop in property_list:
-			if prop is Dictionary and prop.has(\"name\"):
-				if String(prop[\"name\"]) == target_name:
+			if prop is Dictionary and prop.has("name"):
+				if String(prop["name"]) == target_name:
 					return true
 	return false
 
@@ -578,9 +578,9 @@ func _activate_hitbox_for_attack(attack_id: StringName) -> void:
 	if config == null:
 		_clear_hitbox_tracking()
 		return
-	_active_hand_bone = config.get(\"hand_bone\", StringName())
-	_active_forearm_bone = config.get(\"forearm_bone\", StringName())
-	_active_hitbox_key = config.get(\"hitbox\", StringName())
+	_active_hand_bone = config.get("hand_bone", StringName())
+	_active_forearm_bone = config.get("forearm_bone", StringName())
+	_active_hitbox_key = config.get("hitbox", StringName())
 	_active_hitbox = _resolve_hitbox(_active_hitbox_key)
 	_should_track_hitbox = _active_hitbox != null and is_instance_valid(_active_hitbox)
 
