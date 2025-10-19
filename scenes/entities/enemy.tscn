@@ -1,0 +1,320 @@
+[gd_scene load_steps=51 format=3 uid="uid://blhk0f6ssin6f"]
+
+[ext_resource type="Script" uid="uid://wgpmntr5gt2u" path="res://scenes/entities/player.gd" id="1_2ynut"]
+[ext_resource type="Script" uid="uid://cnm5jyf244aty" path="res://Modules/Movement.gd" id="4_2wkw8"]
+[ext_resource type="Script" uid="uid://l1fqubsbi2pf" path="res://Modules/Jump.gd" id="5_vssvb"]
+[ext_resource type="Script" uid="uid://defc63lccppnx" path="res://Modules/State.gd" id="6_ar122"]
+[ext_resource type="Script" uid="uid://d7166l6er61r" path="res://Modules/Orientation.gd" id="7_xbrh2"]
+[ext_resource type="Script" uid="uid://buk7idb8jq37n" path="res://Modules/AnimationCtrl.gd" id="8_dw7jd"]
+[ext_resource type="Script" uid="uid://dodge4n2u1r" path="res://Modules/DodgeModule.gd" id="9_733cs"]
+[ext_resource type="Script" uid="uid://ccjixfvtuv4yr" path="res://Modules/StateMachine.gd" id="10_aiikf"]
+[ext_resource type="Script" uid="uid://dnbmy77ibnv2s" path="res://Modules/AudioCtrl.gd" id="11_ekn5s"]
+[ext_resource type="PackedScene" uid="uid://cvgcaefwbrg4n" path="res://art/characters/animations1.glb" id="12_x3ldt"]
+[ext_resource type="AnimationLibrary" uid="uid://d2yeay5avcx06" path="res://data/animations/animations.res" id="13_de1oc"]
+[ext_resource type="AudioStream" uid="uid://d2hewfgqv7n13" path="res://audio/sfx/player/jump.ogg" id="15_3t0gt"]
+[ext_resource type="AudioStream" uid="uid://of70m6eteujd" path="res://audio/sfx/player/land.ogg" id="16_18wsp"]
+[ext_resource type="AudioStream" uid="uid://dassqoc4266pg" path="res://audio/sfx/footsteps/footstep.ogg" id="17_micxe"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1yk18"]
+
+[sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_ogpgs"]
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_yr3on"]
+animation = &"front jump"
+
+[sub_resource type="Curve" id="Curve_b4o2o"]
+_data = [Vector2(0.0169491, 0.236879), 0.0, 0.0, 0, 0, Vector2(0.555932, 0.478289), 2.23191, 2.23191, 0, 0, Vector2(1, 0.802486), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="AnimationNodeOneShot" id="AnimationNodeOneShot_yr3on"]
+fadein_time = 0.1
+fadeout_time = 0.5
+fadeout_curve = SubResource("Curve_b4o2o")
+
+[sub_resource type="AnimationNodeTimeScale" id="AnimationNodeTimeScale_dodge"]
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_2ngu4"]
+animation = &"fall air loop"
+
+[sub_resource type="AnimationNodeOneShot" id="AnimationNodeOneShot_jv5ih"]
+fadein_time = 0.05
+fadeout_time = 0.35
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_jv5ih"]
+animation = &"idle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_n36er"]
+animation = &"walk"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_d745t"]
+animation = &"run"
+
+[sub_resource type="AnimationNodeBlendSpace1D" id="AnimationNodeBlendSpace1D_qc1tv"]
+blend_point_0/node = SubResource("AnimationNodeAnimation_jv5ih")
+blend_point_0/pos = 0.0
+blend_point_1/node = SubResource("AnimationNodeAnimation_n36er")
+blend_point_1/pos = 0.4
+blend_point_2/node = SubResource("AnimationNodeAnimation_d745t")
+blend_point_2/pos = 1.0
+min_space = 0.0
+
+[sub_resource type="AnimationNodeOneShot" id="AnimationNodeOneShot_2ngu4"]
+filter_enabled = true
+filters = ["Armature/Skeleton3D:mixamorig_Head", "Armature/Skeleton3D:mixamorig_LeftArm", "Armature/Skeleton3D:mixamorig_LeftForeArm", "Armature/Skeleton3D:mixamorig_LeftHand", "Armature/Skeleton3D:mixamorig_LeftHandIndex1", "Armature/Skeleton3D:mixamorig_LeftHandIndex2", "Armature/Skeleton3D:mixamorig_LeftHandIndex3", "Armature/Skeleton3D:mixamorig_LeftHandIndex4", "Armature/Skeleton3D:mixamorig_LeftHandThumb1", "Armature/Skeleton3D:mixamorig_LeftHandThumb2", "Armature/Skeleton3D:mixamorig_LeftHandThumb3", "Armature/Skeleton3D:mixamorig_LeftHandThumb4", "Armature/Skeleton3D:mixamorig_LeftShoulder", "Armature/Skeleton3D:mixamorig_Neck", "Armature/Skeleton3D:mixamorig_RightArm", "Armature/Skeleton3D:mixamorig_RightForeArm", "Armature/Skeleton3D:mixamorig_RightHand", "Armature/Skeleton3D:mixamorig_RightHandIndex1", "Armature/Skeleton3D:mixamorig_RightHandIndex2", "Armature/Skeleton3D:mixamorig_RightHandIndex3", "Armature/Skeleton3D:mixamorig_RightHandIndex4", "Armature/Skeleton3D:mixamorig_RightHandThumb1", "Armature/Skeleton3D:mixamorig_RightHandThumb2", "Armature/Skeleton3D:mixamorig_RightHandThumb3", "Armature/Skeleton3D:mixamorig_RightHandThumb4", "Armature/Skeleton3D:mixamorig_RightShoulder", "Armature/Skeleton3D:mixamorig_Spine", "Armature/Skeleton3D:mixamorig_Spine1", "Armature/Skeleton3D:mixamorig_Spine2"]
+fadein_time = 0.6
+fadeout_time = 0.1
+
+[sub_resource type="AnimationNodeOneShot" id="AnimationNodeOneShot_n36er"]
+filter_enabled = true
+filters = ["Armature/Skeleton3D:mixamorig_Head", "Armature/Skeleton3D:mixamorig_LeftArm", "Armature/Skeleton3D:mixamorig_LeftForeArm", "Armature/Skeleton3D:mixamorig_LeftHand", "Armature/Skeleton3D:mixamorig_LeftHandIndex1", "Armature/Skeleton3D:mixamorig_LeftHandIndex2", "Armature/Skeleton3D:mixamorig_LeftHandIndex3", "Armature/Skeleton3D:mixamorig_LeftHandIndex4", "Armature/Skeleton3D:mixamorig_LeftHandThumb1", "Armature/Skeleton3D:mixamorig_LeftHandThumb2", "Armature/Skeleton3D:mixamorig_LeftHandThumb3", "Armature/Skeleton3D:mixamorig_LeftHandThumb4", "Armature/Skeleton3D:mixamorig_LeftShoulder", "Armature/Skeleton3D:mixamorig_Neck", "Armature/Skeleton3D:mixamorig_RightArm", "Armature/Skeleton3D:mixamorig_RightForeArm", "Armature/Skeleton3D:mixamorig_RightHand", "Armature/Skeleton3D:mixamorig_RightHandIndex1", "Armature/Skeleton3D:mixamorig_RightHandIndex2", "Armature/Skeleton3D:mixamorig_RightHandIndex3", "Armature/Skeleton3D:mixamorig_RightHandIndex4", "Armature/Skeleton3D:mixamorig_RightHandThumb1", "Armature/Skeleton3D:mixamorig_RightHandThumb2", "Armature/Skeleton3D:mixamorig_RightHandThumb3", "Armature/Skeleton3D:mixamorig_RightHandThumb4", "Armature/Skeleton3D:mixamorig_RightShoulder", "Armature/Skeleton3D:mixamorig_Spine", "Armature/Skeleton3D:mixamorig_Spine1", "Armature/Skeleton3D:mixamorig_Spine2"]
+fadein_time = 0.6
+fadeout_time = 0.1
+
+[sub_resource type="AnimationNodeOneShot" id="AnimationNodeOneShot_d745t"]
+filter_enabled = true
+filters = ["Armature/Skeleton3D:mixamorig_Head", "Armature/Skeleton3D:mixamorig_LeftArm", "Armature/Skeleton3D:mixamorig_LeftForeArm", "Armature/Skeleton3D:mixamorig_LeftHand", "Armature/Skeleton3D:mixamorig_LeftHandIndex1", "Armature/Skeleton3D:mixamorig_LeftHandIndex2", "Armature/Skeleton3D:mixamorig_LeftHandIndex3", "Armature/Skeleton3D:mixamorig_LeftHandIndex4", "Armature/Skeleton3D:mixamorig_LeftHandThumb1", "Armature/Skeleton3D:mixamorig_LeftHandThumb2", "Armature/Skeleton3D:mixamorig_LeftHandThumb3", "Armature/Skeleton3D:mixamorig_LeftHandThumb4", "Armature/Skeleton3D:mixamorig_LeftShoulder", "Armature/Skeleton3D:mixamorig_Neck", "Armature/Skeleton3D:mixamorig_RightArm", "Armature/Skeleton3D:mixamorig_RightForeArm", "Armature/Skeleton3D:mixamorig_RightHand", "Armature/Skeleton3D:mixamorig_RightHandIndex1", "Armature/Skeleton3D:mixamorig_RightHandIndex2", "Armature/Skeleton3D:mixamorig_RightHandIndex3", "Armature/Skeleton3D:mixamorig_RightHandIndex4", "Armature/Skeleton3D:mixamorig_RightHandThumb1", "Armature/Skeleton3D:mixamorig_RightHandThumb2", "Armature/Skeleton3D:mixamorig_RightHandThumb3", "Armature/Skeleton3D:mixamorig_RightHandThumb4", "Armature/Skeleton3D:mixamorig_RightShoulder", "Armature/Skeleton3D:mixamorig_Spine", "Armature/Skeleton3D:mixamorig_Spine1", "Armature/Skeleton3D:mixamorig_Spine2"]
+fadein_time = 0.6
+fadeout_time = 0.1
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_yw3xw"]
+animation = &"punchrighta"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_6gvyl"]
+animation = &"punchleftb"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_u2s01"]
+animation = &"punchrightc"
+
+[sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_spk56"]
+
+[sub_resource type="AnimationNodeOneShot" id="AnimationNodeOneShot_1yk18"]
+sync = true
+fadein_time = 0.25
+fadeout_time = 0.32
+
+[sub_resource type="Curve" id="Curve_yr3on"]
+_data = [Vector2(0, 0.0214089), 0.0, 0.0, 0, 0, Vector2(0.840678, 0.497238), 0.442627, 0.442627, 0, 0, Vector2(1, 0), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="AnimationNodeOneShot" id="AnimationNodeOneShot_b4o2o"]
+fadein_time = 1.5
+fadein_curve = SubResource("Curve_yr3on")
+fadeout_time = 0.3
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_b4o2o"]
+animation = &"sneak_exit"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_qc1tv"]
+animation = &"sneak_idle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_xe83n"]
+animation = &"sneak_idle"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_cwche"]
+animation = &"sneakwalk"
+
+[sub_resource type="AnimationNodeBlendSpace1D" id="AnimationNodeBlendSpace1D_yv3je"]
+blend_point_0/node = SubResource("AnimationNodeAnimation_qc1tv")
+blend_point_0/pos = -1.0
+blend_point_1/node = SubResource("AnimationNodeAnimation_xe83n")
+blend_point_1/pos = 0.0
+blend_point_2/node = SubResource("AnimationNodeAnimation_cwche")
+blend_point_2/pos = 1.0
+min_space = 0.0
+
+[sub_resource type="AnimationNodeTimeScale" id="AnimationNodeTimeScale_xe83n"]
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_yv3je"]
+animation = &"dodge"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_3hm5d"]
+animation = &"sneak_enter"
+
+[sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_cwche"]
+graph_offset = Vector2(-250.715, -162.543)
+nodes/AirBlend/node = SubResource("AnimationNodeBlend2_ogpgs")
+nodes/AirBlend/position = Vector2(-80, -380)
+nodes/Animation/node = SubResource("AnimationNodeAnimation_yr3on")
+nodes/Animation/position = Vector2(-100, -40)
+nodes/Dodge/node = SubResource("AnimationNodeOneShot_yr3on")
+nodes/Dodge/position = Vector2(1100, -320)
+nodes/DodgeSpeed/node = SubResource("AnimationNodeTimeScale_dodge")
+nodes/DodgeSpeed/position = Vector2(920, 20)
+nodes/FallAnim/node = SubResource("AnimationNodeAnimation_2ngu4")
+nodes/FallAnim/position = Vector2(-480, 20)
+nodes/Jump/node = SubResource("AnimationNodeOneShot_jv5ih")
+nodes/Jump/position = Vector2(100, -340)
+nodes/Locomotion/node = SubResource("AnimationNodeBlendSpace1D_qc1tv")
+nodes/Locomotion/position = Vector2(-840, -460)
+nodes/Punch1/node = SubResource("AnimationNodeOneShot_2ngu4")
+nodes/Punch1/position = Vector2(460, -440)
+nodes/Punch2/node = SubResource("AnimationNodeOneShot_n36er")
+nodes/Punch2/position = Vector2(660, -500)
+nodes/Punch3/node = SubResource("AnimationNodeOneShot_d745t")
+nodes/Punch3/position = Vector2(880, -480)
+nodes/Punch_1/node = SubResource("AnimationNodeAnimation_yw3xw")
+nodes/Punch_1/position = Vector2(280, -140)
+nodes/Punch_2/node = SubResource("AnimationNodeAnimation_6gvyl")
+nodes/Punch_2/position = Vector2(520, -140)
+nodes/Punch_3/node = SubResource("AnimationNodeAnimation_u2s01")
+nodes/Punch_3/position = Vector2(720, -160)
+nodes/SneakBlend/node = SubResource("AnimationNodeBlend2_spk56")
+nodes/SneakBlend/position = Vector2(-460, -480)
+nodes/SneakEnter/node = SubResource("AnimationNodeOneShot_1yk18")
+nodes/SneakEnter/position = Vector2(-640, -120)
+nodes/SneakExit/node = SubResource("AnimationNodeOneShot_b4o2o")
+nodes/SneakExit/position = Vector2(-260, -540)
+nodes/SneakExitAnim/node = SubResource("AnimationNodeAnimation_b4o2o")
+nodes/SneakExitAnim/position = Vector2(-440, -180)
+nodes/SneakIdleWalk/node = SubResource("AnimationNodeBlendSpace1D_yv3je")
+nodes/SneakIdleWalk/position = Vector2(-860, -120)
+nodes/SprintSpeed/node = SubResource("AnimationNodeTimeScale_xe83n")
+nodes/SprintSpeed/position = Vector2(-640, -480)
+nodes/dodge/node = SubResource("AnimationNodeAnimation_yv3je")
+nodes/dodge/position = Vector2(80, 180)
+nodes/output/position = Vector2(1340, -260)
+nodes/sneak_enter/node = SubResource("AnimationNodeAnimation_3hm5d")
+nodes/sneak_enter/position = Vector2(-840, 80)
+node_connections = [&"AirBlend", 0, &"SneakExit", &"AirBlend", 1, &"FallAnim", &"Dodge", 0, &"Punch3", &"Dodge", 1, &"DodgeSpeed", &"DodgeSpeed", 0, &"dodge", &"Jump", 0, &"AirBlend", &"Jump", 1, &"Animation", &"Punch1", 0, &"Jump", &"Punch1", 1, &"Punch_1", &"Punch2", 0, &"Punch1", &"Punch2", 1, &"Punch_2", &"Punch3", 0, &"Punch2", &"Punch3", 1, &"Punch_3", &"SneakBlend", 0, &"SprintSpeed", &"SneakBlend", 1, &"SneakEnter", &"SneakEnter", 0, &"SneakIdleWalk", &"SneakEnter", 1, &"sneak_enter", &"SneakExit", 0, &"SneakBlend", &"SneakExit", 1, &"SneakExitAnim", &"SprintSpeed", 0, &"Locomotion", &"output", 0, &"Dodge"]
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_yv3je"]
+advance_mode = 0
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_3hm5d"]
+advance_mode = 0
+
+[sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_y2dek"]
+reset_ends = true
+states/LocomotionSpeed/node = SubResource("AnimationNodeBlendTree_cwche")
+states/LocomotionSpeed/position = Vector2(557, 112)
+transitions = ["Start", "LocomotionSpeed", SubResource("AnimationNodeStateMachineTransition_yv3je"), "LocomotionSpeed", "End", SubResource("AnimationNodeStateMachineTransition_3hm5d")]
+graph_offset = Vector2(-63, -14)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_hitbox"]
+radius = 0.25
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_trigger"]
+radius = 1.0
+
+[node name="Enemy" type="CharacterBody3D" groups=["player"]]
+collision_mask = 30
+script = ExtResource("1_2ynut")
+perfect_jump_height_bonus_max = 4.0
+
+[node name="Modules" type="Node" parent="."]
+
+[node name="Movement" type="Node" parent="Modules"]
+script = ExtResource("4_2wkw8")
+
+[node name="Jump" type="Node" parent="Modules"]
+script = ExtResource("5_vssvb")
+
+[node name="State" type="Node" parent="Modules"]
+script = ExtResource("6_ar122")
+
+[node name="Orientation" type="Node" parent="Modules"]
+script = ExtResource("7_xbrh2")
+
+[node name="AnimationCtrl" type="Node" parent="Modules"]
+script = ExtResource("8_dw7jd")
+animation_tree_path = NodePath("../../Pivot/Model/StateMachine")
+state_module_path = NodePath("../State")
+
+[node name="Dodge" type="Node" parent="Modules"]
+script = ExtResource("9_733cs")
+stamina_cost = 10.0
+roll_time = 0.2
+roll_speed = 30.0
+
+[node name="StateMachine" type="Node" parent="Modules"]
+script = ExtResource("10_aiikf")
+
+[node name="AudioCtrl" type="Node" parent="Modules"]
+script = ExtResource("11_ekn5s")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.00319, 0)
+shape = SubResource("CapsuleShape3D_1yk18")
+
+[node name="Pivot" type="Node3D" parent="."]
+
+[node name="Model" parent="Pivot" instance=ExtResource("12_x3ldt")]
+
+[node name="AnimationPlayer" parent="Pivot/Model" index="1"]
+libraries = {
+&"": ExtResource("13_de1oc")
+}
+autoplay = "idle"
+
+[node name="StateMachine" type="AnimationTree" parent="Pivot/Model"]
+tree_root = SubResource("AnimationNodeStateMachine_y2dek")
+anim_player = NodePath("../AnimationPlayer")
+parameters/LocomotionSpeed/AirBlend/blend_amount = 0
+parameters/LocomotionSpeed/Dodge/active = false
+parameters/LocomotionSpeed/Dodge/internal_active = false
+parameters/LocomotionSpeed/Dodge/request = 0
+parameters/LocomotionSpeed/DodgeSpeed/scale = 1.5
+parameters/LocomotionSpeed/Jump/active = false
+parameters/LocomotionSpeed/Jump/internal_active = false
+parameters/LocomotionSpeed/Jump/request = 0
+parameters/LocomotionSpeed/Locomotion/blend_position = 0
+parameters/LocomotionSpeed/Punch1/active = false
+parameters/LocomotionSpeed/Punch1/internal_active = false
+parameters/LocomotionSpeed/Punch1/request = 0
+parameters/LocomotionSpeed/Punch2/active = false
+parameters/LocomotionSpeed/Punch2/internal_active = false
+parameters/LocomotionSpeed/Punch2/request = 0
+parameters/LocomotionSpeed/Punch3/active = false
+parameters/LocomotionSpeed/Punch3/internal_active = false
+parameters/LocomotionSpeed/Punch3/request = 0
+parameters/LocomotionSpeed/SneakBlend/blend_amount = 0.0
+parameters/LocomotionSpeed/SneakEnter/active = false
+parameters/LocomotionSpeed/SneakEnter/internal_active = false
+parameters/LocomotionSpeed/SneakEnter/request = 0
+parameters/LocomotionSpeed/SneakExit/active = false
+parameters/LocomotionSpeed/SneakExit/internal_active = false
+parameters/LocomotionSpeed/SneakExit/request = 0
+parameters/LocomotionSpeed/SneakIdleWalk/blend_position = 0
+parameters/LocomotionSpeed/SprintSpeed/scale = 1.0
+
+[node name="JumpSFX" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("15_3t0gt")
+unit_size = 1.0
+max_distance = 10.0
+
+[node name="LandSFX" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("16_18wsp")
+volume_db = 10.0
+unit_size = 1.0
+max_distance = 10.0
+
+[node name="FootstepSFX" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("17_micxe")
+volume_db = -5.036
+
+[node name="Hitboxes" type="Node3D" parent="."]
+
+[node name="RightHandHitbox" type="Area3D" parent="Hitboxes"]
+collision_layer = 0
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hitboxes/RightHandHitbox"]
+shape = SubResource("SphereShape3D_hitbox")
+
+[node name="LeftHandHitbox" type="Area3D" parent="Hitboxes"]
+collision_layer = 0
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hitboxes/LeftHandHitbox"]
+shape = SubResource("SphereShape3D_hitbox")
+
+[node name="TriggerArea" type="Area3D" parent="."]
+collision_layer = 0
+collision_mask = 1048575
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="TriggerArea"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("SphereShape3D_trigger")
+
+[editable path="Pivot/Model"]
