@@ -300,41 +300,41 @@ func _on_clock_tick(group: StringName, dt: float) -> void:
 # MAIN PHYSICS LOOP
 # ============================================================================
 func physics_tick(delta: float) -> void:
-        var is_paused := false
-        var in_cinematic := false
-        if game_state:
-                is_paused = game_state.is_paused
-                in_cinematic = game_state.is_in_cinematic
-        var allow_input := not is_paused and not in_cinematic
-        _update_module_stats()
-        var intents := _gather_control_intents(delta, allow_input)
-        var input_dir: Vector3 = intents.get("move_dir", Vector3.ZERO)
-        if not input_dir.is_finite():
-                input_dir = Vector3.ZERO
-        if input_dir.length_squared() > 1.0:
-                input_dir = input_dir.normalized()
-        var look_dir: Vector3 = intents.get("look_dir", input_dir)
-        if not look_dir.is_finite():
-                look_dir = Vector3.ZERO
-        var is_sprinting: bool = bool(intents.get("is_sprinting", false))
-        var want_roll: bool = bool(intents.get("want_roll", false))
-        var want_attack: bool = bool(intents.get("want_attack", false))
-        var want_jump: bool = bool(intents.get("want_jump", false))
-        if m_fsm != null and is_instance_valid(m_fsm):
-                m_fsm.set_intents(input_dir, is_sprinting, want_roll, want_attack, want_jump, look_dir)
-        else:
-                if m_movement:
-                        m_movement.set_frame_input(input_dir, is_sprinting)
-                if m_orientation:
-                        var orientation_dir := input_dir
-                        if orientation_dir.length_squared() < 0.0001 and look_dir.length_squared() > 0.0001:
-                                orientation_dir = look_dir.normalized()
-                        m_orientation.set_frame_input(orientation_dir)
-        _sprint_threshold = run_speed * 0.4
-        var air_time := 0.0
-        if m_jump and m_jump.has_method("get_air_time"):
-                air_time = m_jump.get_air_time()
-        m_anim.set_frame_anim_inputs(is_sprinting, air_time)
+	var is_paused := false
+	var in_cinematic := false
+	if game_state:
+		is_paused = game_state.is_paused
+		in_cinematic = game_state.is_in_cinematic
+	var allow_input := not is_paused and not in_cinematic
+	_update_module_stats()
+	var intents := _gather_control_intents(delta, allow_input)
+	var input_dir: Vector3 = intents.get("move_dir", Vector3.ZERO)
+	if not input_dir.is_finite():
+		input_dir = Vector3.ZERO
+	if input_dir.length_squared() > 1.0:
+		input_dir = input_dir.normalized()
+	var look_dir: Vector3 = intents.get("look_dir", input_dir)
+	if not look_dir.is_finite():
+		look_dir = Vector3.ZERO
+	var is_sprinting: bool = bool(intents.get("is_sprinting", false))
+	var want_roll: bool = bool(intents.get("want_roll", false))
+	var want_attack: bool = bool(intents.get("want_attack", false))
+	var want_jump: bool = bool(intents.get("want_jump", false))
+	if m_fsm != null and is_instance_valid(m_fsm):
+		m_fsm.set_intents(input_dir, is_sprinting, want_roll, want_attack, want_jump, look_dir)
+	else:
+		if m_movement:
+			m_movement.set_frame_input(input_dir, is_sprinting)
+		if m_orientation:
+			var orientation_dir := input_dir
+			if orientation_dir.length_squared() < 0.0001 and look_dir.length_squared() > 0.0001:
+				orientation_dir = look_dir.normalized()
+			m_orientation.set_frame_input(orientation_dir)
+	_sprint_threshold = run_speed * 0.4
+	var air_time := 0.0
+	if m_jump and m_jump.has_method("get_air_time"):
+		air_time = m_jump.get_air_time()
+	m_anim.set_frame_anim_inputs(is_sprinting, air_time)
 	_skip_module_updates = is_paused or in_cinematic
 	_block_animation_updates = is_paused or in_cinematic
 	if context_detector:
@@ -350,57 +350,57 @@ func physics_tick(delta: float) -> void:
 			m_movement.physics_tick(delta)
 		if m_dodge:
 			m_dodge.physics_tick(delta)
-                if m_orientation:
-                        m_orientation.physics_tick(delta)
-                if not _block_animation_updates and attack_module and is_instance_valid(attack_module):
-                        attack_module.physics_tick(delta)
-                if not _block_animation_updates and m_anim:
-                        m_anim.physics_tick(delta)
-        else:
+		if m_orientation:
+			m_orientation.physics_tick(delta)
+		if not _block_animation_updates and attack_module and is_instance_valid(attack_module):
+			attack_module.physics_tick(delta)
+		if not _block_animation_updates and m_anim:
+			m_anim.physics_tick(delta)
+	else:
 		velocity = Vector3.ZERO
 	move_and_slide()
 	_after_move_and_slide()
 	if m_state:
 		m_state.post_move_update()
-        if m_audio:
-                m_audio.physics_tick(delta)
-        _consume_sprint_stamina(delta, is_sprinting)
-        _track_stamina_cycle(delta, is_sprinting)
-        _update_forced_sneak_clearance(delta)
+	if m_audio:
+		m_audio.physics_tick(delta)
+	_consume_sprint_stamina(delta, is_sprinting)
+	_track_stamina_cycle(delta, is_sprinting)
+	_update_forced_sneak_clearance(delta)
 
 func _gather_control_intents(delta: float, allow_input: bool) -> Dictionary:
-        var result := {
-                "move_dir": Vector3.ZERO,
-                "look_dir": Vector3.ZERO,
-                "is_sprinting": false,
-                "want_roll": false,
-                "want_attack": false,
-                "want_jump": false
-        }
-        var input_dir := Vector3.ZERO
-        if allow_input:
-                input_dir = _get_camera_relative_input()
-        if input_handler:
-                input_handler.update_input(allow_input, input_dir)
-        var is_sprinting := false
-        if allow_input:
-                is_sprinting = _update_sprint_state(delta, input_dir)
-        var want_roll := allow_input and Input.is_action_just_pressed("roll")
-        var want_attack := allow_input and _is_attack_primary_just_pressed()
-        var want_jump := allow_input and Input.is_action_just_pressed("jump")
-        result["move_dir"] = input_dir
-        result["look_dir"] = input_dir
-        result["is_sprinting"] = is_sprinting
-        result["want_roll"] = want_roll
-        result["want_attack"] = want_attack
-        result["want_jump"] = want_jump
-        return result
+	var result := {
+		"move_dir": Vector3.ZERO,
+		"look_dir": Vector3.ZERO,
+		"is_sprinting": false,
+		"want_roll": false,
+		"want_attack": false,
+		"want_jump": false
+	}
+	var input_dir := Vector3.ZERO
+	if allow_input:
+		input_dir = _get_camera_relative_input()
+	if input_handler:
+		input_handler.update_input(allow_input, input_dir)
+	var is_sprinting := false
+	if allow_input:
+		is_sprinting = _update_sprint_state(delta, input_dir)
+	var want_roll := allow_input and Input.is_action_just_pressed("roll")
+	var want_attack := allow_input and _is_attack_primary_just_pressed()
+	var want_jump := allow_input and Input.is_action_just_pressed("jump")
+	result["move_dir"] = input_dir
+	result["look_dir"] = input_dir
+	result["is_sprinting"] = is_sprinting
+	result["want_roll"] = want_roll
+	result["want_attack"] = want_attack
+	result["want_jump"] = want_jump
+	return result
 
 func _after_move_and_slide() -> void:
-        var now_on_floor := is_on_floor()
-        if now_on_floor and not _was_on_floor_landing and velocity.y >= 0.0:
-                landed.emit(absf(velocity.y))
-        _was_on_floor_landing = now_on_floor
+	var now_on_floor := is_on_floor()
+	if now_on_floor and not _was_on_floor_landing and velocity.y >= 0.0:
+		landed.emit(absf(velocity.y))
+	_was_on_floor_landing = now_on_floor
 
 func should_skip_module_updates() -> bool:
 	return _skip_module_updates
