@@ -23,6 +23,8 @@ var anim_tree: AnimationTree
 var camera_rig: Node
 var capabilities: Capabilities
 
+@export var allow_direct_input: bool = true
+
 var _owner_body: CharacterBody3D
 var _state: StateModule
 var _input: InputBuffer
@@ -106,7 +108,7 @@ func physics_tick(dt: float) -> void:
 	var still_holding := false
 	if _input != null:
 		still_holding = _input.jump_is_held
-	else:
+	elif allow_direct_input:
 		still_holding = Input.is_action_pressed("jump")
 	var buffered_jump := false
 	if _input != null:
@@ -121,7 +123,7 @@ func physics_tick(dt: float) -> void:
 	if not wants_jump:
 		if _input != null:
 			wants_jump = buffered_jump
-		else:
+		elif allow_direct_input:
 			wants_jump = Input.is_action_just_pressed("jump")
 	if wants_jump and _can_jump(on_floor, now_s, last_floor_time):
 		var perfect_jump := _should_apply_perfect_bonus(on_floor)

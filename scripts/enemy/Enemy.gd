@@ -9,6 +9,13 @@ var brain: EnemyBrain
 
 func _ready() -> void:
 	super._ready()
+	if input_buffer != null:
+		remove_child(input_buffer)
+		input_buffer.queue_free()
+		input_buffer = null
+	if m_jump != null and is_instance_valid(m_jump):
+		m_jump.allow_direct_input = false
+		m_jump.setup(self, m_state, null, m_movement)
 	collision_layer = PHYSICS_LAYERS.LAYER_ENEMY
 	collision_mask = PHYSICS_LAYERS.MASK_ENEMY
 	if attack_module != null and is_instance_valid(attack_module):

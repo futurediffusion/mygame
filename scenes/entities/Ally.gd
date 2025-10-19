@@ -110,6 +110,7 @@ func _ready() -> void:
 		if module != null and is_instance_valid(module):
 			module.setup(self)
 	if m_jump != null and is_instance_valid(m_jump):
+		m_jump.allow_direct_input = false
 		m_jump.setup(self, null, null, m_movement)
 	if m_dodge != null and is_instance_valid(m_dodge):
 		m_dodge.setup(self, m_anim)
