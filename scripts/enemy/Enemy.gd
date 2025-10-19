@@ -1,12 +1,18 @@
 extends Player
 class_name Enemy
 
+const PHYSICS_LAYERS := preload("res://scripts/core/PhysicsLayers.gd")
+
 @export_node_path("Node") var brain_path: NodePath
 
 var brain: EnemyBrain
 
 func _ready() -> void:
 	super._ready()
+	collision_layer = PHYSICS_LAYERS.LAYER_ENEMY
+	collision_mask = PHYSICS_LAYERS.MASK_ENEMY
+	if attack_module != null and is_instance_valid(attack_module):
+		attack_module.accepts_input = false
 	var resolved := _resolve_brain()
 	if resolved != null:
 		resolved.set_enemy(self)
@@ -37,6 +43,9 @@ func _gather_control_intents(delta: float, allow_input: bool) -> Dictionary:
 	if look_dir.length_squared() > 1.0:
 		look_dir = look_dir.normalized()
 	var want_attack := bool(intents.get("want_attack", false))
+	if want_attack and attack_module != null and is_instance_valid(attack_module):
+		if attack_module.has_method("trigger_attack_request"):
+			attack_module.trigger_attack_request()
 	return {
 		"move_dir": move_dir,
 		"look_dir": look_dir,
