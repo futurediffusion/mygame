@@ -1,7 +1,8 @@
-[gd_scene load_steps=10 format=3 uid="uid://bg14wj4en8l1m"]
+[gd_scene load_steps=11 format=3 uid="uid://bg14wj4en8l1m"]
 
 [ext_resource type="PackedScene" uid="uid://l4e1k3jkgu8s" path="res://scenes/entities/player.tscn" id="1_11l7r"]
 [ext_resource type="PackedScene" uid="uid://dg70n4q4hda07" path="res://scenes/entities/Ally.tscn" id="2_3d8dh"]
+[ext_resource type="PackedScene" uid="uid://blhk0f6ssin6f" path="res://scenes/entities/enemy.tscn" id="3_hkpp1"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3d8dh"]
 albedo_color = Color(0.685616, 0.961761, 0.674583, 1)
@@ -118,3 +119,6 @@ fall_blend_lerp = 9.0
 
 [node name="Ally" parent="." instance=ExtResource("2_3d8dh")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 11.4937, 0.1, 5.1199)
+
+[node name="Enemy" parent="." instance=ExtResource("3_hkpp1")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -86, -2, 0.904388)

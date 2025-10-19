@@ -39,20 +39,20 @@ func setup(owner_body: CharacterBody3D) -> void:
 	_refresh_capabilities()
 
 func set_intents(move_dir: Vector3, is_sprinting: bool, want_dodge: bool, want_attack: bool, want_jump: bool, look_dir: Vector3 = move_dir) -> void:
-        if not move_dir.is_finite():
-                move_dir = Vector3.ZERO
-        if move_dir.length_squared() > 1.0:
-                move_dir = move_dir.normalized()
-        if not look_dir.is_finite():
-                look_dir = move_dir
-        if look_dir.length_squared() > 1.0:
-                look_dir = look_dir.normalized()
-        _intent_move_dir = move_dir
-        _intent_look_dir = look_dir
-        _intent_is_sprinting = is_sprinting
-        _intent_want_dodge = want_dodge
-        _intent_want_attack = want_attack
-        _intent_want_jump = want_jump
+		if not move_dir.is_finite():
+				move_dir = Vector3.ZERO
+		if move_dir.length_squared() > 1.0:
+				move_dir = move_dir.normalized()
+		if not look_dir.is_finite():
+				look_dir = move_dir
+		if look_dir.length_squared() > 1.0:
+				look_dir = look_dir.normalized()
+		_intent_move_dir = move_dir
+		_intent_look_dir = look_dir
+		_intent_is_sprinting = is_sprinting
+		_intent_want_dodge = want_dodge
+		_intent_want_attack = want_attack
+		_intent_want_jump = want_jump
 
 func change_state(new_state: State) -> void:
 	if new_state == _current_state:
@@ -83,17 +83,17 @@ func physics_tick(_dt: float) -> void:
 	change_state(new_state)
 
 func _apply_movement(move_dir: Vector3, is_sprinting: bool) -> void:
-        if _movement != null and is_instance_valid(_movement):
-                _movement.set_frame_input(move_dir, is_sprinting)
-        if _orientation != null and is_instance_valid(_orientation):
-                var orientation_dir := move_dir
-                if orientation_dir.length_squared() < 0.0001 and _intent_look_dir.length_squared() > 0.0001:
-                        orientation_dir = _intent_look_dir
-                if not orientation_dir.is_finite():
-                        orientation_dir = Vector3.ZERO
-                if orientation_dir.length_squared() > 1.0:
-                        orientation_dir = orientation_dir.normalized()
-                _orientation.set_frame_input(orientation_dir)
+		if _movement != null and is_instance_valid(_movement):
+				_movement.set_frame_input(move_dir, is_sprinting)
+		if _orientation != null and is_instance_valid(_orientation):
+				var orientation_dir := move_dir
+				if orientation_dir.length_squared() < 0.0001 and _intent_look_dir.length_squared() > 0.0001:
+						orientation_dir = _intent_look_dir
+				if not orientation_dir.is_finite():
+						orientation_dir = Vector3.ZERO
+				if orientation_dir.length_squared() > 1.0:
+						orientation_dir = orientation_dir.normalized()
+				_orientation.set_frame_input(orientation_dir)
 
 func _apply_dodge_intent(move_dir: Vector3) -> bool:
 	if not _intent_want_dodge:
