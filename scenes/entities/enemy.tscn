@@ -1,6 +1,7 @@
-[gd_scene load_steps=51 format=3 uid="uid://blhk0f6ssin6f"]
+[gd_scene load_steps=53 format=3 uid="uid://blhk0f6ssin6f"]
 
-[ext_resource type="Script" uid="uid://wgpmntr5gt2u" path="res://scenes/entities/player.gd" id="1_2ynut"]
+[ext_resource type="Script" uid="uid://ba822feb3b4c" path="res://scripts/enemy/Enemy.gd" id="1_2ynut"]
+[ext_resource type="Script" uid="uid://3d4eae077cfc" path="res://scripts/enemy/EnemyBrain.gd" id="18_m3z5r"]
 [ext_resource type="Script" uid="uid://cnm5jyf244aty" path="res://Modules/Movement.gd" id="4_2wkw8"]
 [ext_resource type="Script" uid="uid://l1fqubsbi2pf" path="res://Modules/Jump.gd" id="5_vssvb"]
 [ext_resource type="Script" uid="uid://defc63lccppnx" path="res://Modules/State.gd" id="6_ar122"]
@@ -196,10 +197,14 @@ radius = 0.25
 [sub_resource type="SphereShape3D" id="SphereShape3D_trigger"]
 radius = 1.0
 
-[node name="Enemy" type="CharacterBody3D" groups=["player"]]
+[node name="Enemy" type="CharacterBody3D" groups=["enemy"]]
 collision_mask = 30
 script = ExtResource("1_2ynut")
+brain_path = NodePath("Brain")
 perfect_jump_height_bonus_max = 4.0
+
+[node name="Brain" type="Node" parent="."]
+script = ExtResource("18_m3z5r")
 
 [node name="Modules" type="Node" parent="."]
 
