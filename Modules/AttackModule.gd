@@ -160,6 +160,14 @@ var _anim_speed_override_active: bool = false
 @export var right_hand_hitbox_path: NodePath = NodePath("../../Hitboxes/RightHandHitbox")
 @export var left_hand_hitbox_path: NodePath = NodePath("../../Hitboxes/LeftHandHitbox")
 @export_range(0.0, 1.0, 0.01) var hitbox_forward_offset: float = 0.1
+@export var accepts_input: bool = true:
+	set(value):
+		if field == value:
+			return
+		field = value
+		_update_process_input()
+	get:
+		return field
 
 var _skeleton: Skeleton3D
 var _right_hand_hitbox: Node3D
@@ -174,17 +182,29 @@ var _bone_index_cache: Dictionary = {}
 
 func _ready() -> void:
 	super._ready()
-	set_process_input(true)
+	_update_process_input()
 	set_clock_subscription(false)
 	_refresh_parameter_cache()
 	_resolve_hitbox_dependencies()
 
+func _update_process_input() -> void:
+	set_process_input(accepts_input)
+
 func _input(event: InputEvent) -> void:
+	if not accepts_input:
+		return
 	var tree := _animation_tree
 	if tree == null or not is_instance_valid(tree):
 		return
 	if not _is_attack_event(event):
 		return
+	if not is_attacking:
+		if puede_atacar():
+			_start_combo_step(STEP_PUNCH1)
+	else:
+		_queue_or_buffer_next()
+
+func trigger_attack_request() -> void:
 	if not is_attacking:
 		if puede_atacar():
 			_start_combo_step(STEP_PUNCH1)
