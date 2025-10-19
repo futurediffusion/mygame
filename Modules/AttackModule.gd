@@ -162,12 +162,14 @@ var _anim_speed_override_active: bool = false
 @export_range(0.0, 1.0, 0.01) var hitbox_forward_offset: float = 0.1
 @export var accepts_input: bool = true:
 	set(value):
-		if field == value:
+		if _accepts_input == value:
 			return
-		field = value
+		_accepts_input = value
 		_update_process_input()
 	get:
-		return field
+		return _accepts_input
+
+var _accepts_input: bool = true
 
 var _skeleton: Skeleton3D
 var _right_hand_hitbox: Node3D
