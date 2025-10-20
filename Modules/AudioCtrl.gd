@@ -2,9 +2,9 @@ extends ModuleBase
 class_name AudioCtrlModule
 
 var player: CharacterBody3D
-var jump_sfx: AudioStreamPlayer3D
-var land_sfx: AudioStreamPlayer3D
-var footstep_sfx: AudioStreamPlayer3D
+var jump_sfx: AudioStreamPlayer3D = null
+var land_sfx: AudioStreamPlayer3D = null
+var footstep_sfx: AudioStreamPlayer3D = null
 
 const FOOTSTEP_PITCH_WALK := 1.0
 const FOOTSTEP_PITCH_SNEAK := pow(2.0, -4.0 / 12.0)
@@ -29,9 +29,28 @@ var _footstep_timer := 0.0
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
-	jump_sfx = p.jump_sfx if "jump_sfx" in p else null
-	land_sfx = p.land_sfx if "land_sfx" in p else null
-	footstep_sfx = p.footstep_sfx if "footstep_sfx" in p else null
+	jump_sfx = _extract_stream_player(&"jump_sfx", ^"JumpSFX")
+	land_sfx = _extract_stream_player(&"land_sfx", ^"LandSFX")
+	footstep_sfx = _extract_stream_player(&"footstep_sfx", ^"FootstepSFX")
+
+func _extract_stream_player(property_name: StringName, fallback_path: NodePath) -> AudioStreamPlayer3D:
+	if player == null or not is_instance_valid(player):
+		return null
+	var candidate: Variant = null
+	for property_data in player.get_property_list():
+		if not (property_data is Dictionary):
+			continue
+		var name_value := property_data.get("name")
+		if StringName(name_value) == property_name:
+			candidate = player.get(property_name)
+			break
+	if candidate is AudioStreamPlayer3D:
+		return candidate
+	if fallback_path != NodePath():
+		var fallback := player.get_node_or_null(fallback_path)
+		if fallback is AudioStreamPlayer3D:
+			return fallback
+	return null
 
 func physics_tick(delta: float) -> void:
 	if not use_timer_footsteps:
