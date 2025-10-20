@@ -1,4 +1,4 @@
-[gd_scene load_steps=52 format=3 uid="uid://blhk0f6ssin6f"]
+[gd_scene load_steps=53 format=3 uid="uid://blhk0f6ssin6f"]
 
 [ext_resource type="Script" uid="uid://bmxatb38dksi1" path="res://scripts/enemy/Enemy.gd" id="1_2ynut"]
 [ext_resource type="Script" uid="uid://cnm5jyf244aty" path="res://Modules/Movement.gd" id="4_2wkw8"]
@@ -13,6 +13,7 @@
 [ext_resource type="AnimationLibrary" uid="uid://d2yeay5avcx06" path="res://data/animations/animations.res" id="13_de1oc"]
 [ext_resource type="AudioStream" uid="uid://d2hewfgqv7n13" path="res://audio/sfx/player/jump.ogg" id="15_3t0gt"]
 [ext_resource type="AudioStream" uid="uid://of70m6eteujd" path="res://audio/sfx/player/land.ogg" id="16_18wsp"]
+[ext_resource type="Script" uid="uid://ddeokw24hjcqs" path="res://scripts/combat/Healt.gd" id="16_fkgbd"]
 [ext_resource type="AudioStream" uid="uid://dassqoc4266pg" path="res://audio/sfx/footsteps/footstep.ogg" id="17_micxe"]
 [ext_resource type="Script" uid="uid://dx80kt6cdbn4w" path="res://scripts/enemy/EnemyBrain.gd" id="18_m3z5r"]
 
@@ -321,5 +322,8 @@ monitorable = false
 [node name="CollisionShape3D" type="CollisionShape3D" parent="TriggerArea"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 shape = SubResource("SphereShape3D_trigger")
+
+[node name="Health" type="Node" parent="."]
+script = ExtResource("16_fkgbd")
 
 [editable path="Pivot/Model"]
