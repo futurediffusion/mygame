@@ -181,9 +181,11 @@ var _active_hitbox_id: StringName = StringName()
 var _active_hitbox_key: StringName = StringName()
 var _should_track_hitbox: bool = false
 var _bone_index_cache: Dictionary = {}
+var _owner_body: CharacterBody3D
 
 func _ready() -> void:
 	super._ready()
+	_owner_body = _find_owner_body()
 	_update_process_input()
 	set_clock_subscription(false)
 	_refresh_parameter_cache()
@@ -285,12 +287,17 @@ func puede_atacar() -> bool:
 func on_attack_overlap(target_id, hit_point: Vector3, hit_normal: Vector3) -> void:
 	if not hit_active:
 		return
-	if already_hit.has(target_id):
+	var target_node: Node = null
+	var target_key := target_id
+	if target_id is Node:
+		target_node = target_id
+		target_key = target_node.get_instance_id()
+	if already_hit.has(target_key):
 		return
 	var data := _get_active_attack_data()
 	if data.is_empty():
 		return
-	already_hit[target_id] = true
+	already_hit[target_key] = true
 	var step_id := _get_step_from_attack_id(current_attack_id)
 	if step_id == 0:
 		step_id = combo_step
@@ -302,7 +309,11 @@ func on_attack_overlap(target_id, hit_point: Vector3, hit_normal: Vector3) -> vo
 		"hit_point": hit_point,
 		"hit_normal": hit_normal,
 	}
-	attack_hit.emit(step_id, target_id, payload)
+	var emitted_target = target_node if target_node != null else target_id
+	var damage_amount := float(data.get("damage", 0))
+	if damage_amount > 0.0 and target_node != null:
+		_apply_damage_to_target(target_node, damage_amount)
+	attack_hit.emit(step_id, emitted_target, payload)
 
 func attack_start_hit(attack_id: Variant) -> void:
 	if not is_attacking:
@@ -702,6 +713,33 @@ func _clear_hitbox_tracking() -> void:
 	_active_hand_bone = StringName()
 	_active_forearm_bone = StringName()
 	_should_track_hitbox = false
+
+func _apply_damage_to_target(target_node: Node, damage_amount: float) -> void:
+	var victim := _resolve_target_body(target_node)
+	if victim == null or not is_instance_valid(victim):
+		return
+	if victim == _owner_body:
+		return
+	if not victim.has_method("apply_damage"):
+		return
+	var source: Node = _owner_body if _owner_body != null and is_instance_valid(_owner_body) else self
+	victim.apply_damage(damage_amount, source)
+
+func _resolve_target_body(node: Node) -> CharacterBody3D:
+	var current := node
+	while current != null:
+		if current is CharacterBody3D:
+			return current
+		current = current.get_parent()
+	return null
+
+func _find_owner_body() -> CharacterBody3D:
+	var node: Node = self
+	while node != null:
+		if node is CharacterBody3D:
+			return node
+		node = node.get_parent()
+	return null
 
 func _get_bone_index(bone_name: StringName) -> int:
 	if bone_name == StringName():

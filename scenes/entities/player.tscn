@@ -1,4 +1,4 @@
-[gd_scene load_steps=57 format=3 uid="uid://l4e1k3jkgu8s"]
+[gd_scene load_steps=58 format=3 uid="uid://l4e1k3jkgu8s"]
 
 [ext_resource type="Script" uid="uid://wgpmntr5gt2u" path="res://scenes/entities/player.gd" id="1_08t41"]
 [ext_resource type="PackedScene" uid="uid://cvgcaefwbrg4n" path="res://art/characters/animations1.glb" id="1_ucweq"]
@@ -18,7 +18,8 @@
 [ext_resource type="Script" uid="uid://0120b173f37a" path="res://scripts/player/PlayerInputHandler.gd" id="9_yf4ct"]
 [ext_resource type="Script" uid="uid://ccjixfvtuv4yr" path="res://Modules/StateMachine.gd" id="9_yk9xm"]
 [ext_resource type="Script" uid="uid://ba1beeb5f7cc4" path="res://scripts/player/PlayerContextDetector.gd" id="9_zr6my"]
-[ext_resource type="Script" uid="uid://ddeokw24hjcqs" path="res://scripts/combat/Healt.gd" id="19_yr3on"]
+[ext_resource type="Script" uid="uid://ddeokw24hjcqs" path="res://scripts/combat/Health.gd" id="19_yr3on"]
+[ext_resource type="Script" uid="uid://d8x9v7b2k7p0l" path="res://scripts/combat/AttackHitbox.gd" id="20_je7hm"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1yk18"]
 
@@ -324,6 +325,7 @@ volume_db = -5.036
 [node name="Hitboxes" type="Node3D" parent="."]
 
 [node name="RightHandHitbox" type="Area3D" parent="Hitboxes"]
+script = ExtResource("20_je7hm")
 collision_layer = 0
 collision_mask = 0
 
@@ -331,6 +333,7 @@ collision_mask = 0
 shape = SubResource("SphereShape3D_hitbox")
 
 [node name="LeftHandHitbox" type="Area3D" parent="Hitboxes"]
+script = ExtResource("20_je7hm")
 collision_layer = 0
 collision_mask = 0
 
