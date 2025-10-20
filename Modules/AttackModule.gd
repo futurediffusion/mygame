@@ -288,7 +288,7 @@ func on_attack_overlap(target_id, hit_point: Vector3, hit_normal: Vector3) -> vo
 	if not hit_active:
 		return
 	var target_node: Node = null
-	var target_key := target_id
+	var target_key: Variant = target_id
 	if target_id is Node:
 		target_node = target_id
 		target_key = target_node.get_instance_id()
