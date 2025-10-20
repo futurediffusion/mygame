@@ -113,13 +113,28 @@ func _update_node_added_watcher() -> void:
 func _on_health_changed(current: float, max_hp: float) -> void:
 	bar.max_value = max_hp
 	bar.value = current
+	if not _ensure_label():
+		return
 	label.visible = true
 	label.text = str(round(current)) + " / " + str(round(max_hp))
 
 func _on_player_died() -> void:
+	if not _ensure_label():
+		return
 	label.visible = true
 	label.text = "DEAD"
 
 func _hide_label() -> void:
+	if not _ensure_label():
+		return
 	label.visible = false
 	label.text = ""
+
+func _ensure_label() -> bool:
+	if label != null and is_instance_valid(label):
+		return true
+	var candidate := find_child("HealthLabel", true, false)
+	if candidate is Label:
+		label = candidate
+		return true
+	return false
