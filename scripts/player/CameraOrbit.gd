@@ -106,10 +106,10 @@ func _cache_constants() -> void:
 # ============================================================================
 # INPUT HANDLING
 # ============================================================================
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	if _handle_escape_key(event):
 		return
-	
+
 	if _is_mouse_captured():
 		_handle_mouse_motion(event)
 		_handle_mouse_wheel(event)
