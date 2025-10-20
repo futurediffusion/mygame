@@ -1,4 +1,3 @@
-# res://ui/HUD.gd
 extends Control
 
 @export var player_path: NodePath
@@ -114,8 +113,13 @@ func _update_node_added_watcher() -> void:
 func _on_health_changed(current: float, max_hp: float) -> void:
 	bar.max_value = max_hp
 	bar.value = current
+	label.visible = true
 	label.text = str(round(current)) + " / " + str(round(max_hp))
 
 func _on_player_died() -> void:
-	# Aquí puedes mostrar un mensajito o cambiar color
+	label.visible = true
 	label.text = "DEAD"
+
+func _hide_label() -> void:
+	label.visible = false
+	label.text = ""
