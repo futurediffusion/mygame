@@ -7,6 +7,9 @@ const PHYSICS_LAYERS := preload("res://scripts/core/PhysicsLayers.gd")
 
 var brain: EnemyBrain
 
+func apply_damage(amount: float, from: Node = null) -> void:
+	super.apply_damage(amount, from)
+
 func _ready() -> void:
 	super._ready()
 	if input_buffer != null:

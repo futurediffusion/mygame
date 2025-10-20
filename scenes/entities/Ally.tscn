@@ -10,7 +10,7 @@
 [ext_resource type="Script" uid="uid://buk7idb8jq37n" path="res://Modules/AnimationCtrl.gd" id="7_animctrl"]
 [ext_resource type="Script" uid="uid://ccjixfvtuv4yr" path="res://Modules/StateMachine.gd" id="8_fsm"]
 [ext_resource type="Script" uid="uid://l3svqyefmtjn" path="res://scripts/ally/AllyBrain.gd" id="10_brain"]
-[ext_resource type="Script" uid="uid://ddeokw24hjcqs" path="res://scripts/combat/Healt.gd" id="11_rnvr7"]
+[ext_resource type="Script" uid="uid://ddeokw24hjcqs" path="res://scripts/combat/Health.gd" id="11_rnvr7"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_62j5s"]
 radius = 0.4

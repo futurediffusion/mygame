@@ -202,6 +202,20 @@ var invulnerable := false
 var _was_on_floor_landing := false
 
 # ============================================================================
+# HEALTH & DAMAGE
+# ============================================================================
+func apply_damage(amount: float, from: Node = null) -> void:
+	if amount <= 0.0:
+		return
+	var health_node := get_node_or_null(^"Health")
+	if health_node == null:
+		return
+	if health_node is Health:
+		health_node.take_damage(amount, from)
+	elif health_node.has_method("take_damage"):
+		health_node.call("take_damage", amount, from)
+
+# ============================================================================
 # INITIALIZATION
 # ============================================================================
 func _ready() -> void:
