@@ -14,9 +14,9 @@
 [ext_resource type="AudioStream" uid="uid://d2hewfgqv7n13" path="res://audio/sfx/player/jump.ogg" id="15_3t0gt"]
 [ext_resource type="AudioStream" uid="uid://of70m6eteujd" path="res://audio/sfx/player/land.ogg" id="16_18wsp"]
 [ext_resource type="Script" uid="uid://ddeokw24hjcqs" path="res://scripts/combat/Health.gd" id="16_fkgbd"]
-[ext_resource type="Script" uid="uid://d8x9v7b2k7p0l" path="res://scripts/combat/AttackHitbox.gd" id="19_8t0h1"]
 [ext_resource type="AudioStream" uid="uid://dassqoc4266pg" path="res://audio/sfx/footsteps/footstep.ogg" id="17_micxe"]
 [ext_resource type="Script" uid="uid://dx80kt6cdbn4w" path="res://scripts/enemy/EnemyBrain.gd" id="18_m3z5r"]
+[ext_resource type="Script" uid="uid://ekfb5es00t8t" path="res://scripts/combat/AttackHitbox.gd" id="19_8t0h1"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1yk18"]
 
@@ -302,17 +302,17 @@ volume_db = -5.036
 [node name="Hitboxes" type="Node3D" parent="."]
 
 [node name="RightHandHitbox" type="Area3D" parent="Hitboxes"]
-script = ExtResource("19_8t0h1")
 collision_layer = 0
 collision_mask = 0
+script = ExtResource("19_8t0h1")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Hitboxes/RightHandHitbox"]
 shape = SubResource("SphereShape3D_hitbox")
 
 [node name="LeftHandHitbox" type="Area3D" parent="Hitboxes"]
-script = ExtResource("19_8t0h1")
 collision_layer = 0
 collision_mask = 0
+script = ExtResource("19_8t0h1")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Hitboxes/LeftHandHitbox"]
 shape = SubResource("SphereShape3D_hitbox")
