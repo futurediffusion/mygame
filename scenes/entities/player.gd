@@ -209,6 +209,11 @@ func apply_damage(amount: float, from: Node = null) -> void:
 		return
 	var health_node := get_node_or_null(^"Health")
 	if health_node == null:
+		# Fallback for scenes that don't mark the Health node as unique.
+		health_node = get_node_or_null("Health")
+	if health_node == null:
+		health_node = find_child("Health", true, false)
+	if health_node == null:
 		return
 	if health_node is Health:
 		health_node.take_damage(amount, from)
