@@ -11,6 +11,7 @@ var health: Health = null
 var _node_added_connected := false
 var _warned_missing_player := false
 var _warned_missing_health := false
+var _warned_missing_bar := false
 
 func _ready() -> void:
 	_hide_label()
@@ -111,6 +112,8 @@ func _update_node_added_watcher() -> void:
 		_node_added_connected = false
 
 func _on_health_changed(current: float, max_hp: float) -> void:
+	if not _ensure_bar():
+		return
 	bar.max_value = max_hp
 	bar.value = current
 	if not _ensure_label():
@@ -129,6 +132,19 @@ func _hide_label() -> void:
 		return
 	label.visible = false
 	label.text = ""
+
+func _ensure_bar() -> bool:
+	if bar != null and is_instance_valid(bar):
+		return true
+	var candidate := find_child("HealthBar", true, false)
+	if candidate is TextureProgressBar:
+		bar = candidate
+		_warned_missing_bar = false
+		return true
+	if not _warned_missing_bar:
+		push_warning("HUD: nodo HealthBar no usa TextureProgressBar o no existe")
+		_warned_missing_bar = true
+	return false
 
 func _ensure_label() -> bool:
 	if label != null and is_instance_valid(label):
