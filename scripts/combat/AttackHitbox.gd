@@ -27,6 +27,16 @@ func _on_body_entered(body: Node) -> void:
 func _on_area_entered(area: Area3D) -> void:
 	_handle_target(area)
 
+func process_existing_overlaps() -> void:
+	if not monitoring:
+		return
+	var bodies := get_overlapping_bodies()
+	for body in bodies:
+		_handle_target(body)
+	var areas := get_overlapping_areas()
+	for area in areas:
+		_handle_target(area)
+
 func _handle_target(target: Node) -> void:
 	var attack_module := _resolve_attack_module()
 	if attack_module == null or not is_instance_valid(attack_module):

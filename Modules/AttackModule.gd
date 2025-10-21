@@ -697,6 +697,9 @@ func _activate_hitbox_for_attack(attack_id: StringName) -> void:
 
 func _on_hit_window_opened(attack_id: StringName) -> void:
 	_activate_hitbox_for_attack(attack_id)
+	if _active_hitbox is AttackHitbox:
+		var hitbox := _active_hitbox as AttackHitbox
+		hitbox.process_existing_overlaps()
 
 func _on_hit_window_closed() -> void:
 	_deactivate_active_hitbox()
