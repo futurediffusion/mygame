@@ -40,7 +40,7 @@ func _extract_stream_player(property_name: StringName, fallback_path: NodePath) 
 	for property_data in player.get_property_list():
 		if not (property_data is Dictionary):
 			continue
-		var name_value := property_data.get("name")
+		var name_value: Variant = property_data.get("name")
 		if StringName(name_value) == property_name:
 			candidate = player.get(property_name)
 			break
