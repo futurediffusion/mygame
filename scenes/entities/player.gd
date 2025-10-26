@@ -852,9 +852,21 @@ func _get_simclock() -> SimClockAutoload:
 	return null
 
 func attack_start_hit(attack_id):
+	print("[Player/Enemy] 🎯 attack_start_hit RECIBIDO: ", attack_id)
+	print("[Player/Enemy]   - Nodo: ", name)
+	print("[Player/Enemy]   - attack_module: ", attack_module)
+	print("[Player/Enemy]   - attack_module válido: ", attack_module != null and is_instance_valid(attack_module))
 	if attack_module and is_instance_valid(attack_module):
+		print("[Player/Enemy]   ✓ Llamando a attack_module.attack_start_hit(", attack_id, ")")
 		attack_module.attack_start_hit(attack_id)
+	else:
+		print("[Player/Enemy]   ❌ ERROR: attack_module no disponible")
 
 func attack_end_hit(attack_id):
+	print("[Player/Enemy] 🛡️ attack_end_hit RECIBIDO: ", attack_id)
+	print("[Player/Enemy]   - Nodo: ", name)
 	if attack_module and is_instance_valid(attack_module):
+		print("[Player/Enemy]   ✓ Llamando a attack_module.attack_end_hit(", attack_id, ")")
 		attack_module.attack_end_hit(attack_id)
+	else:
+		print("[Player/Enemy]   ❌ ERROR: attack_module no disponible")
