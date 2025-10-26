@@ -223,25 +223,28 @@ func apply_damage(amount: float, from: Node = null) -> void:
 # ============================================================================
 # INITIALIZATION
 # ============================================================================
+
 func _ready() -> void:
 	if stats == null:
 		stats = AllyStats.new()
 	if capabilities == null:
 		capabilities = Capabilities.new()
 	_ensure_input_bootstrap()
-	_initialize_input_components()
+	_initialize_input_components_safe()
 	_sprint_threshold = run_speed * 0.4
-	input_buffer = InputBuffer.new()
-	input_buffer.name = "InputBuffer"
-	input_buffer.jump_buffer_time = jump_buffer
-	add_child(input_buffer)
+	if not self is Enemy:
+		input_buffer = InputBuffer.new()
+		input_buffer.name = "InputBuffer"
+		input_buffer.jump_buffer_time = jump_buffer
+		add_child(input_buffer)
 
 	if m_state:
 		m_state.setup(self)
 	if m_jump:
 		m_jump.setup(self, m_state, input_buffer, m_movement)
 	for m in [m_movement, m_orientation, m_anim, m_audio]:
-		m.setup(self)
+		if m and is_instance_valid(m):
+			m.setup(self)
 	if m_dodge:
 		m_dodge.setup(self, m_anim, m_audio)
 	if m_fsm:
@@ -273,14 +276,11 @@ func _ready() -> void:
 	else:
 		LoggerService.warn(LOGGER_CONTEXT, "SimClock autoload no disponible; Player no se registró en el scheduler.")
 
-	# ⬇️ CONECTA LAS SEÑALES EN EL Area3D, NO EN EL PLAYER
 	if trigger_area and is_instance_valid(trigger_area):
 		if not trigger_area.area_entered.is_connected(_on_area_entered):
 			trigger_area.area_entered.connect(_on_area_entered)
 		if not trigger_area.area_exited.is_connected(_on_area_exited):
 			trigger_area.area_exited.connect(_on_area_exited)
-	else:
-		LoggerService.warn(LOGGER_CONTEXT, "TriggerArea (Area3D) no está presente como hijo del Player; se omiten triggers.")
 
 	_update_module_stats()
 
@@ -465,9 +465,9 @@ func set_roll_collider_override(active: bool) -> void:
 # INPUT PROCESSING
 # ============================================================================
 
-func _initialize_input_components() -> void:
+func _initialize_input_components_safe() -> void:
 	_input_cache.clear()
-	if input_handler:
+	if input_handler and is_instance_valid(input_handler):
 		input_handler.set_input_actions(INPUT_ACTIONS)
 		input_handler.initialize_cache()
 		_input_cache = input_handler.get_input_cache()
@@ -491,21 +491,22 @@ func _initialize_input_components() -> void:
 		if input_handler.has_method("set_exit_sneak_callback"):
 			input_handler.set_exit_sneak_callback(Callable(self, &"request_exit_sneak"))
 	else:
-		LoggerService.warn(LOGGER_CONTEXT, "PlayerInputHandler no encontrado; se utilizará un caché de entrada vacío.")
 		var move_record := {
 			"raw": Vector2.ZERO,
 			"camera": Vector3.ZERO,
 		}
 		_input_cache["move"] = move_record
 		_input_cache["context_state"] = ContextState.DEFAULT
-	if context_detector:
+	if context_detector and is_instance_valid(context_detector):
 		context_detector.reset()
 		_context_state = context_detector.get_context_state() as ContextState
 		if not context_detector.context_changed.is_connected(_on_context_changed):
 			context_detector.context_changed.connect(_on_context_changed)
 	else:
-		LoggerService.warn(LOGGER_CONTEXT, "PlayerContextDetector no encontrado; el estado de contexto no se actualizará.")
+		_context_state = ContextState.DEFAULT
+
 	_sync_collider_to_context()
+
 
 func _disable_module_clock_subscription() -> void:
 	for module in [m_state, m_jump, m_movement, m_orientation, m_anim, m_audio, m_dodge, m_fsm, attack_module]:
@@ -565,6 +566,16 @@ func _on_context_changed(new_state: int, previous_state: int) -> void:
 # MOVEMENT & SPRINT
 # ============================================================================
 func _get_camera_relative_input() -> Vector3:
+	if yaw == null or not is_instance_valid(yaw):
+		var input_z := Input.get_axis("move_back", "move_forward")
+		var input_x := Input.get_axis("move_left", "move_right")
+		if input_z == 0.0 and input_x == 0.0:
+			return Vector3.ZERO
+		var direction := Vector3(input_x, 0.0, input_z)
+		if direction.length_squared() > 1.0:
+			return direction.normalized()
+		return direction
+
 	var input_z := Input.get_axis("move_back", "move_forward")
 	var input_x := Input.get_axis("move_left", "move_right")
 	if input_z == 0.0 and input_x == 0.0:
@@ -576,6 +587,7 @@ func _get_camera_relative_input() -> Vector3:
 	if direction.length_squared() > 1.0:
 		return direction.normalized()
 	return direction
+
 
 func _is_attack_primary_just_pressed() -> bool:
 	if InputMap.has_action("attack_primary") and Input.is_action_just_pressed("attack_primary"):
