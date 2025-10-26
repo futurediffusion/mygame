@@ -285,17 +285,22 @@ func puede_atacar() -> bool:
 	return true
 
 func on_attack_overlap(target_id, hit_point: Vector3, hit_normal: Vector3) -> void:
+	print("[AttackModule] on_attack_overlap llamado - hit_active: ", hit_active)
 	if not hit_active:
+		print("[AttackModule] Overlap ignorado: hit_active es false")
 		return
 	var target_node: Node = null
 	var target_key: Variant = target_id
 	if target_id is Node:
 		target_node = target_id
 		target_key = target_node.get_instance_id()
+		print("[AttackModule] Target detectado: ", target_node.name, " (", target_node.get_class(), ")")
 	if already_hit.has(target_key):
+		print("[AttackModule] Target ya fue golpeado en este ataque")
 		return
 	var data := _get_active_attack_data()
 	if data.is_empty():
+		print("[AttackModule] ERROR: No hay datos de ataque activo")
 		return
 	already_hit[target_key] = true
 	var step_id := _get_step_from_attack_id(current_attack_id)
@@ -311,8 +316,11 @@ func on_attack_overlap(target_id, hit_point: Vector3, hit_normal: Vector3) -> vo
 	}
 	var emitted_target = target_node if target_node != null else target_id
 	var damage_amount := float(data.get("damage", 0))
+	print("[AttackModule] Aplicando daño: ", damage_amount, " damage")
 	if damage_amount > 0.0 and target_node != null:
 		_apply_damage_to_target(target_node, damage_amount)
+	else:
+		print("[AttackModule] No se aplicó daño: amount=", damage_amount, ", target_node=", target_node)
 	attack_hit.emit(step_id, emitted_target, payload)
 
 func attack_start_hit(attack_id: Variant) -> void:
@@ -723,10 +731,25 @@ func _apply_damage_to_target(target_node: Node, damage_amount: float) -> void:
 		return
 	if victim == _owner_body:
 		return
-	if not victim.has_method("apply_damage"):
+	var health_node: Node = null
+	for child in victim.get_children():
+		if child.name == "Health" or child is Health:
+			health_node = child
+			break
+	if health_node == null:
+		if victim.has_method("apply_damage"):
+			var source: Node = _owner_body if _owner_body != null and is_instance_valid(_owner_body) else self
+			victim.apply_damage(damage_amount, source)
+			print("[AttackModule] Daño aplicado vía apply_damage(): ", damage_amount, " a ", victim.name)
+		else:
+			print("[AttackModule] ERROR: Víctima ", victim.name, " no tiene método apply_damage() ni nodo Health")
 		return
-	var source: Node = _owner_body if _owner_body != null and is_instance_valid(_owner_body) else self
-	victim.apply_damage(damage_amount, source)
+	if health_node.has_method("take_damage"):
+		var source: Node = _owner_body if _owner_body != null and is_instance_valid(_owner_body) else self
+		health_node.take_damage(damage_amount, source)
+		print("[AttackModule] Daño aplicado vía Health.take_damage(): ", damage_amount, " a ", victim.name)
+	else:
+		print("[AttackModule] ERROR: Nodo Health de ", victim.name, " no tiene método take_damage()")
 
 func _resolve_target_body(node: Node) -> CharacterBody3D:
 	var current := node
