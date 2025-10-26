@@ -18,7 +18,7 @@ func _ready() -> void:
 		input_buffer.queue_free()
 		input_buffer = null
 	if m_jump != null and is_instance_valid(m_jump):
-		if m_jump.has_property("allow_direct_input"):
+		if m_jump is JumpModule:
 			m_jump.allow_direct_input = false
 		m_jump.setup(self, m_state, null, m_movement)
 	collision_layer = PHYSICS_LAYERS.LAYER_ENEMY
