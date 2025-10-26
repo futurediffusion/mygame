@@ -324,43 +324,71 @@ func on_attack_overlap(target_id, hit_point: Vector3, hit_normal: Vector3) -> vo
 	attack_hit.emit(step_id, emitted_target, payload)
 
 func attack_start_hit(attack_id: Variant) -> void:
+	print("\n[AttackModule] ==================== ATTACK START HIT ====================")
+	print("[AttackModule] attack_start_hit() llamado")
+	print("[AttackModule]   - attack_id recibido: ", attack_id, " (tipo: ", typeof(attack_id), ")")
+	print("[AttackModule]   - is_attacking: ", is_attacking)
+	print("[AttackModule]   - combo_step: ", combo_step)
 	if not is_attacking:
+		print("[AttackModule]   ❌ NO está atacando, ignorando")
 		return
 	var normalized_id := _normalize_attack_id(attack_id)
+	print("[AttackModule]   - normalized_id: ", normalized_id)
 	if normalized_id == StringName():
+		print("[AttackModule]   ❌ ID normalizado está vacío")
 		return
 	var step := _get_step_from_attack_id(normalized_id)
+	print("[AttackModule]   - step calculado: ", step)
+	print("[AttackModule]   - combo_step actual: ", combo_step)
 	if step == 0 or step != combo_step:
+		print("[AttackModule]   ❌ Step no coincide (step=", step, ", combo_step=", combo_step, ")")
 		return
 	current_attack_id = normalized_id
 	_manual_window_control = true
 	hit_active = true
 	already_hit.clear()
+	print("[AttackModule]   ✅ HIT ACTIVO = TRUE")
+	print("[AttackModule]   - current_attack_id: ", current_attack_id)
+	print("[AttackModule]   - hit_active: ", hit_active)
 	_on_hit_window_opened(current_attack_id)
 	if not _window_open_emitted:
 		_window_open_emitted = true
 		attack_window_opened.emit(combo_step)
+		print("[AttackModule]   ✅ Señal attack_window_opened emitida")
 	if buffered_attack and combo_step < STEP_PUNCH3:
 		_queue_next_step(combo_step + 1)
 		buffered_attack = false
 		_buffer_time_remaining = 0.0
+	print("[AttackModule] ==================== FIN ATTACK START HIT ====================\n")
 
 
 func attack_end_hit(attack_id: Variant) -> void:
+	print("\n[AttackModule] ==================== ATTACK END HIT ====================")
+	print("[AttackModule] attack_end_hit() llamado")
+	print("[AttackModule]   - attack_id recibido: ", attack_id, " (tipo: ", typeof(attack_id), ")")
+	print("[AttackModule]   - is_attacking: ", is_attacking)
 	if not is_attacking:
+		print("[AttackModule]   ❌ NO está atacando, ignorando")
 		return
 	var normalized_id := _normalize_attack_id(attack_id)
+	print("[AttackModule]   - normalized_id: ", normalized_id)
 	if normalized_id == StringName():
+		print("[AttackModule]   ❌ ID normalizado está vacío")
 		return
+	print("[AttackModule]   - current_attack_id: ", current_attack_id)
 	if current_attack_id != normalized_id:
+		print("[AttackModule]   ❌ IDs no coinciden (current=", current_attack_id, ", recibido=", normalized_id, ")")
 		return
 	hit_active = false
+	print("[AttackModule]   ✅ HIT ACTIVO = FALSE")
 	_on_hit_window_closed()
 	already_hit.clear()
 	current_attack_id = StringName()
 	if not _window_close_emitted:
 		_window_close_emitted = true
 		attack_window_closed.emit(combo_step)
+		print("[AttackModule]   ✅ Señal attack_window_closed emitida")
+	print("[AttackModule] ==================== FIN ATTACK END HIT ====================\n")
 
 
 func get_move_lock_remaining() -> float:
