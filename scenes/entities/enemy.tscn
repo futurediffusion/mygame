@@ -1,4 +1,4 @@
-[gd_scene load_steps=54 format=3 uid="uid://blhk0f6ssin6f"]
+[gd_scene load_steps=55 format=3 uid="uid://blhk0f6ssin6f"]
 
 [ext_resource type="Script" uid="uid://bmxatb38dksi1" path="res://scripts/enemy/Enemy.gd" id="1_2ynut"]
 [ext_resource type="Script" uid="uid://cnm5jyf244aty" path="res://Modules/Movement.gd" id="4_2wkw8"]
@@ -17,6 +17,7 @@
 [ext_resource type="AudioStream" uid="uid://dassqoc4266pg" path="res://audio/sfx/footsteps/footstep.ogg" id="17_micxe"]
 [ext_resource type="Script" uid="uid://dx80kt6cdbn4w" path="res://scripts/enemy/EnemyBrain.gd" id="18_m3z5r"]
 [ext_resource type="Script" uid="uid://ekfb5es00t8t" path="res://scripts/combat/AttackHitbox.gd" id="19_8t0h1"]
+[ext_resource type="Script" uid="uid://d8b2fn8a9p4lt" path="res://scripts/combat/AttackCallBridge.gd" id="20_e9rpd"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1yk18"]
 
@@ -246,6 +247,9 @@ shape = SubResource("CapsuleShape3D_1yk18")
 [node name="Pivot" type="Node3D" parent="."]
 
 [node name="Model" parent="Pivot" instance=ExtResource("12_x3ldt")]
+
+[node name="AttackCallBridge" type="Node" parent="Pivot/Model"]
+script = ExtResource("20_e9rpd")
 
 [node name="AnimationPlayer" parent="Pivot/Model" index="1"]
 libraries = {
