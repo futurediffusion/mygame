@@ -1,4 +1,4 @@
-[gd_scene load_steps=58 format=3 uid="uid://l4e1k3jkgu8s"]
+[gd_scene load_steps=59 format=3 uid="uid://l4e1k3jkgu8s"]
 
 [ext_resource type="Script" uid="uid://wgpmntr5gt2u" path="res://scenes/entities/player.gd" id="1_08t41"]
 [ext_resource type="PackedScene" uid="uid://cvgcaefwbrg4n" path="res://art/characters/animations1.glb" id="1_ucweq"]
@@ -20,6 +20,7 @@
 [ext_resource type="Script" uid="uid://ba1beeb5f7cc4" path="res://scripts/player/PlayerContextDetector.gd" id="9_zr6my"]
 [ext_resource type="Script" uid="uid://ddeokw24hjcqs" path="res://scripts/combat/Health.gd" id="19_yr3on"]
 [ext_resource type="Script" uid="uid://d8x9v7b2k7p0l" path="res://scripts/combat/AttackHitbox.gd" id="20_je7hm"]
+[ext_resource type="Script" uid="uid://d8b2fn8a9p4lt" path="res://scripts/combat/AttackCallBridge.gd" id="21_6f8p6"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1yk18"]
 
@@ -253,6 +254,9 @@ shape = SubResource("CapsuleShape3D_1yk18")
 [node name="Pivot" type="Node3D" parent="."]
 
 [node name="Model" parent="Pivot" instance=ExtResource("1_ucweq")]
+
+[node name="AttackCallBridge" type="Node" parent="Pivot/Model"]
+script = ExtResource("21_6f8p6")
 
 [node name="AnimationPlayer" parent="Pivot/Model" index="1"]
 libraries = {
