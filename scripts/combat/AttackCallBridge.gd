@@ -92,7 +92,7 @@ func _retarget_method_tracks() -> void:
 			animation.track_set_path(track_idx, relative_path)
 			changed = true
 		if changed:
-			animation.resource_changed()
+			animation.emit_changed()
 
 func _find_animation_player() -> AnimationPlayer:
 	var node := get_parent()
