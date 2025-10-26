@@ -71,7 +71,7 @@ func _retarget_method_tracks() -> void:
 				continue
 			var has_attack_method := false
 			for key_idx in range(animation.track_get_key_count(track_idx)):
-				var key_value := animation.track_get_key_value(track_idx, key_idx)
+				var key_value: Variant = animation.track_get_key_value(track_idx, key_idx)
 				if key_value is Dictionary:
 					var method_name: String = key_value.get("method", "")
 					if method_name == "attack_start_hit" or method_name == "attack_end_hit":
