@@ -74,6 +74,7 @@ func process_existing_overlaps() -> void:
 	if not monitoring:
 		return
 	_cleanup_invalid_targets()
+	_sync_engine_overlaps()
 	_print_debug_overlaps("process_existing_overlaps")
 	for body in _overlapping_body_ids.values():
 		_handle_target(body)
@@ -87,6 +88,7 @@ func _physics_process(_delta: float) -> void:
 	if not attack_module.hit_active:
 		return
 	_cleanup_invalid_targets()
+	_sync_engine_overlaps()
 	_print_debug_overlaps("_physics_process")
 	for body in _overlapping_body_ids.values():
 		_handle_target(body)
@@ -100,6 +102,8 @@ func _track_body(body: Node) -> void:
 		print("[AttackHitbox] (", _owner_label, ") Ignorando track de owner")
 		return
 	var key := body.get_instance_id()
+	if _overlapping_body_ids.has(key) and _overlapping_body_ids[key] == body:
+		return
 	_overlapping_body_ids[key] = body
 	print("[AttackHitbox] (", _owner_label, ") Body trackeado: ", str(body.name), " → total cuerpos: ", _overlapping_body_ids.size())
 
@@ -113,8 +117,22 @@ func _track_area(area: Area3D) -> void:
 	if area == null:
 		return
 	var key := area.get_instance_id()
+	if _overlapping_area_ids.has(key) and _overlapping_area_ids[key] == area:
+		return
 	_overlapping_area_ids[key] = area
 	print("[AttackHitbox] (", _owner_label, ") Área trackeada: ", str(area.name), " → total áreas: ", _overlapping_area_ids.size())
+
+func _sync_engine_overlaps() -> void:
+	if has_method("get_overlapping_bodies"):
+		for engine_body in get_overlapping_bodies():
+			if engine_body == null or not is_instance_valid(engine_body):
+				continue
+			_track_body(engine_body)
+	if has_method("get_overlapping_areas"):
+		for engine_area in get_overlapping_areas():
+			if engine_area == null or not is_instance_valid(engine_area):
+				continue
+			_track_area(engine_area)
 
 func _untrack_area(area: Area3D) -> void:
 	if area == null:
