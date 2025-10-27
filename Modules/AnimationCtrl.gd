@@ -118,14 +118,26 @@ var _sneak_exit_timer := 0.0
 var _sneak_enter_playing := false
 var _sneak_exit_playing := false
 var _sneak_enter_timer := 0.0
+var _anim_refs_initialized := false
+var _missing_tree_warned := false
 
 const SNEAK_PRE_BLEND := 0.2
 
 func setup(p: CharacterBody3D) -> void:
 	player = p
 	if p != null and is_instance_valid(p):
-		anim_tree = p.anim_tree
-		anim_player = p.anim_player
+		if "anim_tree" in p:
+			var player_anim_tree_variant: Variant = p.anim_tree
+			if player_anim_tree_variant is AnimationTree:
+				var player_anim_tree := player_anim_tree_variant as AnimationTree
+				if player_anim_tree != null and is_instance_valid(player_anim_tree):
+					anim_tree = player_anim_tree
+		if "anim_player" in p:
+			var player_anim_player_variant: Variant = p.anim_player
+			if player_anim_player_variant is AnimationPlayer:
+				var player_anim_player := player_anim_player_variant as AnimationPlayer
+				if player_anim_player != null and is_instance_valid(player_anim_player):
+					anim_player = player_anim_player
 
 	if "walk_speed" in p:
 		walk_speed = p.walk_speed
@@ -142,23 +154,17 @@ func setup(p: CharacterBody3D) -> void:
 		fall_clip_name = p.fall_clip_name
 
 	_cache_related_modules()
-	if anim_tree == null and animation_tree_path != NodePath():
-		anim_tree = get_node_or_null(animation_tree_path) as AnimationTree
-	if anim_player == null and player != null and is_instance_valid(player):
-		anim_player = player.anim_player
-	if anim_tree:
-		if animation_tree_path == NodePath():
-			animation_tree_path = anim_tree.get_path()
-		if anim_player != null and is_instance_valid(anim_player):
-			anim_tree.anim_player = anim_player.get_path()
-		anim_tree.active = true
-		_refresh_parameter_cache()
+	if _ensure_anim_references():
 		if _tree_has_param(PARAM_FALLANIM):
 			anim_tree.set(PARAM_FALLANIM, fall_clip_name)
 		_set_locomotion_blend(0.0)
 		_set_air_blend(0.0)
 		_set_sprint_scale(1.0)
 		_cache_state_machine()
+	else:
+		if not _missing_tree_warned:
+			LoggerService.warn(LOGGER_CONTEXT, "AnimationTree no asignado; revisa que el módulo se configure en setup().")
+			_missing_tree_warned = true
 
 	_cache_sneak_animation_lengths()
 	_set_sneak_move_blend(0.0)
@@ -240,6 +246,78 @@ func _cache_related_modules() -> void:
 		var dodge_direct := player.get_node_or_null("Dodge") as DodgeModule
 		if dodge_direct != null:
 			_dodge_module = dodge_direct
+
+func _ensure_anim_references() -> bool:
+	if anim_tree != null and not is_instance_valid(anim_tree):
+		anim_tree = null
+		_anim_refs_initialized = false
+	if anim_player != null and not is_instance_valid(anim_player):
+		anim_player = null
+	if player != null and is_instance_valid(player):
+		if anim_tree == null:
+			if "anim_tree" in player:
+				var candidate_tree_variant: Variant = player.anim_tree
+				if candidate_tree_variant is AnimationTree:
+					var candidate_tree := candidate_tree_variant as AnimationTree
+					if candidate_tree != null and is_instance_valid(candidate_tree):
+						anim_tree = candidate_tree
+			if anim_tree == null and animation_tree_path != NodePath():
+				var path_tree := player.get_node_or_null(animation_tree_path) as AnimationTree
+				if path_tree != null:
+					anim_tree = path_tree
+			if anim_tree == null:
+				var found_tree := _find_animation_tree(player)
+				if found_tree != null:
+					anim_tree = found_tree
+		if anim_player == null:
+			if "anim_player" in player:
+				var candidate_player_variant: Variant = player.anim_player
+				if candidate_player_variant is AnimationPlayer:
+					var candidate_player := candidate_player_variant as AnimationPlayer
+					if candidate_player != null and is_instance_valid(candidate_player):
+						anim_player = candidate_player
+	if anim_tree == null and animation_tree_path != NodePath():
+		var module_tree := get_node_or_null(animation_tree_path) as AnimationTree
+		if module_tree != null:
+			anim_tree = module_tree
+	if anim_tree == null or not is_instance_valid(anim_tree):
+		return false
+	if animation_tree_path == NodePath():
+		animation_tree_path = anim_tree.get_path()
+	if anim_player == null or not is_instance_valid(anim_player):
+		if player != null and is_instance_valid(player) and "anim_player" in player:
+			var direct_player_variant: Variant = player.anim_player
+			if direct_player_variant is AnimationPlayer:
+				var direct_player := direct_player_variant as AnimationPlayer
+				if direct_player != null and is_instance_valid(direct_player):
+					anim_player = direct_player
+		if anim_player == null:
+			var anim_player_path := anim_tree.anim_player
+			if anim_player_path != NodePath():
+				var resolved_player := anim_tree.get_node_or_null(anim_player_path) as AnimationPlayer
+				if resolved_player != null:
+					anim_player = resolved_player
+	if anim_player != null and is_instance_valid(anim_player):
+		anim_tree.anim_player = anim_player.get_path()
+	anim_tree.active = true
+	if not _anim_refs_initialized:
+		_refresh_parameter_cache()
+	_anim_refs_initialized = true
+	_missing_tree_warned = false
+	return true
+
+func _find_animation_tree(root: Node) -> AnimationTree:
+	if root == null or not is_instance_valid(root):
+		return null
+	var queue: Array[Node] = []
+	queue.push_back(root)
+	while not queue.is_empty():
+		var current: Node = queue.pop_front()
+		if current is AnimationTree:
+			return current as AnimationTree
+		for child in current.get_children():
+			queue.push_back(child)
+	return null
 
 func _resolve_state_machine_module() -> StateMachineModule:
 	if _state_machine_module != null and is_instance_valid(_state_machine_module):
@@ -330,6 +408,8 @@ func physics_tick(delta: float) -> void:
 	if player.has_method("should_skip_module_updates") and player.should_skip_module_updates():
 		return
 	if player.has_method("should_block_animation_update") and player.should_block_animation_update():
+		return
+	if not _ensure_anim_references():
 		return
 	_update_dodge_state()
 
@@ -515,8 +595,10 @@ func _cache_state_machine() -> void:
 	_state_machine = null
 	_state_machine_graph = null
 	_state_machine_started = false
-	if anim_tree == null:
-		LoggerService.warn(LOGGER_CONTEXT, "AnimationTree no asignado; revisa que el módulo se configure en setup().")
+	if not _ensure_anim_references():
+		if not _missing_tree_warned:
+			LoggerService.warn(LOGGER_CONTEXT, "AnimationTree no asignado; revisa que el módulo se configure en setup().")
+			_missing_tree_warned = true
 		return
 	if animation_tree_path == NodePath():
 		animation_tree_path = anim_tree.get_path()
@@ -978,6 +1060,10 @@ func _start_state_machine(state_name: StringName) -> void:
 	_state_machine_started = true
 
 func _travel_to_state(state_name: StringName) -> void:
+	if anim_tree == null or not is_instance_valid(anim_tree):
+		_anim_refs_initialized = false
+		if not _ensure_anim_references():
+			return
 	if _state_machine == null:
 		_cache_state_machine()
 	if state_name == STATE_JUMP:
