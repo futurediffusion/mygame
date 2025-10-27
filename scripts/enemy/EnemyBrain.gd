@@ -245,10 +245,13 @@ func _estimate_body_radius(node: Node3D) -> float:
 	var shape := _find_collision_shape(node)
 	if shape == null or not is_instance_valid(shape):
 		return DEFAULT_BODY_RADIUS
-	var shape_res := shape.shape
+	var shape_res: Shape3D = shape.shape
 	if shape_res == null:
 		return DEFAULT_BODY_RADIUS
-	var aabb: AABB = shape_res.get_aabb()
+	var debug_mesh := shape_res.get_debug_mesh()
+	if debug_mesh == null:
+		return DEFAULT_BODY_RADIUS
+	var aabb: AABB = debug_mesh.get_aabb()
 	var scale: Vector3 = shape.global_transform.basis.get_scale()
 	var scaled_x: float = aabb.size.x * absf(scale.x)
 	var scaled_z: float = aabb.size.z * absf(scale.z)
