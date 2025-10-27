@@ -215,6 +215,15 @@ func trigger_attack_request() -> void:
 	else:
 		_queue_or_buffer_next()
 
+func get_attack_speed_scale() -> float:
+	if _anim_speed_override_active:
+		return PUNCH_SPEED_SCALE
+	var anim_player := _ensure_animation_player()
+	if anim_player != null and is_instance_valid(anim_player):
+		var scale := float(anim_player.speed_scale)
+		return scale if scale > 0.0 else 1.0
+	return 1.0
+
 func physics_tick(dt: float) -> void:
 	var tree := _animation_tree
 	if tree == null or not is_instance_valid(tree):
