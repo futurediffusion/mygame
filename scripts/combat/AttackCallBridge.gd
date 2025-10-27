@@ -160,7 +160,11 @@ func attack_start_hit(attack_id) -> void:
 	if _attack_module == null or not is_instance_valid(_attack_module):
 		return
 
-	print("[AttackBridge] 🎯 attack_start_hit → ", attack_id, " (Owner: ", _owner_body.name if _owner_body else "null", ")")
+	var owner_name := "null"
+	if _owner_body:
+		owner_name = str(_owner_body.name)
+
+	print("[AttackBridge] 🎯 attack_start_hit → ", attack_id, " (Owner: ", owner_name, ")")
 	_attack_module.attack_start_hit(attack_id)
 
 func attack_end_hit(attack_id) -> void:
