@@ -16,7 +16,7 @@ const DEFAULT_BODY_RADIUS := 0.5
 @export_range(2.5, 5.5, 0.1) var wander_interval_max: float = 5.5
 @export_range(12.0, 16.0, 0.1) var detect_radius: float = 14.0
 @export_range(6.0, 12.0, 0.1) var lose_radius_margin: float = 8.0
-@export_range(0.1, 1.5, 0.05) var attack_range: float = 0.35
+@export_range(0.0, 1.5, 0.05) var attack_range: float = 0.05
 @export_range(0.8, 1.2, 0.05) var reattack_cooldown: float = 1.0
 @export_enum("spawn") var home_point_mode: String = "spawn"
 
@@ -140,6 +140,12 @@ func _apply_attack(enemy: CharacterBody3D, target: Node3D) -> void:
 		look = _direction_to(enemy.global_transform.origin, target.global_transform.origin)
 		if look != Vector3.ZERO:
 			intent_look_dir = look
+		var gap := _compute_surface_gap(enemy, target)
+		var enemy_radius := _estimate_body_radius(enemy)
+		var target_radius := _estimate_body_radius(target)
+		print("[EnemyBrain] Attack gap check → gap=", gap, ", range=", attack_range, ", enemy_radius=", enemy_radius, ", target_radius=", target_radius)
+		if gap > attack_range:
+			print("[EnemyBrain] ⚠️ gap supera attack_range, el ataque no alcanzará sin acercarse más")
 	intent_attack = true
 	_attack_cooldown = maxf(reattack_cooldown, 0.0)
 
@@ -232,12 +238,16 @@ func _direction_to(from: Vector3, to: Vector3) -> Vector3:
 func _is_in_attack_range(enemy: CharacterBody3D, target: Node3D) -> bool:
 	if target == null or not is_instance_valid(target):
 		return false
+	return _compute_surface_gap(enemy, target) <= attack_range
+
+func _compute_surface_gap(enemy: CharacterBody3D, target: Node3D) -> float:
+	if enemy == null or not is_instance_valid(enemy) or target == null or not is_instance_valid(target):
+		return INF
 	var dist_sq: float = _distance_sq_flat(enemy.global_transform.origin, target.global_transform.origin)
 	var dist: float = sqrt(dist_sq)
 	var enemy_radius := _estimate_body_radius(enemy)
 	var target_radius := _estimate_body_radius(target)
-	var surface_gap := maxf(0.0, dist - (enemy_radius + target_radius))
-	return surface_gap <= attack_range
+	return maxf(0.0, dist - (enemy_radius + target_radius))
 
 func _estimate_body_radius(node: Node3D) -> float:
 	if node == null or not is_instance_valid(node):
