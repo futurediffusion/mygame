@@ -44,6 +44,7 @@ var _current_attack_anim: String = ""
 var _window_opened: bool = false
 var _window_closed: bool = false
 var _last_checked_params: Dictionary = {}
+var _attack_time: float = 0.0
 
 func _ready() -> void:
 	await get_tree().process_frame
@@ -85,7 +86,8 @@ func _process(delta: float) -> void:
 		_check_animation_tree_state()
 
 	if _current_attack_anim != "":
-		_process_attack_window(delta)
+		_attack_time += delta
+		_process_attack_window()
 
 func _check_animation_tree_state() -> void:
 	if _anim_tree == null:
@@ -132,15 +134,12 @@ func _anim_tree_has_param(param: String) -> bool:
 
 	return false
 
-func _process_attack_window(_delta: float) -> void:
+func _process_attack_window() -> void:
 	if not ATTACK_WINDOWS.has(_current_attack_anim):
 		return
 
-	if _anim_player == null:
-		return
-
 	var config: Dictionary = ATTACK_WINDOWS[_current_attack_anim]
-	var position := _anim_player.current_animation_position
+	var position: float = _attack_time
 	var start_time: float = config.get("start", 0.0)
 	var end_time: float = config.get("end", 0.0)
 	var attack_id: String = ANIMATION_TO_ATTACK_ID.get(_current_attack_anim, "P1")
@@ -160,6 +159,7 @@ func _start_attack_animation(anim_name: String) -> void:
 		_current_attack_anim = anim_name
 		_window_opened = false
 		_window_closed = false
+		_attack_time = 0.0
 		print("[AttackBridge]   ✓ Monitoreando ataque...")
 
 func _end_attack_animation(anim_name: String) -> void:
@@ -172,6 +172,7 @@ func _end_attack_animation(anim_name: String) -> void:
 		_current_attack_anim = ""
 		_window_opened = false
 		_window_closed = false
+		_attack_time = 0.0
 
 func _on_animation_started(anim_name: String) -> void:
 	print("[AttackBridge] 🎬 Animación iniciada (Player signal): ", anim_name)
@@ -185,7 +186,7 @@ func attack_start_hit(attack_id) -> void:
 	if _attack_module == null or not is_instance_valid(_attack_module):
 		return
 
-	var owner_name := "null"
+	var owner_name: String = "null"
 	if _owner_body:
 		owner_name = str(_owner_body.name)
 
@@ -208,7 +209,7 @@ func _find_character_body() -> CharacterBody3D:
 	return null
 
 func _find_animation_tree() -> AnimationTree:
-	var parent = get_parent()
+	var parent: Node = get_parent()
 	if parent:
 		for child in parent.get_children():
 			if child is AnimationTree:
@@ -220,7 +221,7 @@ func _find_animation_tree() -> AnimationTree:
 	return null
 
 func _find_animation_player() -> AnimationPlayer:
-	var parent = get_parent()
+	var parent: Node = get_parent()
 	if parent:
 		for child in parent.get_children():
 			if child is AnimationPlayer:
@@ -231,13 +232,13 @@ func _search_animation_tree_recursive(node: Node) -> AnimationTree:
 	if node is AnimationTree:
 		return node
 	for child in node.get_children():
-		var result = _search_animation_tree_recursive(child)
+		var result: AnimationTree = _search_animation_tree_recursive(child)
 		if result != null:
 			return result
 	return null
 
 func _find_attack_module(body: Node) -> AttackModule:
-	var modules_node = body.get_node_or_null("Modules")
+	var modules_node: Node = body.get_node_or_null("Modules")
 	if modules_node:
 		for child in modules_node.get_children():
 			if child is AttackModule:
@@ -248,7 +249,7 @@ func _search_attack_module_recursive(node: Node) -> AttackModule:
 	if node is AttackModule:
 		return node
 	for child in node.get_children():
-		var result = _search_attack_module_recursive(child)
+		var result: AttackModule = _search_attack_module_recursive(child)
 		if result != null:
 			return result
 	return null
