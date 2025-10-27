@@ -72,7 +72,7 @@ func _process(_delta: float) -> void:
 	var position := _anim_player.current_animation_position
 	var start_time: float = config.get("start", 0.0)
 	var end_time: float = config.get("end", 0.0)
-	var attack_id := ANIMATION_TO_ATTACK_ID.get(_current_attack_anim, "P1")
+	var attack_id: String = ANIMATION_TO_ATTACK_ID.get(_current_attack_anim, "P1")
 	
 	# Abrir ventana
 	if not _window_opened and position >= start_time:
@@ -101,7 +101,7 @@ func _on_animation_finished(anim_name: String) -> void:
 	if _current_attack_anim == anim_name:
 		# Forzar cierre si no se cerró
 		if _window_opened and not _window_closed:
-			var attack_id := ANIMATION_TO_ATTACK_ID.get(_current_attack_anim, "P1")
+			var attack_id: String = ANIMATION_TO_ATTACK_ID.get(_current_attack_anim, "P1")
 			print("[AttackBridge] 🔒 Forzando cierre: ", attack_id)
 			attack_end_hit(attack_id)
 		_current_attack_anim = ""
