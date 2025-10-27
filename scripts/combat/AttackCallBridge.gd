@@ -45,6 +45,8 @@ var _window_opened: bool = false
 var _window_closed: bool = false
 var _last_checked_params: Dictionary = {}
 var _attack_time: float = 0.0
+var _current_window_start: float = 0.0
+var _current_window_end: float = 0.0
 
 func _ready() -> void:
 	await get_tree().process_frame
@@ -138,10 +140,13 @@ func _process_attack_window() -> void:
 	if not ATTACK_WINDOWS.has(_current_attack_anim):
 		return
 
-	var config: Dictionary = ATTACK_WINDOWS[_current_attack_anim]
 	var position: float = _attack_time
-	var start_time: float = config.get("start", 0.0)
-	var end_time: float = config.get("end", 0.0)
+	var start_time: float = _current_window_start
+	var end_time: float = _current_window_end
+	if start_time == 0.0 and end_time == 0.0:
+		var config: Dictionary = ATTACK_WINDOWS[_current_attack_anim]
+		start_time = float(config.get("start", 0.0))
+		end_time = float(config.get("end", 0.0))
 	var attack_id: String = ANIMATION_TO_ATTACK_ID.get(_current_attack_anim, "P1")
 
 	if not _window_opened and position >= start_time:
@@ -154,12 +159,31 @@ func _process_attack_window() -> void:
 		print("[AttackBridge] 🛡️ Cerrando ventana: ", attack_id, " en ", position, "s")
 		attack_end_hit(attack_id)
 
+func _configure_attack_window(anim_name: String) -> void:
+	_current_window_start = 0.0
+	_current_window_end = 0.0
+	if not ATTACK_WINDOWS.has(anim_name):
+		return
+	var config: Dictionary = ATTACK_WINDOWS[anim_name]
+	var start_time: float = float(config.get("start", 0.0))
+	var end_time: float = float(config.get("end", 0.0))
+	var speed_scale := 1.0
+	if _attack_module != null and is_instance_valid(_attack_module):
+		speed_scale = _attack_module.get_attack_speed_scale()
+	elif _anim_player != null and is_instance_valid(_anim_player):
+		speed_scale = float(_anim_player.speed_scale)
+	if speed_scale <= 0.0:
+		speed_scale = 1.0
+	_current_window_start = start_time / speed_scale if start_time != 0.0 else 0.0
+	_current_window_end = end_time / speed_scale if end_time != 0.0 else 0.0
+
 func _start_attack_animation(anim_name: String) -> void:
 	if ANIMATION_TO_ATTACK_ID.has(anim_name):
 		_current_attack_anim = anim_name
 		_window_opened = false
 		_window_closed = false
 		_attack_time = 0.0
+		_configure_attack_window(anim_name)
 		print("[AttackBridge]   ✓ Monitoreando ataque...")
 
 func _end_attack_animation(anim_name: String) -> void:
@@ -173,6 +197,8 @@ func _end_attack_animation(anim_name: String) -> void:
 		_window_opened = false
 		_window_closed = false
 		_attack_time = 0.0
+		_current_window_start = 0.0
+		_current_window_end = 0.0
 
 func _on_animation_started(anim_name: String) -> void:
 	print("[AttackBridge] 🎬 Animación iniciada (Player signal): ", anim_name)
