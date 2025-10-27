@@ -139,18 +139,18 @@ const FORCED_SNEAK_HEADROOM_INTERVAL := 0.1
 # ============================================================================
 # CACHED NODES
 # ============================================================================
-@onready var yaw: Node3D = $CameraRig/Yaw
-@onready var model: Node3D = $Pivot/Model
+@onready var yaw: Node3D = get_node_or_null(^"CameraRig/Yaw") as Node3D
+@onready var model: Node3D = get_node_or_null(^"Pivot/Model") as Node3D
 @onready var anim_tree: AnimationTree = get_node_or_null(^"Pivot/Model/StateMachine") as AnimationTree
 
 var attack_module: AttackModule
 @onready var anim_player: AnimationPlayer = get_node_or_null(^"Pivot/Model/AnimationPlayer") as AnimationPlayer
-@onready var stamina: Stamina = $Stamina
+@onready var stamina: Stamina = get_node_or_null(^"Stamina") as Stamina
 @onready var camera_rig: Node = get_node_or_null(^"CameraRig")
 @onready var game_state: GameStateAutoload = get_node_or_null(^"/root/GameState")
 @onready var trigger_area: Area3D = get_node_or_null(^"TriggerArea")
-@onready var input_handler: PlayerInputHandler = $PlayerInputHandler
-@onready var context_detector: PlayerContextDetector = $PlayerContextDetector
+@onready var input_handler: PlayerInputHandler = get_node_or_null(^"PlayerInputHandler") as PlayerInputHandler
+@onready var context_detector: PlayerContextDetector = get_node_or_null(^"PlayerContextDetector") as PlayerContextDetector
 @onready var collision_shape: CollisionShape3D = get_node_or_null(^"CollisionShape3D")
 
 # --- MÓDULOS (nuevos onready) ---
@@ -566,20 +566,17 @@ func _on_context_changed(new_state: int, previous_state: int) -> void:
 # MOVEMENT & SPRINT
 # ============================================================================
 func _get_camera_relative_input() -> Vector3:
+	var input_z := Input.get_axis("move_back", "move_forward")
+	var input_x := Input.get_axis("move_left", "move_right")
+	if input_z == 0.0 and input_x == 0.0:
+		return Vector3.ZERO
+
 	if yaw == null or not is_instance_valid(yaw):
-		var input_z := Input.get_axis("move_back", "move_forward")
-		var input_x := Input.get_axis("move_left", "move_right")
-		if input_z == 0.0 and input_x == 0.0:
-			return Vector3.ZERO
 		var direction := Vector3(input_x, 0.0, input_z)
 		if direction.length_squared() > 1.0:
 			return direction.normalized()
 		return direction
 
-	var input_z := Input.get_axis("move_back", "move_forward")
-	var input_x := Input.get_axis("move_left", "move_right")
-	if input_z == 0.0 and input_x == 0.0:
-		return Vector3.ZERO
 	var cam_basis := yaw.global_transform.basis
 	var forward := -cam_basis.z
 	var right := cam_basis.x
