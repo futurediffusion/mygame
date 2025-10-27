@@ -854,3 +854,6 @@ func _update_active_hitbox() -> void:
 	if up_vector.length_squared() <= 0.000001:
 		up_vector = Vector3.UP
 	_active_hitbox.look_at(offset_position + direction, up_vector)
+	if _active_hitbox is AttackHitbox:
+		var attack_hitbox := _active_hitbox as AttackHitbox
+		attack_hitbox.process_existing_overlaps()
