@@ -9,13 +9,14 @@ enum BrainState {
 }
 
 const LOSE_DELAY := 2.0
+const DEFAULT_BODY_RADIUS := 0.5
 
 @export_range(10.0, 16.0, 0.1) var wander_radius: float = 12.0
 @export_range(2.5, 5.5, 0.1) var wander_interval_min: float = 2.5
 @export_range(2.5, 5.5, 0.1) var wander_interval_max: float = 5.5
 @export_range(12.0, 16.0, 0.1) var detect_radius: float = 14.0
 @export_range(6.0, 12.0, 0.1) var lose_radius_margin: float = 8.0
-@export_range(2.0, 2.5, 0.05) var attack_range: float = 2.2
+@export_range(0.1, 1.5, 0.05) var attack_range: float = 0.35
 @export_range(0.8, 1.2, 0.05) var reattack_cooldown: float = 1.0
 @export_enum("spawn") var home_point_mode: String = "spawn"
 
@@ -232,7 +233,42 @@ func _is_in_attack_range(enemy: CharacterBody3D, target: Node3D) -> bool:
 	if target == null or not is_instance_valid(target):
 		return false
 	var dist_sq := _distance_sq_flat(enemy.global_transform.origin, target.global_transform.origin)
-	return dist_sq <= attack_range * attack_range
+	var dist := sqrtf(dist_sq)
+	var enemy_radius := _estimate_body_radius(enemy)
+	var target_radius := _estimate_body_radius(target)
+	var surface_gap := maxf(0.0, dist - (enemy_radius + target_radius))
+	return surface_gap <= attack_range
+
+func _estimate_body_radius(node: Node3D) -> float:
+	if node == null or not is_instance_valid(node):
+		return DEFAULT_BODY_RADIUS
+	var shape := _find_collision_shape(node)
+	if shape == null or not is_instance_valid(shape):
+		return DEFAULT_BODY_RADIUS
+	var shape_res := shape.shape
+	if shape_res == null:
+		return DEFAULT_BODY_RADIUS
+	var aabb := shape_res.get_aabb()
+	var scale := shape.global_transform.basis.get_scale()
+	var scaled_x := aabb.size.x * absf(scale.x)
+	var scaled_z := aabb.size.z * absf(scale.z)
+	var radius := maxf(scaled_x, scaled_z) * 0.5
+	if radius <= 0.0:
+		return DEFAULT_BODY_RADIUS
+	return radius
+
+func _find_collision_shape(node: Node) -> CollisionShape3D:
+	if node == null or not is_instance_valid(node):
+		return null
+	if node is CollisionShape3D:
+		return node
+	var direct := node.get_node_or_null("CollisionShape3D")
+	if direct is CollisionShape3D:
+		return direct
+	var recursive := node.find_child("CollisionShape3D", true, false)
+	if recursive is CollisionShape3D:
+		return recursive
+	return null
 
 func _get_lose_radius() -> float:
 	return detect_radius + lose_radius_margin
