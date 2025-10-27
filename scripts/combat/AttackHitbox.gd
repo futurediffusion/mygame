@@ -141,18 +141,44 @@ func _cleanup_invalid_targets() -> void:
 		print("[AttackHitbox] (", _owner_label, ") Limpieza de overlaps → cuerpos removidos: ", remove_body_ids.size(), ", áreas removidas: ", remove_area_ids.size())
 
 func _print_debug_overlaps(context: String) -> void:
-	if _overlapping_body_ids.is_empty() and _overlapping_area_ids.is_empty():
-		print("[AttackHitbox] (", _owner_label, ") ", context, " → sin overlaps registrados")
-		return
-	var bodies: Array[String] = []
+	var tracked_bodies: Array[String] = []
 	for body in _overlapping_body_ids.values():
 		if body != null and is_instance_valid(body):
-			bodies.append(str(body.name))
-	var areas: Array[String] = []
+			tracked_bodies.append(str(body.name))
+	var tracked_areas: Array[String] = []
 	for area in _overlapping_area_ids.values():
 		if area != null and is_instance_valid(area):
-			areas.append(str(area.name))
-	print("[AttackHitbox] (", _owner_label, ") ", context, " → cuerpos: ", ", ".join(bodies), " | áreas: ", ", ".join(areas))
+			tracked_areas.append(str(area.name))
+	var engine_body_labels: Array[String] = []
+	if has_method("get_overlapping_bodies"):
+		for engine_body in get_overlapping_bodies():
+			engine_body_labels.append(_format_engine_overlap(engine_body))
+	var engine_area_labels: Array[String] = []
+	if has_method("get_overlapping_areas"):
+		for engine_area in get_overlapping_areas():
+			engine_area_labels.append(_format_engine_overlap(engine_area))
+	if tracked_bodies.is_empty() and tracked_areas.is_empty() and engine_body_labels.is_empty() and engine_area_labels.is_empty():
+		print("[AttackHitbox] (", _owner_label, ") ", context, " → sin overlaps registrados")
+		return
+	print(
+		"[AttackHitbox] (", _owner_label, ") ", context,
+		" → cuerpos: ", ", ".join(tracked_bodies),
+		" | áreas: ", ", ".join(tracked_areas),
+		" || engine cuerpos: ", ", ".join(engine_body_labels),
+		" | engine áreas: ", ", ".join(engine_area_labels)
+	)
+
+func _format_engine_overlap(entry: Node) -> String:
+	if entry == null:
+		return "<null>"
+	if not is_instance_valid(entry):
+		return "<freed>"
+	var parts: Array[String] = []
+	parts.append(str(entry.name))
+	parts.append(entry.get_class())
+	if entry is CollisionObject3D:
+		parts.append("layer=" + str(entry.collision_layer))
+	return "[" + ", ".join(parts) + "]"
 
 func _handle_target(target: Node) -> void:
 	var attack_module := _resolve_attack_module()
