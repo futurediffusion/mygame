@@ -30,24 +30,39 @@ func _ready() -> void:
 		area_exited.connect(_on_area_exited)
 	_owner_body = _find_character_body()
 	if _owner_body:
-		print("[AttackHitbox] Owner body encontrado: ", _owner_body.name, " en capa: ", _owner_body.collision_layer)
+		print("[AttackHitbox] Owner body encontrado: ", str(_owner_body.name), " en capa: ", _owner_body.collision_layer)
 
 func _on_body_entered(body: Node) -> void:
-	print("[AttackHitbox] body_entered detectado: ", body.name if body else "null", " - Capa: ", body.collision_layer if body is CollisionObject3D else "N/A")
+	var body_name := "null"
+	if body:
+		body_name = str(body.name)
+	var body_layer := "N/A"
+	if body is CollisionObject3D:
+		body_layer = str(body.collision_layer)
+	print("[AttackHitbox] body_entered detectado: ", body_name, " - Capa: ", body_layer)
 	_track_body(body)
 	_handle_target(body)
 
 func _on_body_exited(body: Node) -> void:
-	print("[AttackHitbox] body_exited detectado: ", body.name if body else "null")
+	var body_name := "null"
+	if body:
+		body_name = str(body.name)
+	print("[AttackHitbox] body_exited detectado: ", body_name)
 	_untrack_body(body)
 
 func _on_area_entered(area: Area3D) -> void:
-	print("[AttackHitbox] area_entered detectado: ", area.name if area else "null")
+	var area_name := "null"
+	if area:
+		area_name = str(area.name)
+	print("[AttackHitbox] area_entered detectado: ", area_name)
 	_track_area(area)
 	_handle_target(area)
 
 func _on_area_exited(area: Area3D) -> void:
-	print("[AttackHitbox] area_exited detectado: ", area.name if area else "null")
+	var area_name := "null"
+	if area:
+		area_name = str(area.name)
+	print("[AttackHitbox] area_exited detectado: ", area_name)
 	_untrack_area(area)
 
 func process_existing_overlaps() -> void:
@@ -109,13 +124,16 @@ func _handle_target(target: Node) -> void:
 		return
 	var character := _extract_character_body(target)
 	if character == null:
-		print("[AttackHitbox] No se pudo extraer CharacterBody3D de: ", target.name if target else "null")
+		var target_name := "null"
+		if target:
+			target_name = str(target.name)
+		print("[AttackHitbox] No se pudo extraer CharacterBody3D de: ", target_name)
 		return
 	if character == _owner_body:
 		print("[AttackHitbox] Target es el owner, ignorando (no auto-daño)")
 		return
 	var hit_normal := -global_transform.basis.z
-	print("[AttackHitbox] Llamando on_attack_overlap para: ", character.name)
+	print("[AttackHitbox] Llamando on_attack_overlap para: ", str(character.name))
 	attack_module.on_attack_overlap(character, global_position, hit_normal)
 
 func _resolve_attack_module() -> AttackModule:
@@ -128,7 +146,7 @@ func _resolve_attack_module() -> AttackModule:
 	for child in modules_root.get_children():
 		if child is AttackModule:
 			_attack_module = child
-			print("[AttackHitbox] AttackModule encontrado: ", child.name)
+			print("[AttackHitbox] AttackModule encontrado: ", str(child.name))
 			return _attack_module
 	print("[AttackHitbox] ERROR: No se encontró AttackModule en modules_root")
 	return null
@@ -142,7 +160,7 @@ func _resolve_modules_root() -> Node:
 	var node := get_node_or_null(modules_root_path)
 	if node != null:
 		_modules_root = node
-		print("[AttackHitbox] Modules root resuelto: ", node.name)
+		print("[AttackHitbox] Modules root resuelto: ", str(node.name))
 	else:
 		print("[AttackHitbox] ERROR: No se encontró nodo en path: ", modules_root_path)
 	return _modules_root

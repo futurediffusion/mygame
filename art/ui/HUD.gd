@@ -2,8 +2,8 @@ extends Control
 
 @export var player_path: NodePath
 
-@onready var bar = %HealthBar
-@onready var label = %HealthLabel
+var bar: TextureProgressBar
+var label: Label
 
 var player: Node = null
 var health: Health = null
