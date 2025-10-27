@@ -572,10 +572,10 @@ func _get_camera_relative_input() -> Vector3:
 		return Vector3.ZERO
 
 	if yaw == null or not is_instance_valid(yaw):
-		var direction := Vector3(input_x, 0.0, input_z)
-		if direction.length_squared() > 1.0:
-			return direction.normalized()
-		return direction
+		var local_direction := Vector3(input_x, 0.0, input_z)
+		if local_direction.length_squared() > 1.0:
+			return local_direction.normalized()
+		return local_direction
 
 	var cam_basis := yaw.global_transform.basis
 	var forward := -cam_basis.z

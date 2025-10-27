@@ -221,7 +221,9 @@ func get_attack_speed_scale() -> float:
 	var anim_player := _ensure_animation_player()
 	if anim_player != null and is_instance_valid(anim_player):
 		var scale := float(anim_player.speed_scale)
-		return scale if scale > 0.0 else 1.0
+		if scale > 0.0:
+			return scale
+		return 1.0
 	return 1.0
 
 func physics_tick(dt: float) -> void:
@@ -323,7 +325,9 @@ func on_attack_overlap(target_id, hit_point: Vector3, hit_normal: Vector3) -> vo
 		"hit_point": hit_point,
 		"hit_normal": hit_normal,
 	}
-	var emitted_target = target_node if target_node != null else target_id
+	var emitted_target: Variant = target_id
+	if target_node != null:
+		emitted_target = target_node
 	var damage_amount := float(data.get("damage", 0))
 	print("[AttackModule] Aplicando daño: ", damage_amount, " damage")
 	if damage_amount > 0.0 and target_node != null:
@@ -785,14 +789,18 @@ func _apply_damage_to_target(target_node: Node, damage_amount: float) -> void:
 			break
 	if health_node == null:
 		if victim.has_method("apply_damage"):
-			var source: Node = _owner_body if _owner_body != null and is_instance_valid(_owner_body) else self
+			var source: Node = self
+			if _owner_body != null and is_instance_valid(_owner_body):
+				source = _owner_body
 			victim.apply_damage(damage_amount, source)
 			print("[AttackModule] Daño aplicado vía apply_damage(): ", damage_amount, " a ", victim.name)
 		else:
 			print("[AttackModule] ERROR: Víctima ", victim.name, " no tiene método apply_damage() ni nodo Health")
 		return
 	if health_node.has_method("take_damage"):
-		var source: Node = _owner_body if _owner_body != null and is_instance_valid(_owner_body) else self
+		var source: Node = self
+		if _owner_body != null and is_instance_valid(_owner_body):
+			source = _owner_body
 		health_node.take_damage(damage_amount, source)
 		print("[AttackModule] Daño aplicado vía Health.take_damage(): ", damage_amount, " a ", victim.name)
 	else:
