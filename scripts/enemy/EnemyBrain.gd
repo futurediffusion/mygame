@@ -232,8 +232,8 @@ func _direction_to(from: Vector3, to: Vector3) -> Vector3:
 func _is_in_attack_range(enemy: CharacterBody3D, target: Node3D) -> bool:
 	if target == null or not is_instance_valid(target):
 		return false
-	var dist_sq := _distance_sq_flat(enemy.global_transform.origin, target.global_transform.origin)
-	var dist := sqrtf(dist_sq)
+	var dist_sq: float = _distance_sq_flat(enemy.global_transform.origin, target.global_transform.origin)
+	var dist: float = sqrt(dist_sq)
 	var enemy_radius := _estimate_body_radius(enemy)
 	var target_radius := _estimate_body_radius(target)
 	var surface_gap := maxf(0.0, dist - (enemy_radius + target_radius))
@@ -248,10 +248,10 @@ func _estimate_body_radius(node: Node3D) -> float:
 	var shape_res := shape.shape
 	if shape_res == null:
 		return DEFAULT_BODY_RADIUS
-	var aabb := shape_res.get_aabb()
-	var scale := shape.global_transform.basis.get_scale()
-	var scaled_x := aabb.size.x * absf(scale.x)
-	var scaled_z := aabb.size.z * absf(scale.z)
+	var aabb: AABB = shape_res.get_aabb()
+	var scale: Vector3 = shape.global_transform.basis.get_scale()
+	var scaled_x: float = aabb.size.x * absf(scale.x)
+	var scaled_z: float = aabb.size.z * absf(scale.z)
 	var radius := maxf(scaled_x, scaled_z) * 0.5
 	if radius <= 0.0:
 		return DEFAULT_BODY_RADIUS
