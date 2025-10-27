@@ -24,11 +24,17 @@ func take_damage(amount: float, from: Node = null) -> void:
 	if amount <= 0.0 or is_dead():
 		return
 	var now := Time.get_ticks_msec() * 0.001
+	var source_name := "<null>"
+	if from != null and is_instance_valid(from):
+		source_name = str(from.name)
+	print("[Health:", name, "] Solicitud de daño amount=", amount, ", from=", source_name, ", current=", current, ", invul_until=", _invul_until, ", now=", now)
 	if now < _invul_until:
+		print("[Health:", name, "] Daño ignorado por invulnerabilidad activa")
 		return
 	current = maxf(0.0, current - amount)
 	damaged.emit(amount, from)
 	health_changed.emit(current, max_health)
+	print("[Health:", name, "] Daño aplicado. Nuevo current=", current)
 	if current <= 0.0:
 		died.emit()
 	if invul_time > 0.0:

@@ -7,6 +7,7 @@ const PHYSICS_LAYERS := preload("res://scripts/core/PhysicsLayers.gd")
 @export_flags_3d_physics var detection_mask: int = PHYSICS_LAYERS.LAYER_PLAYER | PHYSICS_LAYERS.LAYER_ALLY | PHYSICS_LAYERS.LAYER_ENEMY
 
 var _owner_body: CharacterBody3D
+var _owner_label: String = "?"
 var _modules_root: Node
 var _attack_module: AttackModule
 var _overlapping_body_ids: Dictionary = {}
@@ -30,7 +31,11 @@ func _ready() -> void:
 		area_exited.connect(_on_area_exited)
 	_owner_body = _find_character_body()
 	if _owner_body:
-		print("[AttackHitbox] Owner body encontrado: ", str(_owner_body.name), " en capa: ", _owner_body.collision_layer)
+		_owner_label = str(_owner_body.name)
+		print("[AttackHitbox] Owner body encontrado: ", _owner_label, " en capa: ", _owner_body.collision_layer)
+	else:
+		_owner_label = "<sin_owner>"
+	set_physics_process(true)
 
 func _on_body_entered(body: Node) -> void:
 	var body_name := "null"
@@ -69,6 +74,20 @@ func process_existing_overlaps() -> void:
 	if not monitoring:
 		return
 	_cleanup_invalid_targets()
+	_print_debug_overlaps("process_existing_overlaps")
+	for body in _overlapping_body_ids.values():
+		_handle_target(body)
+	for area in _overlapping_area_ids.values():
+		_handle_target(area)
+
+func _physics_process(_delta: float) -> void:
+	var attack_module := _resolve_attack_module()
+	if attack_module == null or not is_instance_valid(attack_module):
+		return
+	if not attack_module.hit_active:
+		return
+	_cleanup_invalid_targets()
+	_print_debug_overlaps("_physics_process")
 	for body in _overlapping_body_ids.values():
 		_handle_target(body)
 	for area in _overlapping_area_ids.values():
@@ -77,8 +96,12 @@ func process_existing_overlaps() -> void:
 func _track_body(body: Node) -> void:
 	if body == null:
 		return
+	if body == _owner_body:
+		print("[AttackHitbox] (", _owner_label, ") Ignorando track de owner")
+		return
 	var key := body.get_instance_id()
 	_overlapping_body_ids[key] = body
+	print("[AttackHitbox] (", _owner_label, ") Body trackeado: ", str(body.name), " → total cuerpos: ", _overlapping_body_ids.size())
 
 func _untrack_body(body: Node) -> void:
 	if body == null:
@@ -91,6 +114,7 @@ func _track_area(area: Area3D) -> void:
 		return
 	var key := area.get_instance_id()
 	_overlapping_area_ids[key] = area
+	print("[AttackHitbox] (", _owner_label, ") Área trackeada: ", str(area.name), " → total áreas: ", _overlapping_area_ids.size())
 
 func _untrack_area(area: Area3D) -> void:
 	if area == null:
@@ -113,28 +137,54 @@ func _cleanup_invalid_targets() -> void:
 			remove_area_ids.append(key)
 	for key in remove_area_ids:
 		_overlapping_area_ids.erase(key)
+	if remove_body_ids.size() > 0 or remove_area_ids.size() > 0:
+		print("[AttackHitbox] (", _owner_label, ") Limpieza de overlaps → cuerpos removidos: ", remove_body_ids.size(), ", áreas removidas: ", remove_area_ids.size())
+
+func _print_debug_overlaps(context: String) -> void:
+	if _overlapping_body_ids.is_empty() and _overlapping_area_ids.is_empty():
+		print("[AttackHitbox] (", _owner_label, ") ", context, " → sin overlaps registrados")
+		return
+	var bodies: Array[String] = []
+	for body in _overlapping_body_ids.values():
+		if body != null and is_instance_valid(body):
+			bodies.append(str(body.name))
+	var areas: Array[String] = []
+	for area in _overlapping_area_ids.values():
+		if area != null and is_instance_valid(area):
+			areas.append(str(area.name))
+	print("[AttackHitbox] (", _owner_label, ") ", context, " → cuerpos: ", ", ".join(bodies), " | áreas: ", ", ".join(areas))
 
 func _handle_target(target: Node) -> void:
 	var attack_module := _resolve_attack_module()
 	if attack_module == null or not is_instance_valid(attack_module):
-		print("[AttackHitbox] ERROR: No se pudo resolver AttackModule")
+		print("[AttackHitbox] (", _owner_label, ") ERROR: No se pudo resolver AttackModule")
 		return
 	if not attack_module.hit_active:
-		print("[AttackHitbox] Ataque no activo, ignorando overlap")
+		print("[AttackHitbox] (", _owner_label, ") Ataque no activo, ignorando overlap con ", _describe_target(target))
 		return
 	var character := _extract_character_body(target)
 	if character == null:
 		var target_name := "null"
 		if target:
 			target_name = str(target.name)
-		print("[AttackHitbox] No se pudo extraer CharacterBody3D de: ", target_name)
+		print("[AttackHitbox] (", _owner_label, ") No se pudo extraer CharacterBody3D de: ", target_name)
 		return
 	if character == _owner_body:
-		print("[AttackHitbox] Target es el owner, ignorando (no auto-daño)")
+		print("[AttackHitbox] (", _owner_label, ") Target es el owner (", str(character.name), "), ignorando")
 		return
 	var hit_normal := -global_transform.basis.z
-	print("[AttackHitbox] Llamando on_attack_overlap para: ", str(character.name))
+	print("[AttackHitbox] (", _owner_label, ") Llamando on_attack_overlap para: ", str(character.name), " desde ", _describe_target(target))
 	attack_module.on_attack_overlap(character, global_position, hit_normal)
+
+func _describe_target(target: Node) -> String:
+	if target == null:
+		return "<null>"
+	var parts: Array[String] = []
+	parts.append(str(target.name))
+	parts.append(target.get_class())
+	if target is CollisionObject3D:
+		parts.append("layer=" + str(target.collision_layer))
+	return "[" + ", ".join(parts) + "]"
 
 func _resolve_attack_module() -> AttackModule:
 	if _attack_module != null and is_instance_valid(_attack_module):

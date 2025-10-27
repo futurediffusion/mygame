@@ -779,9 +779,12 @@ func _clear_hitbox_tracking() -> void:
 func _apply_damage_to_target(target_node: Node, damage_amount: float) -> void:
 	var victim := _resolve_target_body(target_node)
 	if victim == null or not is_instance_valid(victim):
+		print("[AttackModule] ERROR: Víctima inválida para aplicar daño (target=", str(target_node), ")")
 		return
 	if victim == _owner_body:
+		print("[AttackModule] Aviso: se intentó aplicar daño al owner ", victim.name, ", ignorando")
 		return
+	print("[AttackModule] Procesando daño → víctima=", victim.name, ", amount=", damage_amount)
 	var health_node: Node = null
 	if victim.has_method("get_node_or_null"):
 		health_node = victim.get_node_or_null(^"Health")
@@ -790,12 +793,14 @@ func _apply_damage_to_target(target_node: Node, damage_amount: float) -> void:
 	if health_node == null:
 		health_node = victim.find_child("Health", true, false)
 	if health_node != null and is_instance_valid(health_node) and health_node.has_method("take_damage"):
+		print("[AttackModule]   ✓ Nodo Health encontrado: ", health_node.name)
 		var source: Node = self
 		if _owner_body != null and is_instance_valid(_owner_body):
 			source = _owner_body
 		health_node.take_damage(damage_amount, source)
 		print("[AttackModule] Daño aplicado vía Health.take_damage(): ", damage_amount, " a ", victim.name)
 		return
+	print("[AttackModule]   ⚠️ Nodo Health no disponible, verificando apply_damage() en ", victim.name)
 	if victim.has_method("apply_damage"):
 		var source: Node = self
 		if _owner_body != null and is_instance_valid(_owner_body):
