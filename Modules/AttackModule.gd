@@ -783,28 +783,27 @@ func _apply_damage_to_target(target_node: Node, damage_amount: float) -> void:
 	if victim == _owner_body:
 		return
 	var health_node: Node = null
-	for child in victim.get_children():
-		if child.name == "Health" or child is Health:
-			health_node = child
-			break
+	if victim.has_method("get_node_or_null"):
+		health_node = victim.get_node_or_null(^"Health")
+		if health_node == null:
+			health_node = victim.get_node_or_null("Health")
 	if health_node == null:
-		if victim.has_method("apply_damage"):
-			var source: Node = self
-			if _owner_body != null and is_instance_valid(_owner_body):
-				source = _owner_body
-			victim.apply_damage(damage_amount, source)
-			print("[AttackModule] Daño aplicado vía apply_damage(): ", damage_amount, " a ", victim.name)
-		else:
-			print("[AttackModule] ERROR: Víctima ", victim.name, " no tiene método apply_damage() ni nodo Health")
-		return
-	if health_node.has_method("take_damage"):
+		health_node = victim.find_child("Health", true, false)
+	if health_node != null and is_instance_valid(health_node) and health_node.has_method("take_damage"):
 		var source: Node = self
 		if _owner_body != null and is_instance_valid(_owner_body):
 			source = _owner_body
 		health_node.take_damage(damage_amount, source)
 		print("[AttackModule] Daño aplicado vía Health.take_damage(): ", damage_amount, " a ", victim.name)
+		return
+	if victim.has_method("apply_damage"):
+		var source: Node = self
+		if _owner_body != null and is_instance_valid(_owner_body):
+			source = _owner_body
+		victim.apply_damage(damage_amount, source)
+		print("[AttackModule] Daño aplicado vía apply_damage(): ", damage_amount, " a ", victim.name)
 	else:
-		print("[AttackModule] ERROR: Nodo Health de ", victim.name, " no tiene método take_damage()")
+		print("[AttackModule] ERROR: Víctima ", victim.name, " no tiene método apply_damage() ni nodo Health")
 
 func _resolve_target_body(node: Node) -> CharacterBody3D:
 	var current := node
