@@ -466,18 +466,28 @@ func _start_combo_step(step: int) -> void:
 	attack_started.emit(step)
 
 func _fire_step(step: int) -> void:
+	print("\n[AttackModule] >>> _fire_step iniciado para step: ", step)
 	var tree := _animation_tree
 	if tree == null or not is_instance_valid(tree):
+		print("[AttackModule] ❌ AnimationTree no disponible en _fire_step")
 		return
 	var fired := false
 	var request_params: Array = _punch_request_params.get(step, [])
+	print("[AttackModule] request_params encontrados: ", request_params.size())
 	for param in request_params:
+		print("[AttackModule]   → Enviando FIRE para: ", param)
 		tree.set(param, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
 		fired = true
 	if not fired:
 		var active_params: Array = _punch_active_params.get(step, [])
+		print("[AttackModule] sin requests, activando params: ", active_params.size())
 		for param in active_params:
+			print("[AttackModule]   → Activando parámetro: ", param)
 			tree.set(param, true)
+	else:
+		var active_params: Array = _punch_active_params.get(step, [])
+		if active_params.size() > 0:
+			print("[AttackModule]   (info) params activos omitidos: ", active_params)
 
 func _end_or_continue_combo() -> void:
 	var last_step := combo_step
