@@ -66,7 +66,7 @@ func _resolve_dependencies() -> void:
 	if _anim_tree:
 		print("[AttackBridge] ✓ AnimationTree encontrado")
 		for param: String in TREE_PARAMS_TO_ANIM.keys():
-			if _anim_tree.has_parameter(param):
+			if _anim_tree_has_param(param):
 				_last_checked_params[param] = false
 
 	if _anim_player:
@@ -92,7 +92,7 @@ func _check_animation_tree_state() -> void:
 		return
 
 	for param in TREE_PARAMS_TO_ANIM.keys():
-		if not _anim_tree.has_parameter(param):
+		if not _anim_tree_has_param(param):
 			continue
 
 		var is_active: bool = _anim_tree.get(param)
@@ -110,6 +110,27 @@ func _check_animation_tree_state() -> void:
 				_end_attack_animation(anim_name)
 
 		_last_checked_params[param] = is_active
+
+func _anim_tree_has_param(param: String) -> bool:
+	if _anim_tree == null:
+		return false
+
+	if _anim_tree.has_method("has_parameter"):
+		var has_param_variant: Variant = _anim_tree.call("has_parameter", param)
+		if has_param_variant is bool:
+			if has_param_variant:
+				return true
+		elif has_param_variant == true:
+			return true
+
+	if _anim_tree.has_method("get_property_list"):
+		var param_list: Array = _anim_tree.get_property_list()
+		for prop in param_list:
+			if prop is Dictionary and prop.has("name"):
+				if String(prop["name"]) == param:
+					return true
+
+	return false
 
 func _process_attack_window(_delta: float) -> void:
 	if not ATTACK_WINDOWS.has(_current_attack_anim):
