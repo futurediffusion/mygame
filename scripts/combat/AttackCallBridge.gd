@@ -65,8 +65,9 @@ func _resolve_dependencies() -> void:
 
 	if _anim_tree:
 		print("[AttackBridge] ✓ AnimationTree encontrado")
-		for param in TREE_PARAMS_TO_ANIM.keys():
-			_last_checked_params[param] = false
+		for param: String in TREE_PARAMS_TO_ANIM.keys():
+			if _anim_tree.has_parameter(param):
+				_last_checked_params[param] = false
 
 	if _anim_player:
 		if not _anim_player.animation_started.is_connected(_on_animation_started):
@@ -87,6 +88,9 @@ func _process(delta: float) -> void:
 		_process_attack_window(delta)
 
 func _check_animation_tree_state() -> void:
+	if _anim_tree == null:
+		return
+
 	for param in TREE_PARAMS_TO_ANIM.keys():
 		if not _anim_tree.has_parameter(param):
 			continue
